@@ -1015,7 +1015,32 @@ export default function OperatorRegistrasiTest() {
                           <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { if (e.target.files && e.target.files[0]) { setFileSuratPermintaan(e.target.files[0]); toast({ title: "File Dipilih", description: e.target.files[0].name }); } }} />
                         </div>
                     </div>
-                    
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid gap-2">
+                          <Label>Jenis {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label>
+                          <SearchableSelect options={refJenisLitmas} value={selectedJenisLitmas} onSelect={setSelectedJenisLitmas} labelKey="jenis" valueKey="jenis" placeholder="Pilih Jenis..." searchPlaceholder="Cari jenis..." name="jenis_litmas" />
+                      </div>
+                      <div className="grid gap-2">
+                          <Label>Asal UPT (ref_upt)</Label>
+                          <SearchableSelect options={refUpt} value={selectedUpt} onSelect={setSelectedUpt} labelKey="nama_upt" valueKey="id_upt" placeholder="Pilih UPT..." searchPlaceholder="Cari UPT..." name="id_upt" />
+                      </div>
+                      <div className="grid gap-2"><Label>Nomor Urut</Label><Input name="nomor_urut" type="number" defaultValue={editingLitmas?.nomor_urut || ''} /></div>
+                      <div className="grid gap-2">
+                          <Label>Asal Bapas (ref_bapas)</Label>
+                          <SearchableSelect options={refBapas} value={selectedBapas} onSelect={setSelectedBapas} labelKey="nama_bapas" valueKey="nama_bapas" placeholder="Pilih Bapas..." searchPlaceholder="Cari Bapas..." name="asal_bapas" />
+                      </div>
+                      <div className="grid gap-2"><Label>Tanggal Registrasi</Label><Input name="tanggal_registrasi" type="date" defaultValue={editingLitmas?.tanggal_registrasi || new Date().toISOString().split('T')[0]} /></div>
+                      <div className="grid gap-2"><Label>Nomor Register {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label><Input name="nomor_register_litmas" defaultValue={editingLitmas?.nomor_register_litmas || ''} placeholder="Reg. Bapas..." /></div>
+                      <div className="col-span-2"><Separator className="my-2" /></div>
+                      <div className="grid gap-2"><Label>No. Surat Permintaan</Label><Input name="nomor_surat_permintaan" defaultValue={editingLitmas?.nomor_surat_permintaan || ''} required /></div>
+                      <div className="grid gap-2"><Label>Tgl Surat Permintaan</Label><Input name="tanggal_surat_permintaan" type="date" defaultValue={editingLitmas?.tanggal_surat_permintaan || ''} required /></div>
+                      <div className="grid gap-2"><Label>No. Surat Pelimpahan</Label><Input name="nomor_surat_pelimpahan" defaultValue={editingLitmas?.nomor_surat_pelimpahan || ''} /></div>
+                      <div className="grid gap-2"><Label>Tgl Surat Pelimpahan</Label><Input name="tanggal_surat_pelimpahan" type="date" defaultValue={editingLitmas?.tanggal_surat_pelimpahan || ''} /></div>
+                      <div className="grid gap-2"><Label>Tgl Diterima Bapas</Label><Input name="tanggal_diterima_bapas" type="date" defaultValue={editingLitmas?.tanggal_diterima_bapas || ''} required /></div>
+                      <div className="grid gap-2"><Label>No. Agenda Masuk</Label><Input name="nomor_surat_masuk" defaultValue={editingLitmas?.nomor_surat_masuk || ''} /></div>
+                    </div>
+
                     <Separator />
 
                     <div className="space-y-4 bg-red-50 p-6 rounded-lg border border-red-100">
@@ -1057,31 +1082,7 @@ export default function OperatorRegistrasiTest() {
                     </div>
 
                     <Separator />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                          <Label>Jenis {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label>
-                          <SearchableSelect options={refJenisLitmas} value={selectedJenisLitmas} onSelect={setSelectedJenisLitmas} labelKey="jenis" valueKey="jenis" placeholder="Pilih Jenis..." searchPlaceholder="Cari jenis..." name="jenis_litmas" />
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Asal UPT (ref_upt)</Label>
-                          <SearchableSelect options={refUpt} value={selectedUpt} onSelect={setSelectedUpt} labelKey="nama_upt" valueKey="id_upt" placeholder="Pilih UPT..." searchPlaceholder="Cari UPT..." name="id_upt" />
-                      </div>
-                      <div className="grid gap-2"><Label>Nomor Urut</Label><Input name="nomor_urut" type="number" defaultValue={editingLitmas?.nomor_urut || ''} /></div>
-                      <div className="grid gap-2">
-                          <Label>Asal Bapas (ref_bapas)</Label>
-                          <SearchableSelect options={refBapas} value={selectedBapas} onSelect={setSelectedBapas} labelKey="nama_bapas" valueKey="nama_bapas" placeholder="Pilih Bapas..." searchPlaceholder="Cari Bapas..." name="asal_bapas" />
-                      </div>
-                      <div className="grid gap-2"><Label>Tanggal Registrasi</Label><Input name="tanggal_registrasi" type="date" defaultValue={editingLitmas?.tanggal_registrasi || new Date().toISOString().split('T')[0]} /></div>
-                      <div className="grid gap-2"><Label>Nomor Register {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label><Input name="nomor_register_litmas" defaultValue={editingLitmas?.nomor_register_litmas || ''} placeholder="Reg. Bapas..." /></div>
-                      <div className="col-span-2"><Separator className="my-2" /></div>
-                      <div className="grid gap-2"><Label>No. Surat Permintaan</Label><Input name="nomor_surat_permintaan" defaultValue={editingLitmas?.nomor_surat_permintaan || ''} required /></div>
-                      <div className="grid gap-2"><Label>Tgl Surat Permintaan</Label><Input name="tanggal_surat_permintaan" type="date" defaultValue={editingLitmas?.tanggal_surat_permintaan || ''} required /></div>
-                      <div className="grid gap-2"><Label>No. Surat Pelimpahan</Label><Input name="nomor_surat_pelimpahan" defaultValue={editingLitmas?.nomor_surat_pelimpahan || ''} /></div>
-                      <div className="grid gap-2"><Label>Tgl Surat Pelimpahan</Label><Input name="tanggal_surat_pelimpahan" type="date" defaultValue={editingLitmas?.tanggal_surat_pelimpahan || ''} /></div>
-                      <div className="grid gap-2"><Label>Tgl Diterima Bapas</Label><Input name="tanggal_diterima_bapas" type="date" defaultValue={editingLitmas?.tanggal_diterima_bapas || ''} required /></div>
-                      <div className="grid gap-2"><Label>No. Agenda Masuk</Label><Input name="nomor_surat_masuk" defaultValue={editingLitmas?.nomor_surat_masuk || ''} /></div>
-                    </div>
+                    
                     <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 space-y-4">
                       <div className="grid gap-2">
                         <Label className="text-blue-900 font-bold flex items-center gap-2"><UserCheck className="w-4 h-4" /> Tunjuk Petugas PK</Label>

@@ -38,6 +38,13 @@ interface LitmasTaskData {
     nama_klien: string;
     nomor_register_lapas: string;
     kategori_usia: string;
+    // --- TAMBAHAN: Data Penjamin ---
+    penjamin?: {
+      nama_penjamin: string | null;
+      nomor_telepon: string | null;
+      hubungan_klien: string | null;
+      alamat: string | null;
+    }[] | null;
   } | null;
   petugas_pk: {
     nama: string;
@@ -59,11 +66,22 @@ async function getLitmasTasksExternal(client: any, userId: string, isAdmin: bool
         pkId = data.id;
     }
 
+    // --- PERBAIKAN: Menambahkan join penjamin di dalam relasi klien ---
     let query = client
         .from('litmas')
         .select(`
             *,
-            klien:klien!litmas_id_klien_fkey (nama_klien, nomor_register_lapas, kategori_usia),
+            klien:klien!litmas_id_klien_fkey (
+                nama_klien, 
+                nomor_register_lapas, 
+                kategori_usia,
+                penjamin (
+                    nama_penjamin,
+                    nomor_telepon,
+                    hubungan_klien,
+                    alamat
+                )
+            ),
             petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip),
             jadwal:tpp_schedules!litmas_tpp_schedule_id_fkey (tanggal_sidang, jenis_sidang)
         `)

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, ExternalLink, History, Calendar, Clock, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, ExternalLink, History, Calendar, Clock, Upload, CheckCircle2, AlertCircle, UserCheck, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -217,7 +217,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                 <div className="flex items-start justify-between mr-6">
                     <div className="space-y-1">
                         <DialogTitle className="flex items-center gap-2 text-xl">
-                            <FileText className="w-5 h-5 text-blue-600"/> Detail Tugas Litmas
+                            <FileText className="w-5 h-5 text-blue-600"/> Detail Tugas Layanan
                         </DialogTitle>
                         <DialogDescription className="text-xs">
                             ID: <span className="font-mono font-medium text-slate-700">#{task?.id_litmas}</span> • 
@@ -338,7 +338,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                         {/* 3. INFO KLIEN GRID */}
                         <div className="bg-slate-50 p-5 rounded-lg border border-slate-100">
                             <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-slate-500"/> Data Klien & Litmas
+                                <FileText className="w-4 h-4 text-slate-500"/> Data Klien & Layanan
                             </h4>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-sm">
                                 <div>
@@ -368,6 +368,42 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* --- NEW: DATA PENJAMIN --- */}
+                        <div className="bg-green-50/50 p-5 rounded-lg border border-green-100 shadow-sm">
+                            <h4 className="text-sm font-bold text-green-900 mb-4 flex items-center gap-2">
+                                <UserCheck className="w-4 h-4 text-green-700"/> Data Penjamin (Kontak Darurat)
+                            </h4>
+                            {task?.klien?.penjamin && task.klien.penjamin.length > 0 ? (
+                                <div className="space-y-4">
+                                    {task.klien.penjamin.map((p: any, idx: number) => (
+                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-white p-4 rounded-md border border-green-100">
+                                            <div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Nama Penjamin</span>
+                                                <p className="font-semibold text-slate-800">{p.nama_penjamin || '-'}</p>
+                                                <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200 text-[10px]">
+                                                    {p.hubungan_klien?.replace('_', ' ').toUpperCase() || '-'}
+                                                </Badge>
+                                            </div>
+                                            <div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Nomor Telepon</span>
+                                                <p className="font-bold text-green-700 flex items-center gap-1">
+                                                    <Phone className="w-3 h-3"/> {p.nomor_telepon || '-'}
+                                                </p>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Alamat Lengkap</span>
+                                                <p className="text-slate-700">{p.alamat || '-'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-white p-4 rounded-md border border-green-100 text-center">
+                                    <p className="text-xs text-slate-500 italic">Belum ada data penjamin yang terdaftar pada klien ini.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* 4. DAFTAR DOKUMEN */}
