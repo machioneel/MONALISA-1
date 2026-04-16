@@ -7,6 +7,12 @@ export const JENIS_LITMAS = [
   "Lainnya"
 ];
 
+export const TAHAPAN_LAYANAN = [
+  "Pra Adjudikasi",
+  "Adjudikasi",
+  "Pasca Adjudikasi"
+];
+
 export const AGAMA_OPTIONS = [
   "Islam", 
   "Kristen", 
@@ -15,6 +21,11 @@ export const AGAMA_OPTIONS = [
   "Buddha", 
   "Konghucu", 
   "Lainnya"
+];
+
+export const KEWARGANEGARAAN_OPTIONS = [
+  "WNI",
+  "WNA"
 ];
 
 export const PENDIDIKAN_OPTIONS = [
@@ -26,4 +37,11 @@ export const PENDIDIKAN_OPTIONS = [
   "S1", 
   "S2", 
   "S3"
+];
+
+export const STATUS_PERKAWINAN = [
+  "Belum Kawin",
+  "Kawin",
+  "Cerai Hidup",
+  "Cerai Mati"
 ];
