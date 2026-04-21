@@ -16,7 +16,7 @@ import {
   ClipboardList, Gavel, CalendarDays, Loader2, Check, ChevronsUpDown, Search, 
   User, UserCheck, List, RefreshCw, Pencil, XCircle, MapPin, AlertTriangle, 
   Eye, FileText, ShieldAlert, Plus, Trash2, Phone, Briefcase, GraduationCap, AlertCircle, Save,
-  CloudUpload, History, Clock, ExternalLink, FileClock, Globe, Activity
+  CloudUpload, History, Clock, ExternalLink, Activity, Globe, FileClock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -32,11 +32,41 @@ import { format, subDays } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
 // --- IMPORTS DARI FILE LAIN ---
-import { DurationInput } from '@/components/registrasi/DurationInput';
-import { SuggestionList } from '@/components/registrasi/SuggestionList';
-import { ClientSelector } from '@/components/registrasi/ClientSelector';
+import { DurationInput } from '@/components/registrasi/Features/DurationInput';
+import { SuggestionList } from '@/components/registrasi/Features/SuggestionList';
+import { ClientSelector } from '@/components/registrasi/Features/ClientSelector';
 import { PetugasPK, Klien } from '@/types/auth'; 
 import { Database } from '@/integrations/supabase/types';
+
+// --- IMPORTS KOMPONEN LAYANAN YANG SUDAH DIPISAH ---
+import { FormLitmas } from '@/components/registrasi/FormLayanan/FormLitmas';
+import { FormPendampingan } from '@/components/registrasi/FormLayanan/FormPendampingan';
+import { FormPengawasan } from '@/components/registrasi/FormLayanan/FormPengawasan';
+import { FormPembimbingan } from '@/components/registrasi/FormLayanan/FormPembimbingan';
+
+// --- HIERARKI LAYANAN ---
+export const HIERARKI_LAYANAN = {
+  litmas: {
+    "Pra Adjudikasi": ["Litmas RJ", "Litmas Diversi", "Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan"],
+    "Adjudikasi": ["Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan"],
+    "Pasca Adjudikasi": ["Litmas Awal", "Litmas Integrasi", "Litmas Mutasi", "Litmas Grasi", "Litmas Perubahan Pidana", "Litmas Bimbingan"]
+  },
+  pendampingan: {
+    "Pra Adjudikasi": ["BAP", "P21", "Mediasi"],
+    "Adjudikasi": ["Sidang"],
+    "Pasca Adjudikasi": [] 
+  },
+  pembimbingan: {
+    "Pra Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)"],
+    "Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)"],
+    "Pasca Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)", "Kepribadian/Kemandirian", "Pindah Bimbingan"]
+  },
+  pengawasan: {
+    "Pra Adjudikasi": ["Monitoring Pelaksanaan RJ/Diversi"],
+    "Adjudikasi": ["Monitoring Pelaksanaan RJ/Diversi", "Monitoring Pelaksaan Perawatan Tahanan dan Penempatan Tahanan"],
+    "Pasca Adjudikasi": ["Monitoring Program Pembinaan awal", "Monitoring Program Pembimbingan"]
+  }
+};
 
 // --- TYPE DEFINITIONS FOR REFERENCES ---
 type RefAgama = Database['public']['Tables']['ref_agama']['Row'];
@@ -57,28 +87,17 @@ interface RefKelurahanExtended {
 }
 
 // --- REUSABLE COMPONENT: SEARCHABLE COMBOBOX ---
-interface SearchableSelectProps {
-  options: any[];
-  value: string | undefined;
-  onSelect: (val: string) => void;
-  labelKey: string;
-  valueKey: string;
-  placeholder: string;
-  searchPlaceholder: string;
-  name: string;
-}
-
-const SearchableSelect = ({ 
+export const SearchableSelect = ({ 
   options, value, onSelect, labelKey, valueKey, placeholder, searchPlaceholder, name 
-}: SearchableSelectProps) => {
+}: any) => {
   const [open, setOpen] = useState(false);
-  const selectedLabel = options.find((item) => String(item[valueKey]) === value)?.[labelKey];
+  const selectedLabel = options.find((item: any) => String(item[valueKey]) === value)?.[labelKey];
 
   return (
     <div className="grid gap-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal bg-white">
+          <Button type="button" variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal bg-white">
             {value && selectedLabel ? selectedLabel : <span className="text-muted-foreground">{placeholder}</span>}
             <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -89,7 +108,7 @@ const SearchableSelect = ({
             <CommandList>
               <CommandEmpty>Tidak ditemukan.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-y-auto">
-                {options.map((item) => (
+                {options.map((item: any) => (
                   <CommandItem key={item[valueKey]} value={item[labelKey]} onSelect={() => { onSelect(String(item[valueKey])); setOpen(false); }}>
                     <Check className={cn("mr-2 h-4 w-4", value === String(item[valueKey]) ? "opacity-100" : "opacity-0")} />
                     {item[labelKey]}
@@ -117,9 +136,9 @@ export default function OperatorRegistrasiTest() {
   const [activeTab, setActiveTab] = useState("klien");
   const [loading, setLoading] = useState(false);
 
-  // --- NEW STATE: LAYANAN & TAHAPAN ---
+  // --- STATE LAYANAN & TAHAPAN ---
   const [layananSubTab, setLayananSubTab] = useState("litmas"); 
-  const [tahapanLayanan, setTahapanLayanan] = useState("");
+  const [tahapanLayanan, setTahapanLayanan] = useState<"Pra Adjudikasi" | "Adjudikasi" | "Pasca Adjudikasi" | "">("");
   
   // --- STATE DATA REFERENSI ---
   const [listPK, setListPK] = useState<PetugasPK[]>([]);
@@ -143,13 +162,11 @@ export default function OperatorRegistrasiTest() {
   const [originalPkId, setOriginalPkId] = useState<string | null>(null);
   const [openPkCombo, setOpenPkCombo] = useState(false);
 
-  // --- UI STATE UNTUK COMBOBOX & NEW FIELDS ---
   // Klien
   const [namaAlias, setNamaAlias] = useState<string[]>(['']);
   const [kewarganegaraan, setKewarganegaraan] = useState("WNI");
   const [residivis, setResidivis] = useState("Tidak");
   const [statusPerkawinan, setStatusPerkawinan] = useState("");
-  
   const [selectedAgama, setSelectedAgama] = useState<string>("");
   const [selectedPendidikan, setSelectedPendidikan] = useState<string>("");
   const [selectedPekerjaan, setSelectedPekerjaan] = useState<string>("");
@@ -163,7 +180,6 @@ export default function OperatorRegistrasiTest() {
   const [selectedPekerjaanPenjamin, setSelectedPekerjaanPenjamin] = useState<string>("");
   const [selectedKelurahanPenjamin, setSelectedKelurahanPenjamin] = useState<string>(""); 
   const [manualKecamatanPenjamin, setManualKecamatanPenjamin] = useState<string>("");
-  
   const [penjaminTglLahir, setPenjaminTglLahir] = useState("");
   const [penjaminUsia, setPenjaminUsia] = useState("");
 
@@ -200,7 +216,7 @@ export default function OperatorRegistrasiTest() {
   const [matchesPenjamin, setMatchesPenjamin] = useState<any[]>([]);
   const [activeInput, setActiveInput] = useState<string | null>(null);
 
-  // Perkara & File Upload (NOW IN LAYANAN)
+  // Perkara & File Upload
   const [perkaraList, setPerkaraList] = useState<any[]>([]);
   const [tempPerkara, setTempPerkara] = useState({
       pasal: '', tindak_pidana: '', nomor_putusan: '', 
@@ -210,25 +226,31 @@ export default function OperatorRegistrasiTest() {
   const [fileSuratPermintaan, setFileSuratPermintaan] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Dialogs
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; type: 'klien' | 'penjamin' | 'layanan' | null; payload: any | null; warningMessage?: string | null; }>({ isOpen: false, type: null, payload: null, warningMessage: null });
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicatePayload, setDuplicatePayload] = useState<any>(null); 
 
-  // --- LOGIC FUNCTIONS ---
+  // --- LOGIC HIERARKI LAYANAN ---
+  useEffect(() => {
+    setSelectedJenisLitmas("");
+  }, [layananSubTab, tahapanLayanan]);
+
+  const currentJenisOptions = (tahapanLayanan && layananSubTab) 
+      // @ts-ignore
+      ? (HIERARKI_LAYANAN[layananSubTab]?.[tahapanLayanan] || []).map((j: string) => ({ jenis: j }))
+      : [];
+
   const formatDateTime = (isoString: string | null) => {
     if (!isoString) return '-';
     return new Date(isoString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Validasi Nomor Telepon
   const handlePhoneValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/[^0-9]/g, ''); 
     if (val.length > 14) val = val.slice(0, 14);     
     e.target.value = val;
   };
 
-  // Logic Multi Alias
   const handleAddAlias = () => setNamaAlias([...namaAlias, '']);
   const handleRemoveAlias = (index: number) => {
     const list = [...namaAlias];
@@ -385,7 +407,6 @@ export default function OperatorRegistrasiTest() {
         const safeData = data as any;
         setEditingKlien(safeData);
         
-        // --- Populate Klien States ---
         setSelectedAgama(safeData.agama || "");
         setSelectedPendidikan(safeData.pendidikan || "");
         setSelectedPekerjaan(safeData.pekerjaan || "");
@@ -397,7 +418,6 @@ export default function OperatorRegistrasiTest() {
         if (safeData.kelurahan) handleSelectKelurahan(safeData.kelurahan);
         else { setSelectedKelurahan(""); setManualKecamatan(""); }
         
-        // --- Populate Penjamin States ---
         const pjn = safeData.penjamin?.[0] || null;
         setEditingPenjamin(pjn);
         if (pjn) {
@@ -426,7 +446,6 @@ export default function OperatorRegistrasiTest() {
             setPenjaminTglLahir(""); setPenjaminUsia("");
         }
 
-        // --- Populate Layanan States ---
         const firstLitmas = safeData.litmas?.[0] || null;
         setEditingLitmas(firstLitmas);
         setPerkaraList(firstLitmas?.perkara || []);
@@ -436,7 +455,7 @@ export default function OperatorRegistrasiTest() {
             setSelectedJenisLitmas(firstLitmas.jenis_litmas || "");
             setSelectedUpt(firstLitmas.id_upt ? String(firstLitmas.id_upt) : "");
             setSelectedBapas(firstLitmas.asal_bapas || "");
-            setTahapanLayanan(firstLitmas.tahapan_layanan || "");
+            setTahapanLayanan((firstLitmas.tahapan_layanan as any) || "");
             setLayananSubTab(firstLitmas.kategori_layanan || "litmas");
             setNomorUrutLayanan(firstLitmas.nomor_urut ? String(firstLitmas.nomor_urut).padStart(4, '0') : "");
         } else {
@@ -466,7 +485,6 @@ export default function OperatorRegistrasiTest() {
     setTglLahir(""); setHitungUsia(""); setHitungKategori("");
     setTempPerkara({ pasal: '', tindak_pidana: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' });
     
-    // Reset Selection States
     setNamaAlias(['']); setKewarganegaraan("WNI"); setResidivis("Tidak"); setStatusPerkawinan("");
     setSelectedAgama(""); setSelectedPendidikan(""); setSelectedPekerjaan("");
     setSelectedKelurahan(""); setManualKecamatan("");
@@ -481,48 +499,62 @@ export default function OperatorRegistrasiTest() {
 
   const handleCancelButton = (showToast = true) => { resetFormState(); if (showToast) toast({ title: "Edit Dibatalkan", description: "Form direset." }); };
 
-  // --- AUTO-FILL PENJAMIN EFFECT ---
+  const refreshEditDataOnly = async (idKlien: number) => {
+    try {
+        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*))`).eq('id_klien', idKlien).single();
+        if (error) throw error;
+        const safeData = data as any;
+        setEditingKlien(safeData);
+        setEditingPenjamin(safeData.penjamin?.[0] || null);
+        const firstLitmas = safeData.litmas?.[0] || null;
+        setEditingLitmas(firstLitmas);
+        setPerkaraList(firstLitmas?.perkara || []);
+    } catch (error) { console.error("Gagal refresh data:", error); }
+  };
+
+  // --- AUTO FILL DATA KETIKA KLIEN DIPILIH ---
   useEffect(() => {
     if (!selectedClientId) return;
 
-    const fetchExistingPenjamin = async () => {
+    const fetchExistingData = async () => {
       try {
-        const { data } = await supabase.from('penjamin').select('*').eq('id_klien', selectedClientId).maybeSingle();
+        // --- 1. Fetch Penjamin Existing ---
+        const { data: penjaminData } = await supabase.from('penjamin').select('*').eq('id_klien', selectedClientId).maybeSingle();
         
-        if (data) {
-          // Cegah re-render jika data penjamin sudah ter-load (misal dari handleEditClick di tabel)
-          if (editingPenjamin && editingPenjamin.id_klien === data.id_klien) return;
-
-          setEditingPenjamin(data);
-          setSelectedHubungan(data.hubungan_klien || "");
-          setSelectedAgamaPenjamin(data.agama || "");
-          setSelectedPendidikanPenjamin(data.pendidikan || "");
-          setSelectedPekerjaanPenjamin(data.pekerjaan || "");
-          setPenjaminTglLahir(data.tanggal_lahir || "");
-          
-          if (data.tanggal_lahir) {
-            const birthDate = new Date(data.tanggal_lahir);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-            setPenjaminUsia(age.toString());
+        if (penjaminData) {
+          if (editingPenjamin && editingPenjamin.id_klien === penjaminData.id_klien) {
+              // skip
           } else {
-            setPenjaminUsia(data.usia ? String(data.usia) : "");
-          }
+              setEditingPenjamin(penjaminData);
+              setSelectedHubungan(penjaminData.hubungan_klien || "");
+              setSelectedAgamaPenjamin(penjaminData.agama || "");
+              setSelectedPendidikanPenjamin(penjaminData.pendidikan || "");
+              setSelectedPekerjaanPenjamin(penjaminData.pekerjaan || "");
+              setPenjaminTglLahir(penjaminData.tanggal_lahir || "");
+              
+              if (penjaminData.tanggal_lahir) {
+                const birthDate = new Date(penjaminData.tanggal_lahir);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                setPenjaminUsia(age.toString());
+              } else {
+                setPenjaminUsia(penjaminData.usia ? String(penjaminData.usia) : "");
+              }
 
-          if (data.kelurahan) {
-            setSelectedKelurahanPenjamin(data.kelurahan);
-            const selected = refKelurahan.find(k => k.nama_kelurahan === data.kelurahan);
-            setManualKecamatanPenjamin(selected ? (selected.ref_kecamatan?.nama_kecamatan || "") : "");
-          } else {
-            setSelectedKelurahanPenjamin("");
-            setManualKecamatanPenjamin("");
-          }
+              if (penjaminData.kelurahan) {
+                setSelectedKelurahanPenjamin(penjaminData.kelurahan);
+                const selected = refKelurahan.find(k => k.nama_kelurahan === penjaminData.kelurahan);
+                setManualKecamatanPenjamin(selected ? (selected.ref_kecamatan?.nama_kecamatan || "") : "");
+              } else {
+                setSelectedKelurahanPenjamin("");
+                setManualKecamatanPenjamin("");
+              }
 
-          toast({ title: "Info", description: "Data penjamin untuk klien ini ditemukan dan diisi otomatis." });
+              toast({ title: "Info", description: "Data penjamin untuk klien ini ditemukan dan diisi otomatis." });
+          }
         } else {
-          // Kosongkan jika kita memilih klien baru yang tidak memiliki penjamin, TAPI skip reset jika kita sedang dalam proses Edit penuh
           if (!editingKlien) {
             setEditingPenjamin(null);
             setSelectedHubungan(""); setSelectedAgamaPenjamin(""); setSelectedPendidikanPenjamin(""); setSelectedPekerjaanPenjamin("");
@@ -530,12 +562,34 @@ export default function OperatorRegistrasiTest() {
             setPenjaminTglLahir(""); setPenjaminUsia("");
           }
         }
+
+        // --- 2. Fetch PK Sebelumnya ---
+        // Jika sedang membuat layanan baru (editingLitmas kosong)
+        if (!editingLitmas || editingLitmas.id_klien !== selectedClientId) {
+           const { data: latestLitmas } = await supabase
+             .from('litmas')
+             .select('nama_pk')
+             .eq('id_klien', selectedClientId)
+             .not('nama_pk', 'is', null)
+             .order('id_litmas', { ascending: false })
+             .limit(1)
+             .maybeSingle();
+
+           if (latestLitmas && latestLitmas.nama_pk) {
+             setSelectedPkId(latestLitmas.nama_pk);
+             // Jangan spam toast jika sedang mode edit penuh dari tabel
+             if (!editingKlien) {
+               toast({ title: "Petugas PK Ditemukan", description: "Petugas PK disesuaikan otomatis dari riwayat layanan sebelumnya." });
+             }
+           }
+        }
+
       } catch (error) {
-        console.error("Gagal memuat otomatis penjamin:", error);
+        console.error("Gagal memuat otomatis data penjamin/PK:", error);
       }
     };
 
-    fetchExistingPenjamin();
+    fetchExistingData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClientId]);
 
@@ -574,7 +628,6 @@ export default function OperatorRegistrasiTest() {
     }
   };
 
-  // --- SAVE HANDLERS ---
   const executeSave = async () => {
       setConfirmDialog(prev => ({ ...prev, isOpen: false })); setLoading(true);
       const { type, payload } = confirmDialog;
@@ -610,7 +663,7 @@ export default function OperatorRegistrasiTest() {
               if (editingKlien) {
                   const { error } = await supabase.from('klien').update(dataKlien).eq('id_klien', editingKlien.id_klien);
                   if (error) throw error;
-                  await refreshEditData(editingKlien.id_klien);
+                  await refreshEditDataOnly(editingKlien.id_klien);
                   toast({ title: "Berhasil", description: "Perubahan data Klien disimpan." });
                   setActiveTab("penjamin");
               } else {
@@ -633,12 +686,12 @@ export default function OperatorRegistrasiTest() {
               
               if (editingPenjamin) {
                   await supabase.from('penjamin').update(dataPenjamin).eq('id_klien', selectedClientId);
-                  if (editingKlien) await refreshEditData(editingKlien.id_klien);
+                  if (editingKlien) await refreshEditDataOnly(editingKlien.id_klien);
               } else {
                   const {count} = await supabase.from('penjamin').select('*', {count: 'exact', head:true}).eq('id_klien', selectedClientId);
                   if(count && count > 0) await supabase.from('penjamin').update(dataPenjamin).eq('id_klien', selectedClientId);
                   else await supabase.from('penjamin').insert(dataPenjamin);
-                  if (editingKlien) await refreshEditData(editingKlien.id_klien);
+                  if (editingKlien) await refreshEditDataOnly(editingKlien.id_klien);
               }
               toast({ title: "Berhasil", description: "Data Penjamin Disimpan." });
               setActiveTab("layanan");
@@ -655,7 +708,7 @@ export default function OperatorRegistrasiTest() {
               const dataLitmas = {
                   id_klien: selectedClientId, id_upt: formData.get('id_upt') ? Number(formData.get('id_upt')) : null, nama_pk: selectedPkId, 
                   nomor_urut: formData.get('nomor_urut') ? Number(formData.get('nomor_urut')) : null, nomor_surat_masuk: formData.get('nomor_surat_masuk') as string,
-                  tanggal_diterima_bapas: (formData.get('tanggal_diterima_bapas') as string) || null, jenis_litmas: formData.get('jenis_litmas') as string,
+                  tanggal_diterima_bapas: (formData.get('tanggal_diterima_bapas') as string) || null, jenis_litmas: selectedJenisLitmas, 
                   tanggal_registrasi: (formData.get('tanggal_registrasi') as string) || null, nomor_register_litmas: formData.get('nomor_register_litmas') as string,
                   asal_bapas: formData.get('asal_bapas') as string, nomor_surat_permintaan: formData.get('nomor_surat_permintaan') as string,
                   tanggal_surat_permintaan: (formData.get('tanggal_surat_permintaan') as string) || null, nomor_surat_pelimpahan: formData.get('nomor_surat_pelimpahan') as string,
@@ -745,6 +798,7 @@ export default function OperatorRegistrasiTest() {
       e.preventDefault();
       if (!selectedClientId) return toast({ variant: "destructive", title: "Error", description: "Pilih Klien dulu." });
       if (!tahapanLayanan) return toast({ variant: "destructive", title: "Error", description: "Tahapan Layanan wajib dipilih." });
+      if (!selectedJenisLitmas) return toast({ variant: "destructive", title: "Error", description: "Jenis Layanan wajib dipilih." });
       const formData = new FormData(e.currentTarget);
       setLoading(true);
       const { count } = await supabase.from('penjamin').select('*', { count: 'exact', head: true }).eq('id_klien', selectedClientId);
@@ -939,7 +993,6 @@ export default function OperatorRegistrasiTest() {
                   {editingKlien && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                       
-                      {/* Read-Only Perkara */}
                       <div className="p-4 bg-slate-50 border rounded-lg">
                           <h4 className="font-bold flex items-center gap-2 mb-3 text-slate-700"><Gavel className="w-4 h-4"/> Informasi Perkara</h4>
                           <p className="text-xs text-slate-500 mb-4 italic">Pembaruan data perkara melalui Tab Layanan.</p>
@@ -956,7 +1009,6 @@ export default function OperatorRegistrasiTest() {
                           ) : <p className="text-sm italic text-slate-400">Belum ada data perkara.</p>}
                       </div>
 
-                      {/* Read-Only Riwayat Layanan Klien */}
                       <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
                           <h4 className="font-bold flex items-center gap-2 mb-3 text-blue-800"><Activity className="w-4 h-4"/> Riwayat Layanan Klien</h4>
                           <p className="text-xs text-blue-500 mb-4 italic">Daftar layanan yang pernah dijalani.</p>
@@ -997,7 +1049,7 @@ export default function OperatorRegistrasiTest() {
             <Card className="border-t-4 border-t-green-600 shadow-sm">
               <CardHeader><CardTitle>Data Penjamin</CardTitle><CardDescription>Informasi keluarga.</CardDescription></CardHeader>
               <CardContent>
-                <form key={editingPenjamin ? `penjamin-${editingPenjamin.id_klien}` : 'penjamin-new'} onSubmit={initiateSavePenjamin} className="space-y-6 max-w-3xl mx-auto">
+                <form key={editingPenjamin ? `penjamin-${editingPenjamin.id_klien}` : 'penjamin-new'} onSubmit={initiateSavePenjamin} className="space-y-6">
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200"><ClientSelector listKlien={listKlien} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} editingKlien={editingKlien} handleCancelButton={handleCancelButton} loading={loading} userRoleCategory={userRoleCategory} /></div>
                   <div className={cn("space-y-6", !selectedClientId && "opacity-50 pointer-events-none")}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1027,7 +1079,6 @@ export default function OperatorRegistrasiTest() {
                       </div>
                       <div className="grid gap-2"><Label>Tempat Lahir</Label><Input name="tempat_lahir" defaultValue={editingPenjamin?.tempat_lahir || ''} /></div>
                       
-                      {/* --- MODIFIED: Tanggal Lahir -> Auto Usia --- */}
                       <div className="grid gap-2">
                           <Label>Tanggal Lahir</Label>
                           <Input name="tanggal_lahir" type="date" value={penjaminTglLahir} onChange={handlePenjaminDateChange} />
@@ -1069,12 +1120,13 @@ export default function OperatorRegistrasiTest() {
             <Card className="border-t-4 border-t-blue-600 shadow-sm">
               <CardHeader><CardTitle>Registrasi Layanan & Dokumen</CardTitle><CardDescription>Pilih layanan, upload surat permintaan, dan input perkara.</CardDescription></CardHeader>
               <CardContent>
-                <form key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'} onSubmit={initiateSaveLayanan} className="space-y-6 max-w-4xl mx-auto">
+                <form key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'} onSubmit={initiateSaveLayanan} className="space-y-6">
                   
                   <Tabs value={layananSubTab} onValueChange={setLayananSubTab} className="w-full mb-6">
-                    <TabsList className="grid w-full grid-cols-3 bg-blue-50/50 p-1 rounded-xl">
+                    <TabsList className="grid w-full grid-cols-4 bg-blue-50/50 p-1 rounded-xl">
                       <TabsTrigger value="litmas" className="py-2">Litmas</TabsTrigger>
                       <TabsTrigger value="pendampingan" className="py-2">Pendampingan</TabsTrigger>
+                      <TabsTrigger value="pengawasan" className="py-2">Pengawasan</TabsTrigger>
                       <TabsTrigger value="pembimbingan" className="py-2">Pembimbingan</TabsTrigger>
                     </TabsList>
                   </Tabs>
@@ -1083,17 +1135,35 @@ export default function OperatorRegistrasiTest() {
                   <div className={cn("space-y-6", !selectedClientId && "opacity-50 pointer-events-none")}>
                     
                     <div className="grid gap-2 p-4 bg-blue-50/30 border border-blue-100 rounded-xl mb-4">
-                      <Label className="font-semibold text-blue-900">Tahapan {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)} <span className="text-red-500">*</span></Label>
-                      <Select value={tahapanLayanan} onValueChange={setTahapanLayanan} required>
-                        <SelectTrigger className="bg-white"><SelectValue placeholder="Pilih Tahapan..." /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pra Adjudikasi">Pra Adjudikasi</SelectItem>
-                          <SelectItem value="Adjudikasi">Adjudikasi</SelectItem>
-                          <SelectItem value="Pasca Adjudikasi">Pasca Adjudikasi</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="font-semibold text-blue-900">Tahapan {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)} <span className="text-red-500">*</span></Label>
+                          <Select value={tahapanLayanan} onValueChange={(val: any) => setTahapanLayanan(val)} required>
+                            <SelectTrigger className="bg-white"><SelectValue placeholder="Pilih Tahapan..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Pra Adjudikasi">Pra Adjudikasi</SelectItem>
+                              <SelectItem value="Adjudikasi">Adjudikasi</SelectItem>
+                              <SelectItem value="Pasca Adjudikasi">Pasca Adjudikasi</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="font-semibold text-blue-900">Jenis Layanan Tertentu <span className="text-red-500">*</span></Label>
+                          <SearchableSelect 
+                            options={currentJenisOptions} 
+                            value={selectedJenisLitmas} 
+                            onSelect={setSelectedJenisLitmas} 
+                            labelKey="jenis" 
+                            valueKey="jenis" 
+                            placeholder={tahapanLayanan ? "Pilih Jenis..." : "Pilih Tahapan Dulu..."} 
+                            searchPlaceholder="Cari jenis..." 
+                            name="jenis_litmas" 
+                          />
+                        </div>
+                      </div>
                     </div>
 
+                    {/* UPLOAD SURAT PERMINTAAN */}
                     <div className="space-y-4">
                         <Label className="font-bold text-blue-800">Upload Surat Permintaan (Sesuai Layanan)</Label>
                         <div className="mt-2 flex justify-center rounded-lg border-2 border-dashed border-blue-300 px-6 py-6 hover:bg-blue-50 hover:border-blue-400 transition-all relative cursor-pointer group">
@@ -1128,46 +1198,10 @@ export default function OperatorRegistrasiTest() {
                           <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { if (e.target.files && e.target.files[0]) { setFileSuratPermintaan(e.target.files[0]); toast({ title: "File Dipilih", description: e.target.files[0].name }); } }} />
                         </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                          <Label>Jenis {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label>
-                          <SearchableSelect options={refJenisLitmas} value={selectedJenisLitmas} onSelect={setSelectedJenisLitmas} labelKey="jenis" valueKey="jenis" placeholder="Pilih Jenis..." searchPlaceholder="Cari jenis..." name="jenis_litmas" />
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Asal UPT (ref_upt)</Label>
-                          <SearchableSelect options={refUpt} value={selectedUpt} onSelect={setSelectedUpt} labelKey="nama_upt" valueKey="id_upt" placeholder="Pilih UPT..." searchPlaceholder="Cari UPT..." name="id_upt" />
-                      </div>
-                      
-                      {/* --- MODIFIED: Nomor Urut Format 4 Digit --- */}
-                      <div className="grid gap-2">
-                          <Label>Nomor Urut</Label>
-                          <Input 
-                              name="nomor_urut" 
-                              value={nomorUrutLayanan} 
-                              onChange={(e) => setNomorUrutLayanan(e.target.value.replace(/\D/g, '').slice(0, 4))} 
-                              onBlur={() => setNomorUrutLayanan(prev => prev ? prev.padStart(4, '0') : '')} 
-                              placeholder="0001" 
-                          />
-                      </div>
-                      
-                      <div className="grid gap-2">
-                          <Label>Asal Bapas (ref_bapas)</Label>
-                          <SearchableSelect options={refBapas} value={selectedBapas} onSelect={setSelectedBapas} labelKey="nama_bapas" valueKey="nama_bapas" placeholder="Pilih Bapas..." searchPlaceholder="Cari Bapas..." name="asal_bapas" />
-                      </div>
-                      <div className="grid gap-2"><Label>Tanggal Registrasi</Label><Input name="tanggal_registrasi" type="date" defaultValue={editingLitmas?.tanggal_registrasi || new Date().toISOString().split('T')[0]} /></div>
-                      <div className="grid gap-2"><Label>Nomor Register {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}</Label><Input name="nomor_register_litmas" defaultValue={editingLitmas?.nomor_register_litmas || ''} placeholder="Reg. Bapas..." /></div>
-                      <div className="col-span-2"><Separator className="my-2" /></div>
-                      <div className="grid gap-2"><Label>No. Surat Permintaan</Label><Input name="nomor_surat_permintaan" defaultValue={editingLitmas?.nomor_surat_permintaan || ''} required /></div>
-                      <div className="grid gap-2"><Label>Tgl Surat Permintaan</Label><Input name="tanggal_surat_permintaan" type="date" defaultValue={editingLitmas?.tanggal_surat_permintaan || ''} required /></div>
-                      <div className="grid gap-2"><Label>No. Surat Pelimpahan</Label><Input name="nomor_surat_pelimpahan" defaultValue={editingLitmas?.nomor_surat_pelimpahan || ''} /></div>
-                      <div className="grid gap-2"><Label>Tgl Surat Pelimpahan</Label><Input name="tanggal_surat_pelimpahan" type="date" defaultValue={editingLitmas?.tanggal_surat_pelimpahan || ''} /></div>
-                      <div className="grid gap-2"><Label>Tgl Diterima Bapas</Label><Input name="tanggal_diterima_bapas" type="date" defaultValue={editingLitmas?.tanggal_diterima_bapas || ''} required /></div>
-                      <div className="grid gap-2"><Label>No. Agenda Masuk</Label><Input name="nomor_surat_masuk" defaultValue={editingLitmas?.nomor_surat_masuk || ''} /></div>
-                    </div>
-
+                    
                     <Separator />
 
+                    {/* INPUT DATA PERKARA */}
                     <div className="space-y-4 bg-red-50 p-6 rounded-lg border border-red-100">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-lg text-red-700 flex items-center gap-2"><Gavel className="w-5 h-5" />Input Data Perkara</h3>
@@ -1207,7 +1241,56 @@ export default function OperatorRegistrasiTest() {
                     </div>
 
                     <Separator />
-                    
+
+                    {/* --- RENDER FORM BERDASARKAN SUB-TAB LAYANAN --- */}
+                    <div className="mt-6">
+                      {layananSubTab === 'litmas' && (
+                        <FormLitmas 
+                          editingLitmas={editingLitmas}
+                          refJenisLitmas={refJenisLitmas}
+                          refUpt={refUpt}
+                          refBapas={refBapas}
+                          selectedJenisLitmas={selectedJenisLitmas}
+                          setSelectedJenisLitmas={setSelectedJenisLitmas}
+                          selectedUpt={selectedUpt}
+                          setSelectedUpt={setSelectedUpt}
+                          selectedBapas={selectedBapas}
+                          setSelectedBapas={setSelectedBapas}
+                          nomorUrutLayanan={nomorUrutLayanan}
+                          setNomorUrutLayanan={setNomorUrutLayanan}
+                          SearchableSelect={SearchableSelect}
+                        />
+                      )}
+
+                      {layananSubTab === 'pendampingan' && (
+                        <FormPendampingan 
+                          editingLitmas={editingLitmas}
+                          refUpt={refUpt}
+                          selectedUpt={selectedUpt}
+                          setSelectedUpt={setSelectedUpt}
+                          nomorUrutLayanan={nomorUrutLayanan}
+                          setNomorUrutLayanan={setNomorUrutLayanan}
+                          SearchableSelect={SearchableSelect}
+                        />
+                      )}
+
+                      {layananSubTab === 'pengawasan' && (
+                        <FormPengawasan 
+                          editingLitmas={editingLitmas}
+                          nomorUrutLayanan={nomorUrutLayanan}
+                          setNomorUrutLayanan={setNomorUrutLayanan}
+                        />
+                      )}
+
+                      {layananSubTab === 'pembimbingan' && (
+                        <FormPembimbingan 
+                          editingLitmas={editingLitmas}
+                          nomorUrutLayanan={nomorUrutLayanan}
+                          setNomorUrutLayanan={setNomorUrutLayanan}
+                        />
+                      )}
+                    </div>
+
                     <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 space-y-4">
                       <div className="grid gap-2">
                         <Label className="text-blue-900 font-bold flex items-center gap-2"><UserCheck className="w-4 h-4" /> Tunjuk Petugas PK</Label>
@@ -1375,6 +1458,7 @@ export default function OperatorRegistrasiTest() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><History className="w-5 h-5 text-blue-600"/> Riwayat Perubahan Data</DialogTitle>
+            <DialogDescription className="sr-only">Daftar perubahan data klien.</DialogDescription>
             <DialogDescription>Daftar perubahan untuk Pekerjaan, Perkawinan, Agama, Pendidikan, Alamat, dan Telepon.</DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[400px] border rounded-md p-4 bg-slate-50/50 mt-2">
@@ -1472,7 +1556,7 @@ export default function OperatorRegistrasiTest() {
       <Dialog open={openDetail} onOpenChange={setOpenDetail}>
         <DialogContent className="max-w-4xl h-[90vh] p-0 flex flex-col overflow-hidden">
           <DialogHeader className="p-6 pb-4 bg-slate-50 border-b shrink-0">
-            <div className="flex items-center gap-4"><div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">{detailData?.nama_klien?.charAt(0) || <User />}</div><div><DialogTitle className="text-xl font-bold flex items-center gap-2">{detailData?.nama_klien}</DialogTitle><div className="flex gap-2 mt-1"><Badge variant="outline" className="bg-white border-slate-300 text-slate-600 font-normal">Reg: {detailData?.nomor_register_lapas}</Badge><Badge className={cn("text-xs font-normal", detailData?.kategori_usia === "Anak" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800")}>{detailData?.kategori_usia}</Badge></div></div></div>
+            <div className="flex items-center gap-4"><div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">{detailData?.nama_klien?.charAt(0) || <User />}</div><div><DialogTitle className="text-xl font-bold flex items-center gap-2">{detailData?.nama_klien}</DialogTitle><DialogDescription className="sr-only">Detail data klien terdaftar.</DialogDescription><div className="flex gap-2 mt-1"><Badge variant="outline" className="bg-white border-slate-300 text-slate-600 font-normal">Reg: {detailData?.nomor_register_lapas}</Badge><Badge className={cn("text-xs font-normal", detailData?.kategori_usia === "Anak" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800")}>{detailData?.kategori_usia}</Badge></div></div></div>
           </DialogHeader>
           <ScrollArea className="flex-1 p-6 bg-slate-50/30">
             {detailData ? (
@@ -1540,6 +1624,7 @@ export default function OperatorRegistrasiTest() {
                     <DialogTitle className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-blue-600"/> Monitoring Progress Layanan
                     </DialogTitle>
+                    <DialogDescription className="sr-only">Lacak progres layanan.</DialogDescription>
                     <Badge variant="outline" className="text-sm px-3 py-1 bg-slate-50">
                         {selectedLitmasDetail?.status || 'New Task'}
                     </Badge>

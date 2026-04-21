@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TestPageLayout } from '@/components/TestPageLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; // TAMBAHAN: Import Tabs
 import { Input } from "@/components/ui/input";
 import { User, ListFilter, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Import Komponen Pecahan
-import { PKStatsCards } from '@/components/pk/PKStatsCards';
-import { PKTaskTable } from '@/components/pk/PKTaskTable';
-import { PKRegisterDialog } from '@/components/pk/PKRegisterDialog';
-import { PKDetailDialog } from '@/components/pk/PKDetailDialog'; // Pastikan import ini ada
+import { PKStatsCards } from '@/components/pk/FormPK/FormLitmas/PKStatsCards';
+import { PKTaskTable } from '@/components/pk/FormPK/FormLitmas/PKTaskTable';
+import { PKRegisterDialog } from '@/components/pk/FormPK/FormLitmas/PKRegisterDialog';
+import { PKDetailDialog } from '@/components/pk/FormPK/FormLitmas/PKDetailDialog';
 
 // --- 1. DEFINISI TIPE MANUAL ---
 interface LitmasTaskData {
@@ -20,6 +21,7 @@ interface LitmasTaskData {
   updated_at: string | null;
   status: string | null;
   jenis_litmas: string | null;
+  kategori_layanan: string | null; // TAMBAHAN: Untuk filter tab
   nomor_surat_permintaan: string | null;
   surat_tugas_signed_url: string | null;
   hasil_litmas_url: string | null;
@@ -38,7 +40,6 @@ interface LitmasTaskData {
     nama_klien: string;
     nomor_register_lapas: string;
     kategori_usia: string;
-    // --- TAMBAHAN: Data Penjamin ---
     penjamin?: {
       nama_penjamin: string | null;
       nomor_telepon: string | null;
@@ -66,7 +67,6 @@ async function getLitmasTasksExternal(client: any, userId: string, isAdmin: bool
         pkId = data.id;
     }
 
-    // --- PERBAIKAN: Menambahkan join penjamin di dalam relasi klien ---
     let query = client
         .from('litmas')
         .select(`
@@ -113,6 +113,9 @@ export default function PKTest() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
 
+  // TAMBAHAN: State untuk Tab aktif
+  const [activeTab, setActiveTab] = useState<string>("litmas");
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pkName, setPkName] = useState("");
 
@@ -154,41 +157,28 @@ export default function PKTest() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
 
-  // --- ACTIONS (UPLOAD SURAT TUGAS ONLY) ---
-  // Catatan: Upload Laporan sekarang dihandle via Dialog Detail
+  // --- ACTIONS ---
   const handleUpload = async (file: File, taskId: number, type: 'surat_tugas' | 'hasil_litmas') => {
     setUploadingId(taskId);
-    console.log(`%c[UPLOAD START] ID: ${taskId} | Type: ${type}`, "color: #00f; font-weight: bold;");
-
     try {
-      // 1. Upload File Storage
       const ext = file.name.split('.').pop();
       const path = `${type}/${taskId}_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, file);
-      
       if (upErr) throw new Error(`Upload Gagal: ${upErr.message}`);
 
-      // 2. Siapkan Data Update DB
       let updateData: any = {};
       if (type === 'surat_tugas') {
           updateData = { surat_tugas_signed_url: path, status: 'On Progress', waktu_upload_surat_tugas: new Date().toISOString() };
       } else {
-          // Fallback jika masih ada yang panggil lewat sini (meskipun logika utama pindah ke Dialog)
           updateData = { hasil_litmas_url: path, status: 'Review', anev_notes: null, waktu_upload_laporan: new Date().toISOString() };
       }
 
-      // 3. Update DB
       const { error: dbError } = await supabase.from('litmas').update(updateData).eq('id_litmas', taskId);
       if (dbError) throw new Error(`Update DB Gagal: ${dbError.message}`);
 
-      // --- LOGIKA NOTIFIKASI DIHAPUS DARI SINI ---
-      // (Sudah dipindah ke PKDetailDialog.tsx)
-
       toast({ title: "Berhasil", description: type === 'surat_tugas' ? "Surat Tugas diupload" : "File berhasil diupload" });
       fetchMyTasks(); 
-
     } catch (e: any) {
-      console.error("[CRITICAL ERROR]", e);
       toast({ variant: "destructive", title: "Gagal Memproses", description: e.message });
     } finally {
       setUploadingId(null);
@@ -213,45 +203,76 @@ export default function PKTest() {
       }
   };
 
-  const filteredTasks = tasks.filter(t => 
+  // --- FILTERING LOGIC ---
+  // 1. Filter berdasarkan Tab Kategori Layanan (Litmas, Pendampingan, Pengawasan, Pembimbingan)
+  // Perhatikan: Jika data lama tidak memiliki kategori, kita asumsikan sebagai 'litmas'
+  const tabFilteredTasks = tasks.filter(t => {
+      const category = t.kategori_layanan ? t.kategori_layanan.toLowerCase() : 'litmas';
+      return category === activeTab;
+  });
+
+  // 2. Filter lanjutan berdasarkan text search
+  const filteredTasks = tabFilteredTasks.filter(t => 
     (t.klien?.nama_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (t.klien?.nomor_register_lapas || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Stats hanya menghitung untuk Tab yang sedang aktif agar lebih relevan
   const stats = {
-      new: tasks.filter(t => !t.status || t.status === 'New Task').length,
-      process: tasks.filter(t => t.status === 'On Progress' || t.status === 'Revision').length,
-      review: tasks.filter(t => t.status === 'Review').length,
-      done: tasks.filter(t => ['Approved', 'TPP Scheduled', 'Selesai'].includes(t.status || '')).length
+      new: tabFilteredTasks.filter(t => !t.status || t.status === 'New Task').length,
+      process: tabFilteredTasks.filter(t => t.status === 'On Progress' || t.status === 'Revision').length,
+      review: tabFilteredTasks.filter(t => t.status === 'Review').length,
+      done: tabFilteredTasks.filter(t => ['Approved', 'TPP Scheduled', 'Selesai'].includes(t.status || '')).length
   };
 
   return (
-    <TestPageLayout title="Dashboard PK" description="Manajemen Tugas Penelitian Kemasyarakatan" permissionCode="access_pk" icon={<User className="w-8 h-8 text-primary" />}>
+    <TestPageLayout title="Dashboard PK" description="Manajemen Tugas & Layanan Klien" permissionCode="access_pk" icon={<User className="w-8 h-8 text-primary" />}>
       <div className="space-y-6">
+        
         <PKStatsCards stats={stats} />
-        <Card className="shadow-md border-t-4 border-t-primary">
-          <CardHeader className="bg-slate-50/50 pb-4">
+
+        <Card className="shadow-md border-t-4 border-t-primary overflow-hidden">
+          <CardHeader className="bg-slate-50/50 pb-4 border-b">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <CardTitle className="flex items-center gap-2 text-lg"><ListFilter className="w-5 h-5 text-primary"/> Daftar Tugas Litmas</CardTitle>
-                    <CardDescription>Kelola laporan dan status litmas Anda di sini.</CardDescription>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <ListFilter className="w-5 h-5 text-primary"/> Daftar Tugas Layanan
+                    </CardTitle>
+                    <CardDescription>Kelola pekerjaan Anda berdasarkan jenis layanannya.</CardDescription>
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input placeholder="Cari nama klien..." className="pl-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Input placeholder="Cari nama atau register..." className="pl-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
             </div>
           </CardHeader>
+          
           <CardContent className="p-0">
-            <PKTaskTable 
-                tasks={filteredTasks} 
-                loading={loading}
-                onViewDetail={(task) => { setSelectedTask(task); setIsDetailOpen(true); }}
-                onUpload={handleUpload} 
-                onOpenRegister={openRegisterDialog}
-            />
+            {/* TAMBAHAN: TAB SUB MENU */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className="px-6 pt-4 pb-2 bg-slate-50/30">
+                    <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-xl">
+                        <TabsTrigger value="litmas" className="py-2">Litmas</TabsTrigger>
+                        <TabsTrigger value="pendampingan" className="py-2">Pendampingan</TabsTrigger>
+                        <TabsTrigger value="pengawasan" className="py-2">Pengawasan</TabsTrigger>
+                        <TabsTrigger value="pembimbingan" className="py-2">Pembimbingan</TabsTrigger>
+                    </TabsList>
+                </div>
+
+                {/* Karena tabelnya sama, kita bisa render satu tabel saja, datanya sudah ter-filter oleh filteredTasks di atas */}
+                <div className="p-0">
+                    <PKTaskTable 
+                        tasks={filteredTasks} 
+                        loading={loading}
+                        onViewDetail={(task) => { setSelectedTask(task); setIsDetailOpen(true); }}
+                        onUpload={handleUpload} 
+                        onOpenRegister={openRegisterDialog}
+                    />
+                </div>
+            </Tabs>
           </CardContent>
         </Card>
+
         <PKRegisterDialog 
             isOpen={isRegisterOpen} 
             onOpenChange={setIsRegisterOpen} 
@@ -260,7 +281,7 @@ export default function PKTest() {
             onSelectSchedule={setSelectedScheduleId}
             onConfirm={confirmRegisterTPP}
         />
-        {/* LOGIC NOTIFIKASI SEKARANG ADA DI DALAM COMPONENT INI */}
+        
         <PKDetailDialog 
             isOpen={isDetailOpen} 
             onOpenChange={setIsDetailOpen} 
