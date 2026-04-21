@@ -25,10 +25,10 @@ export const FormLitmas: React.FC<FormLitmasProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="grid gap-2">
+      {/* <div className="grid gap-2">
         <Label>Jenis Litmas (Khusus Litmas)</Label>
         <SearchableSelect options={refJenisLitmas} value={selectedJenisLitmas} onSelect={setSelectedJenisLitmas} labelKey="jenis" valueKey="jenis" placeholder="Pilih Jenis..." searchPlaceholder="Cari jenis..." name="jenis_litmas" />
-      </div>
+      </div> */}
       <div className="grid gap-2">
         <Label>Asal UPT</Label>
         <SearchableSelect options={refUpt} value={selectedUpt} onSelect={setSelectedUpt} labelKey="nama_upt" valueKey="id_upt" placeholder="Pilih UPT..." searchPlaceholder="Cari UPT..." name="id_upt" />

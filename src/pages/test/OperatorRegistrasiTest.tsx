@@ -886,7 +886,7 @@ export default function OperatorRegistrasiTest() {
                       <div className="grid gap-2">
                         <Label>NIK Klien</Label>
                         <div className="relative">
-                          <Input name="nik_klien" defaultValue={editingKlien?.nik_klien || ''} placeholder="Nomor Induk Kependudukan" 
+                          <Input name="nik_klien"required defaultValue={editingKlien?.nik_klien || ''} placeholder="Nomor Induk Kependudukan" 
                             onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ''); e.target.value = val; checkLiveDuplicate('klien', 'nik_klien', val); }}
                             onFocus={() => setActiveInput('nik_klien')} onBlur={() => setTimeout(() => setActiveInput(null), 200)} maxLength={16} autoComplete="off" inputMode="numeric"
                             className={cn(matchesKlien.length > 0 && "pr-10 border-orange-300 ring-orange-200 focus-visible:ring-orange-300")}
@@ -925,7 +925,7 @@ export default function OperatorRegistrasiTest() {
 
                       <div className="grid gap-2">
                           <Label>Pendidikan (ref_pendidikan)</Label>
-                          <SearchableSelect options={refPendidikan} value={selectedPendidikan} onSelect={setSelectedPendidikan} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
+                          <SearchableSelect options={refPendidikan}required value={selectedPendidikan} onSelect={setSelectedPendidikan} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
                       </div>
                     </div>
 
@@ -953,7 +953,7 @@ export default function OperatorRegistrasiTest() {
                       
                       <div className="grid gap-2">
                           <Label>Pekerjaan (ref_pekerjaan)</Label>
-                          <SearchableSelect options={refPekerjaan} value={selectedPekerjaan} onSelect={setSelectedPekerjaan} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" />
+                          <SearchableSelect options={refPekerjaan} value={selectedPekerjaan} onSelect={setSelectedPekerjaan} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan"required placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" />
                       </div>
                       <div className="grid gap-2"><Label>Minat / Bakat</Label><Input name="minat_bakat" defaultValue={editingKlien?.minat_bakat || ''} /></div>
                     </div>
@@ -961,14 +961,14 @@ export default function OperatorRegistrasiTest() {
 
                   <Separator />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="grid gap-2"><Label>Alamat Lengkap</Label><Textarea name="alamat" defaultValue={editingKlien?.alamat || ''} className="h-24" /></div>
+                    <div className="grid gap-2"><Label>Alamat Lengkap</Label><Textarea name="alamat"required defaultValue={editingKlien?.alamat || ''} className="h-24" /></div>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                            <Label>Kelurahan (ref_kelurahan)</Label>
                            <SearchableSelect 
                               options={refKelurahan} 
-                              value={selectedKelurahan} 
+                              required value={selectedKelurahan} 
                               onSelect={handleSelectKelurahan} 
                               labelKey="nama_kelurahan" 
                               valueKey="nama_kelurahan" 
@@ -979,12 +979,12 @@ export default function OperatorRegistrasiTest() {
                         </div>
                         <div className="grid gap-2">
                             <Label>Kecamatan (Otomatis)</Label>
-                            <Input name="kecamatan" value={manualKecamatan} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
+                            <Input name="kecamatan" required value={manualKecamatan} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
                         </div>
                       </div>
                       <div className="grid gap-2">
                           <Label>Nomor Telepon</Label>
-                          <Input name="nomor_telepon" defaultValue={editingKlien?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" />
+                          <Input name="nomor_telepon" required defaultValue={editingKlien?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" />
                       </div>
                     </div>
                   </div>
@@ -1071,17 +1071,17 @@ export default function OperatorRegistrasiTest() {
                       </div>
                       <div className="grid gap-2">
                           <Label>Hubungan (ref_hubungan)</Label>
-                          <SearchableSelect options={refHubungan} value={selectedHubungan} onSelect={setSelectedHubungan} labelKey="nama_hubungan" valueKey="nama_hubungan" placeholder="Pilih Hubungan..." searchPlaceholder="Cari hubungan..." name="hubungan_klien" />
+                          <SearchableSelect options={refHubungan}required value={selectedHubungan} onSelect={setSelectedHubungan} labelKey="nama_hubungan" valueKey="nama_hubungan" placeholder="Pilih Hubungan..." searchPlaceholder="Cari hubungan..." name="hubungan_klien" />
                       </div>
                       <div className="grid gap-2">
                           <Label>Agama (ref_agama)</Label>
-                          <SearchableSelect options={refAgama} value={selectedAgamaPenjamin} onSelect={setSelectedAgamaPenjamin} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" />
+                          <SearchableSelect options={refAgama} required value={selectedAgamaPenjamin} onSelect={setSelectedAgamaPenjamin} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" />
                       </div>
-                      <div className="grid gap-2"><Label>Tempat Lahir</Label><Input name="tempat_lahir" defaultValue={editingPenjamin?.tempat_lahir || ''} /></div>
+                      <div className="grid gap-2"><Label>Tempat Lahir</Label><Input name="tempat_lahir" required defaultValue={editingPenjamin?.tempat_lahir || ''} /></div>
                       
                       <div className="grid gap-2">
                           <Label>Tanggal Lahir</Label>
-                          <Input name="tanggal_lahir" type="date" value={penjaminTglLahir} onChange={handlePenjaminDateChange} />
+                          <Input name="tanggal_lahir" type="date" value={penjaminTglLahir}required onChange={handlePenjaminDateChange} />
                       </div>
                       <div className="grid gap-2">
                           <Label>Usia</Label>
@@ -1090,22 +1090,22 @@ export default function OperatorRegistrasiTest() {
 
                       <div className="grid gap-2">
                           <Label>Pendidikan (ref_pendidikan)</Label>
-                          <SearchableSelect options={refPendidikan} value={selectedPendidikanPenjamin} onSelect={setSelectedPendidikanPenjamin} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
+                          <SearchableSelect options={refPendidikan}required value={selectedPendidikanPenjamin} onSelect={setSelectedPendidikanPenjamin} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
                       </div>
                       <div className="grid gap-2">
                           <Label>Pekerjaan (ref_pekerjaan)</Label>
-                          <SearchableSelect options={refPekerjaan} value={selectedPekerjaanPenjamin} onSelect={setSelectedPekerjaanPenjamin} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" />
+                          <SearchableSelect options={refPekerjaan}required value={selectedPekerjaanPenjamin} onSelect={setSelectedPekerjaanPenjamin} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" />
                       </div>
-                      <div className="grid gap-2"><Label>No. Telepon</Label><Input name="nomor_telepon" type="tel" defaultValue={editingPenjamin?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" /></div>
-                      <div className="grid gap-2 col-span-2"><Label>Alamat</Label><Textarea name="alamat" defaultValue={editingPenjamin?.alamat || ''} /></div>
+                      <div className="grid gap-2"><Label>No. Telepon</Label><Input name="nomor_telepon" type="tel" defaultValue={editingPenjamin?.nomor_telepon || ''}required onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" /></div>
+                      <div className="grid gap-2 col-span-2"><Label>Alamat</Label><Textarea name="alamat"required defaultValue={editingPenjamin?.alamat || ''} /></div>
                       
                       <div className="grid gap-2">
                           <Label>Kelurahan (ref_kelurahan)</Label>
-                          <SearchableSelect options={refKelurahan} value={selectedKelurahanPenjamin} onSelect={handleSelectKelurahanPenjamin} labelKey="nama_kelurahan" valueKey="nama_kelurahan" placeholder="Pilih Kelurahan..." searchPlaceholder="Cari kelurahan..." name="kelurahan" />
+                          <SearchableSelect options={refKelurahan}required value={selectedKelurahanPenjamin} onSelect={handleSelectKelurahanPenjamin} labelKey="nama_kelurahan" valueKey="nama_kelurahan" placeholder="Pilih Kelurahan..." searchPlaceholder="Cari kelurahan..." name="kelurahan" />
                       </div>
                       <div className="grid gap-2">
                           <Label>Kecamatan (Otomatis)</Label>
-                          <Input name="kecamatan" value={manualKecamatanPenjamin} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
+                          <Input name="kecamatan"required value={manualKecamatanPenjamin} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
                       </div>
                     </div>
                     <div className="flex justify-end pt-4"><Button type="submit" className="bg-green-600 hover:bg-green-700">{loading ? <Loader2 className="animate-spin"/> : "Simpan Penjamin"}</Button></div>
@@ -1195,52 +1195,9 @@ export default function OperatorRegistrasiTest() {
                               </div>
                             )}
                           </div>
-                          <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { if (e.target.files && e.target.files[0]) { setFileSuratPermintaan(e.target.files[0]); toast({ title: "File Dipilih", description: e.target.files[0].name }); } }} />
+                          <Input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,.jpg,.jpeg,.png"required onChange={(e) => { if (e.target.files && e.target.files[0]) { setFileSuratPermintaan(e.target.files[0]); toast({ title: "File Dipilih", description: e.target.files[0].name }); } }} />
                         </div>
                     </div>
-                    
-                    <Separator />
-
-                    {/* INPUT DATA PERKARA */}
-                    <div className="space-y-4 bg-red-50 p-6 rounded-lg border border-red-100">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-lg text-red-700 flex items-center gap-2"><Gavel className="w-5 h-5" />Input Data Perkara</h3>
-                        <Badge variant="outline" className="bg-white text-red-600 border-red-200">Total: {perkaraList.length} Kasus</Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded shadow-sm">
-                        <div className="md:col-span-2 grid gap-2"><Label>Pasal</Label><Input value={tempPerkara.pasal} onChange={(e) => setTempPerkara({...tempPerkara, pasal: e.target.value})} placeholder="Cth: 363" /></div>
-                        <div className="md:col-span-3 grid gap-2"><Label>Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({...tempPerkara, tindak_pidana: e.target.value})} placeholder="Pencurian" /></div>
-                        <div className="md:col-span-3 grid gap-2"><Label>No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({...tempPerkara, nomor_putusan: e.target.value})} /></div>
-                        <div className="md:col-span-4 grid gap-2"><Label>Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({...tempPerkara, vonis_pidana: val})} /></div>
-                        
-                        <div className="md:col-span-3 grid gap-2"><Label>Denda (Rp)</Label><Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({...tempPerkara, denda: e.target.value})} /></div>
-                        <div className="md:col-span-4 grid gap-2"><Label>Subsider</Label><DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({...tempPerkara, subsider_pidana: val})} /></div>
-                        <div className="md:col-span-2 grid gap-2"><Label>Mulai Ditahan</Label><Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_mulai_ditahan: e.target.value})} /></div>
-                        <div className="md:col-span-2 grid gap-2"><Label>Ekspirasi</Label><Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_ekspirasi: e.target.value})} /></div>
-                        
-                        <div className="md:col-span-1">
-                          <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: "destructive", title: "Gagal", description: "Pasal & Tindak Pidana wajib diisi." }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-red-600 hover:bg-red-700 w-full"><Plus className="w-5 h-5" /></Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        {perkaraList.map((p, idx) => (
-                          <div key={p.id || idx} className="flex items-center justify-between bg-white p-3 rounded border border-red-200 text-sm">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                              <div><span className="text-xs text-slate-500 block">Pasal</span><span className="font-bold">{p.pasal}</span></div>
-                              <div><span className="text-xs text-slate-500 block">Pidana</span><span>{p.tindak_pidana}</span></div>
-                              <div><span className="text-xs text-slate-500 block">Vonis</span><span>{p.vonis_pidana}</span></div>
-                              <div><span className="text-xs text-slate-500 block">Ekspirasi</span><span className="text-red-600 font-medium">{p.tanggal_ekspirasi}</span></div>
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { const newList = [...perkaraList]; newList.splice(idx, 1); setPerkaraList(newList); }} className="text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        ))}
-                        {perkaraList.length === 0 && <p className="text-center text-sm text-red-400 italic">Belum ada data perkara ditambahkan.</p>}
-                      </div>
-                    </div>
-
-                    <Separator />
 
                     {/* --- RENDER FORM BERDASARKAN SUB-TAB LAYANAN --- */}
                     <div className="mt-6">
@@ -1290,6 +1247,49 @@ export default function OperatorRegistrasiTest() {
                         />
                       )}
                     </div>
+
+                                        <Separator />
+
+                    {/* INPUT DATA PERKARA */}
+                    <div className="space-y-4 bg-red-50 p-6 rounded-lg border border-red-100">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg text-red-700 flex items-center gap-2"><Gavel className="w-5 h-5" />Input Data Perkara</h3>
+                        <Badge variant="outline" className="bg-white text-red-600 border-red-200">Total: {perkaraList.length} Kasus</Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded shadow-sm">
+                        <div className="md:col-span-2 grid gap-2"><Label>Pasal</Label><Input value={tempPerkara.pasal} onChange={(e) => setTempPerkara({...tempPerkara, pasal: e.target.value})} placeholder="Cth: 363" /></div>
+                        <div className="md:col-span-3 grid gap-2"><Label>Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({...tempPerkara, tindak_pidana: e.target.value})} placeholder="Pencurian" /></div>
+                        <div className="md:col-span-3 grid gap-2"><Label>No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({...tempPerkara, nomor_putusan: e.target.value})} /></div>
+                        <div className="md:col-span-4 grid gap-2"><Label>Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({...tempPerkara, vonis_pidana: val})} /></div>
+                        
+                        <div className="md:col-span-3 grid gap-2"><Label>Denda (Rp)</Label><Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({...tempPerkara, denda: e.target.value})} /></div>
+                        <div className="md:col-span-4 grid gap-2"><Label>Subsider</Label><DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({...tempPerkara, subsider_pidana: val})} /></div>
+                        <div className="md:col-span-2 grid gap-2"><Label>Mulai Ditahan</Label><Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_mulai_ditahan: e.target.value})} /></div>
+                        <div className="md:col-span-2 grid gap-2"><Label>Ekspirasi</Label><Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_ekspirasi: e.target.value})} /></div>
+                        
+                        <div className="md:col-span-1">
+                          <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: "destructive", title: "Gagal", description: "Pasal & Tindak Pidana wajib diisi." }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-red-600 hover:bg-red-700 w-full"><Plus className="w-5 h-5" /></Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {perkaraList.map((p, idx) => (
+                          <div key={p.id || idx} className="flex items-center justify-between bg-white p-3 rounded border border-red-200 text-sm">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                              <div><span className="text-xs text-slate-500 block">Pasal</span><span className="font-bold">{p.pasal}</span></div>
+                              <div><span className="text-xs text-slate-500 block">Pidana</span><span>{p.tindak_pidana}</span></div>
+                              <div><span className="text-xs text-slate-500 block">Vonis</span><span>{p.vonis_pidana}</span></div>
+                              <div><span className="text-xs text-slate-500 block">Ekspirasi</span><span className="text-red-600 font-medium">{p.tanggal_ekspirasi}</span></div>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { const newList = [...perkaraList]; newList.splice(idx, 1); setPerkaraList(newList); }} className="text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        ))}
+                        {perkaraList.length === 0 && <p className="text-center text-sm text-red-400 italic">Belum ada data perkara ditambahkan.</p>}
+                      </div>
+                    </div>
+
+                    <Separator />
 
                     <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 space-y-4">
                       <div className="grid gap-2">
