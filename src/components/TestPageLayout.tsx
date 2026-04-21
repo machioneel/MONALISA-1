@@ -168,7 +168,7 @@ export function TestPageLayout({ title, description, permissionCode, icon, child
           </div>
         </header>
 
-        <div className="p-4 sm:p-8 max-w-5xl mx-auto w-full space-y-6">
+        <div className="p-4 sm:p-6 w-full space-y-6">
           <div>
             <Button variant="outline" className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Dashboard
