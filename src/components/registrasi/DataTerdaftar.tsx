@@ -1,4 +1,3 @@
-// src/components/registrasi/DataTerdaftar.tsx
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,25 +47,43 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nama Klien</TableHead>
+                  <TableHead>Nama Klien & NIK</TableHead>
                   <TableHead>No. Register</TableHead>
-                  <TableHead>JK</TableHead>
-                  <TableHead>Usia</TableHead>
+                  <TableHead>Penjamin</TableHead>
+                  <TableHead>JK / Usia</TableHead>
                   <TableHead>No. Telepon</TableHead>
-                  <TableHead>Aksi</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {state.dataKlienFull.length > 0 ? state.dataKlienFull.map((k: any) => (
                   <TableRow key={k.id_klien}>
-                    <TableCell className="font-medium">{k.nama_klien}</TableCell>
-                    <TableCell>{k.nomor_register_lapas}</TableCell>
-                    <TableCell>{k.jenis_kelamin}</TableCell>
-                    <TableCell>{k.usia} Thn</TableCell>
+                    <TableCell>
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-slate-800">{k.nama_klien}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">NIK: {k.nik_klien || '-'}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        <span className="font-mono text-blue-600 font-medium">{k.nomor_register_lapas}</span>
+                    </TableCell>
+                    <TableCell>
+                        <div className="flex flex-col">
+                            <span className="font-medium text-slate-700">{k.penjamin && k.penjamin.length > 0 ? k.penjamin[0].nama_penjamin : '-'}</span>
+                            <span className="text-[10px] text-slate-500">{k.penjamin && k.penjamin.length > 0 ? k.penjamin[0].hubungan_klien : ''}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell>{k.jenis_kelamin} / {k.usia} Thn</TableCell>
                     <TableCell>{k.nomor_telepon || '-'}</TableCell>
-                    <TableCell className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => { handlers.setDetailData(k); handlers.setOpenDetail(true); }}><Eye className="w-3.5 h-3.5 mr-1" /> Detail</Button>
-                      <Button variant="outline" size="sm" onClick={() => handlers.handleEditClick(k)} className="h-8 px-2 text-blue-600"><Pencil className="w-3.5 h-3.5 mr-1" /> Edit</Button>
+                    <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { handlers.setDetailData(k); handlers.setOpenDetail(true); }}>
+                                <Eye className="w-4 h-4 text-slate-500 hover:text-blue-600" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handlers.handleEditClick(k)}>
+                                <Pencil className="w-4 h-4 text-amber-500 hover:text-amber-700" />
+                            </Button>
+                        </div>
                     </TableCell>
                   </TableRow>
                 )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-500">Data tidak ditemukan.</TableCell></TableRow>}
@@ -81,7 +98,7 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
           <CardHeader className="pb-2">
             <div className="flex justify-between">
               <div>
-                  <CardTitle>Daftar Layanan Terdaftar</CardTitle>
+                  <CardTitle>Data Layanan Terdaftar</CardTitle>
                   <CardDescription>Status registrasi.</CardDescription>
               </div>
               <div className="flex gap-2">
@@ -99,7 +116,8 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                 <TableRow>
                   <TableHead>No. Surat</TableHead>
                   <TableHead>Kategori & Status</TableHead>
-                  <TableHead>Klien</TableHead>
+                  <TableHead>Tahapan & Jenis</TableHead>
+                  <TableHead>Klien & Reg</TableHead>
                   <TableHead>Petugas PK</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -128,7 +146,18 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                             </Badge>
                         </div>
                     </TableCell>
-                    <TableCell>{l.klien?.nama_klien}</TableCell>
+                    <TableCell>
+                        <div className="flex flex-col gap-1 items-start">
+                            <span className="text-xs font-semibold text-slate-700">{l.tahapan_layanan || '-'}</span>
+                            <span className="text-xs text-slate-500">{l.jenis_litmas || '-'}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-slate-800">{l.klien?.nama_klien}</span>
+                            <span className="text-[10px] text-slate-500">Reg: {l.klien?.nomor_register_lapas || '-'}</span>
+                        </div>
+                    </TableCell>
                     <TableCell>
                         {l.petugas_pk ? 
                             <span className="text-blue-700 font-medium flex items-center gap-1">
@@ -160,7 +189,7 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                     </TableCell>
                   </TableRow>
                 )) : (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">Data tidak ditemukan.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-500">Data tidak ditemukan.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

@@ -54,7 +54,7 @@ export const FormPenjamin: React.FC<FormPenjaminProps> = ({ state, handlers, com
                 </div>
               </div>
               <div className="grid gap-2">
-                  <Label>Hubungan (ref_hubungan) <span className="text-red-500">*</span></Label>
+                  <Label>Hubungan<span className="text-red-500">*</span></Label>
                   <SearchableSelect options={state.refHubungan} value={state.selectedHubungan} onSelect={handlers.setSelectedHubungan} labelKey="nama_hubungan" valueKey="nama_hubungan" placeholder="Pilih Hubungan..." searchPlaceholder="Cari hubungan..." name="hubungan_klien" allowClear={true}/>
               </div>
               <div className="grid gap-2">

@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ThemeProvider } from "@/components/theme-provider";
 
 // Pages
 import Login from "./pages/Login";
@@ -36,157 +38,159 @@ import KasieTest from "./pages/test/KasieTest";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/update-password" element={<UpdatePasswordPage />} />
+  <ThemeProvider defaultTheme="light" storageKey="monalisa-theme">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute permission="access_dashboard">
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute permission="access_dashboard">
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Admin Panel */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute permission="access_admin">
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin Panel */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute permission="access_admin">
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Test Pages - Each protected by specific permission */}
-            <Route
-              path="/test/admin"
-              element={
-                <ProtectedRoute permission="access_admin">
-                  <AdminTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/kabapas"
-              element={
-                <ProtectedRoute permission="access_kabapas">
-                  <KabapasTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/kasubsie"
-              element={
-                <ProtectedRoute permission="access_kasubsie">
-                  <KasubsieTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/operator-registrasi"
-              element={
-                <ProtectedRoute permission="access_operator_registrasi">
-                  <OperatorRegistrasiTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/anev"
-              element={
-                <ProtectedRoute permission="access_anev">
-                  <AnevTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/pk"
-              element={
-                <ProtectedRoute permission="access_pk">
-                  <PKTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/persuratan"
-              element={
-                <ProtectedRoute permission="access_persuratan">
-                  <PersuratanTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/bimker"
-              element={
-                <ProtectedRoute permission="access_bimker">
-                  <BimkerTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/bimkemas"
-              element={
-                <ProtectedRoute permission="access_bimkemas">
-                  <BimkemasTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/tpp"
-              element={
-                <ProtectedRoute permission="access_tpp">
-                  <TPPTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/test/laporan"
-              element={
-                <ProtectedRoute permission="access_laporan">
-                  <LaporanTest />
-                </ProtectedRoute>
-              }
-            />
+              {/* Test Pages - Each protected by specific permission */}
+              <Route
+                path="/test/admin"
+                element={
+                  <ProtectedRoute permission="access_admin">
+                    <AdminTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/kabapas"
+                element={
+                  <ProtectedRoute permission="access_kabapas">
+                    <KabapasTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/kasubsie"
+                element={
+                  <ProtectedRoute permission="access_kasubsie">
+                    <KasubsieTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/operator-registrasi"
+                element={
+                  <ProtectedRoute permission="access_operator_registrasi">
+                    <OperatorRegistrasiTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/anev"
+                element={
+                  <ProtectedRoute permission="access_anev">
+                    <AnevTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/pk"
+                element={
+                  <ProtectedRoute permission="access_pk">
+                    <PKTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/persuratan"
+                element={
+                  <ProtectedRoute permission="access_persuratan">
+                    <PersuratanTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/bimker"
+                element={
+                  <ProtectedRoute permission="access_bimker">
+                    <BimkerTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/bimkemas"
+                element={
+                  <ProtectedRoute permission="access_bimkemas">
+                    <BimkemasTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/tpp"
+                element={
+                  <ProtectedRoute permission="access_tpp">
+                    <TPPTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/test/laporan"
+                element={
+                  <ProtectedRoute permission="access_laporan">
+                    <LaporanTest />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/test/kasie"
-              element={
-                <ProtectedRoute permission="access_kasie">
-                  <KasieTest />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/test/kasie"
+                element={
+                  <ProtectedRoute permission="access_kasie">
+                    <KasieTest />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/wajib-lapor"
-              element={
-                <ProtectedRoute permission= "access_admin">
-                  <WajibLapor/>
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route path="/about" element={<About/>}/>
+              <Route
+                path="/wajib-lapor"
+                element={
+                  <ProtectedRoute permission= "access_admin">
+                    <WajibLapor/>
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route path="/about" element={<About/>}/>
 
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

@@ -203,7 +203,7 @@ export default function ForgotPassword() {
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                            <Input placeholder="contoh@kemenkumham.go.id" className="pl-10 h-11 bg-slate-50 focus:bg-white transition-colors" {...field} disabled={loading} />
+                            <Input placeholder="contoh@kemenimipas.go.id" className="pl-10 h-11 bg-slate-50 focus:bg-white transition-colors" {...field} disabled={loading} />
                           </div>
                         </FormControl>
                         <FormMessage />
