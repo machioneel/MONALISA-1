@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import path from 'path';
 
 // --- DEFINISI MENU SIDEBAR ---
 const menuItems = [
@@ -38,6 +39,7 @@ const menuItems = [
   { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimkemas', icon: Users },
   { path: '/test/tpp', permission: 'access_tpp', label: 'TPP', icon: TrendingUp },
   { path: '/test/laporan', permission: 'access_laporan', label: 'Laporan', icon: FileText },
+  { path: '/wajib-lapor', permission: 'access_admin', label: 'Wajib Lapor', icon: CheckCircle },
   { path: '/about', permission:'access_admin', label: 'About', icon: Info},
 ];
 

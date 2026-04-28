@@ -44,27 +44,157 @@ import { FormPendampingan } from '@/components/registrasi/FormLayanan/FormPendam
 import { FormPengawasan } from '@/components/registrasi/FormLayanan/FormPengawasan';
 import { FormPembimbingan } from '@/components/registrasi/FormLayanan/FormPembimbingan';
 
-// --- HIERARKI LAYANAN ---
-export const HIERARKI_LAYANAN = {
+// --- HIERARKI LAYANAN ANAK ---
+export const HIERARKI_LAYANAN_ANAK = {
   litmas: {
-    "Pra Adjudikasi": ["Litmas RJ", "Litmas Diversi", "Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan"],
+    "Pra Adjudikasi": ["Litmas Anak dibawah 12 Tahun", "Litmas Diversi", "Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan", "Litmas Restorative Justice"],
     "Adjudikasi": ["Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan"],
-    "Pasca Adjudikasi": ["Litmas Awal", "Litmas Integrasi", "Litmas Mutasi", "Litmas Grasi", "Litmas Perubahan Pidana", "Litmas Bimbingan"]
+    "Pasca Adjudikasi": ["Litmas Pembinaan Awal", "Litmas Pemindahan", "Litmas Program Asimilasi", "Litmas Program CMK", "Litmas Program CDK", "Asimilasi Tempat Tinggal/Rumah Antara", "Litmas Re-integrasi CB", "Litmas Re-integrasi CMB", "Litmas Re-integrasi PB", "Litmas Grasi", "Litmas Program Bimbingan"]
   },
   pendampingan: {
-    "Pra Adjudikasi": ["BAP", "P21", "Mediasi"],
-    "Adjudikasi": ["Sidang"],
-    "Pasca Adjudikasi": [] 
+    "Pra Adjudikasi": ["Pendampingan Anak dibawah 12 Tahun", "Pendampingan Tingkat Penyidikan (BAP)", "Pendampingan Proses Diversi", "Pendampingan Pelaksanaan Kesepakatan Diversi", "Pendampingan Tingkat Penuntutan (P21)", "Pendampingan Proses Diversi", "Pendampingan Pelaksanaan Kesepakatan Diversi", "Pendampingan Layanan Tahanan"],
+    "Adjudikasi": ["Pendampingan Tingkat Peeriksaan Perkara di Pengadilan", "Pendampingan Layanan Tahanan dalam Tahap persidangan"],
+    "Pasca Adjudikasi": ["Pendampingan Putusan Penjara", "Pendampingan Putusan Non-Pemennjaraan", "Pendampingan Klien Menjalani Program Integrasi"] 
   },
   pembimbingan: {
-    "Pra Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)"],
-    "Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)"],
-    "Pasca Adjudikasi": ["Fasilitasi (bantuan hukum/Kesehatan/psikologis)", "Kepribadian/Kemandirian", "Pindah Bimbingan"]
+    "Pra Adjudikasi": ["Bimbingan Pelayanan Tahanan Kota", "Bimbingan Pelayanan Tahanan Rumah", "Bimbingan Klien yang Tidak Ditahan"],
+    "Adjudikasi": ["Bimbingan Pelayanan Tahanan Kota", "Bimbingan Pelayanan Tahanan Rumah", "Bimbingan Klien yang Tidak Ditahan", "Bimbingan Klien Diversi/Pelaksanaan Kesepakatan Diversi"],
+    "Pasca Adjudikasi": [
+  "Putusan Pemenjaraan",
+  "Pelayanan Pembimbingan Putusan Non-Pemenjaraan",
+  "Klien Menjalani Program Integrasi",
+  "Pidana Peringatan (Anak)",
+  "Pidana Pembinaan di Luar Lembaga (Anak)",
+  "Pidana Pelayanan Masyarakat (Anak)",
+  "Pidana Pelatihan Kerja (Anak)",
+  "Pidana Pembinaan dalam Lembaga (Anak)",
+  "Pidana Penetapan Tindakan (Anak)",
+  "Penetapan Anak di Bawah 12 Tahun",
+  "Pidana Pengawasan",
+  "Pidana Kerja Sosial",
+  "Pembimbingan Asimilasi",
+  "Pembimbingan Cuti Bersyarat (CB)",
+  "Pembimbingan Cuti Menjelang Bebas (CMB)",
+  "Pembimbingan Pembebasan Bersyarat (PB)",
+  "Pembimbingan Cuti Mengunjungi Keluarga (CMK)",
+  "Pembimbingan Cuti di Luar Negeri (CDK)",
+  "Bimbingan Lanjutan (Aftercare)"
+]
   },
   pengawasan: {
-    "Pra Adjudikasi": ["Monitoring Pelaksanaan RJ/Diversi"],
-    "Adjudikasi": ["Monitoring Pelaksanaan RJ/Diversi", "Monitoring Pelaksaan Perawatan Tahanan dan Penempatan Tahanan"],
-    "Pasca Adjudikasi": ["Monitoring Program Pembinaan awal", "Monitoring Program Pembimbingan"]
+    "Pra Adjudikasi": [
+  "Pengawasan Keputusan Anak di Bawah 12 Tahun",
+  "Pengawasan Layanan Tahanan",
+  "Pengawasan Kesepakatan Diversi",
+  "Pengawasan Pelayanan Tahanan Kota"
+],
+    "Adjudikasi": [
+  "Pengawasan Layanan Tahanan",
+  "Pengawasan Pelayanan Tahanan Kota",
+  "Pengawasan Pelayanan Tahanan Rumah",
+  "Pengawasan Klien Tidak Ditahan"
+],
+    "Pasca Adjudikasi": [
+  "Putusan Pemenjaraan",
+  "Pengawasan Pembimbingan Putusan Non-Pemenjaraan",
+  "Pengawasan Klien Program Integrasi",
+  "Pengawasan Bimbingan Lanjutan (Aftercare)"
+]
+  }
+};
+
+// --- HIERARKI LAYANAN DEWASA ---
+export const HIERARKI_LAYANAN_DEWASA = {
+  pendampingan: {
+    "Pra Ajudikasi": [
+      "Pendampingan Tingkat Penyidikan (BAP)",
+      "Pendampingan Tingkat Penuntutan (P21)",
+      "Pendampingan Layanan Tahanan"
+    ],
+    "Ajudikasi": [
+      "Pendampingan Tingkat Pemeriksaan Perkara di Pengadilan",
+      "Pendampingan Layanan Tahanan dalam Tahap Persidangan"
+    ],
+    "Pasca Ajudikasi": [
+      "Pendampingan Putusan Penjara",
+      "Pendampingan Putusan Non Pemenjaraan",
+      "Pendampingan Klien Menjalani Program Integrasi"
+    ]
+  },
+
+  litmas: {
+    "Pra Adjudikasi": [
+      "Litmas Sidang",
+      "Litmas Restorative Justice",
+      "Litmas Perawatan",
+      "Litmas Penempatan"
+    ],
+    "Adjudikasi": [
+      "Litmas Sidang",
+      "Litmas Perawatan",
+      "Litmas Penempatan"
+    ],
+    "Pasca Adjudikasi": [
+      "Litmas Pembinaan Awal",
+      "Litmas Program Bimbingan",
+      "Litmas Pemindahan",
+      "Litmas Program Asimilasi",
+      "Litmas Program CMK",
+      "Litmas Program CDK",
+      "Asimilasi Tempat Tinggal/ Rumah Antara",
+      "Litmas Re-integrasi CB",
+      "Litmas Re-integrasi CMB",
+      "Litmas Re-integrasi PB",
+      "Litmas Grasi",
+      "Litmas Perubahan Pidana"
+    ]
+  },
+
+  pembimbingan: {
+    "Pra Adjudikasi": [
+      "Bimbingan Pelayanan Tahanan Kota",
+      "Bimbingan Pelayanan Tahanan Rumah",
+      "Bimbingan Klien yang Tidak Ditahan"
+    ],
+    "Adjudikasi": [
+      "Bimbingan Pelayanan Tahanan Kota",
+      "Bimbingan Pelayanan Tahanan Rumah",
+      "Bimbingan Klien yang Tidak Ditahan"
+    ],
+    "Pasca Adjudikasi": [
+      "Putusan Pemenjaraan",
+      "Pelayanan Pembimbingan Putusan Non Pemenjaraan",
+      "Pidana Pengawasan",
+      "Pidana Kerja Sosial",
+      "Pembimbingan Asimilasi",
+      "Pembimbingan CB",
+      "Pembimbingan CMB",
+      "Pembimbingan PB",
+      "Pembimbingan CMK",
+      "Pembimbingan CDK",
+      "Bimbingan Lanjutan (aftercare)"
+    ]
+  },
+
+  pengawasan: {
+    "Pra Adjudikasi": [
+      "Pengawasan Layanan Tahanan",
+      "Pengawasan Pelayanan Tahanan Kota",
+      "Pengawasan Pelayanan Tahanan Rumah",
+      "Pengawasan Klien Tidak Ditahan"
+    ],
+    "Adjudikasi": [
+      "Pengawasan Layanan Tahanan",
+      "Pengawasan Pelayanan Tahanan Kota",
+      "Pengawasan Pelayanan Tahanan Rumah",
+      "Pengawasan Klien Tidak Ditahan"
+    ],
+    "Pasca Adjudikasi": [
+      "Putusan Pemenjaraan",
+      "Pengawasan Pelayanan Pembimbingan Putusan Non Pemenjaraan",
+      "Pengawasan Klien Menjalani Program Integrasi",
+      "Pengawasan Bimbingan Lanjutan (aftercare)"
+    ]
   }
 };
 
@@ -76,6 +206,16 @@ type RefHubungan = Database['public']['Tables']['ref_hubungan']['Row'];
 type RefUpt = Database['public']['Tables']['ref_upt']['Row'];
 type RefJenisLitmas = Database['public']['Tables']['ref_jenis_litmas']['Row'];
 type RefBapas = Database['public']['Tables']['ref_bapas']['Row'];
+// ref_perkara: tabel referensi pasal/tindak pidana
+interface RefPerkara { id_perkara?: number; nama_perkara: string; pasal?: string; }
+
+// Tabel target per kategori layanan
+const LAYANAN_TABLE_MAP: Record<string, string> = {
+  litmas: 'litmas',
+  pendampingan: 'pendampingan',
+  pengawasan: 'pengawasan',
+  pembimbingan: 'pembimbingan',
+};
 
 interface RefKelurahanExtended { 
   id_kelurahan: number; 
@@ -158,6 +298,7 @@ export default function OperatorRegistrasiTest() {
   const [refJenisLitmas, setRefJenisLitmas] = useState<RefJenisLitmas[]>([]);
   const [refBapas, setRefBapas] = useState<RefBapas[]>([]);
   const [refKelurahan, setRefKelurahan] = useState<RefKelurahanExtended[]>([]);
+  const [refPerkara, setRefPerkara] = useState<RefPerkara[]>([]);
 
   // State Data Operasional
   const [listKlien, setListKlien] = useState<Klien[]>([]);
@@ -201,6 +342,9 @@ export default function OperatorRegistrasiTest() {
   const [editingKlien, setEditingKlien] = useState<any | null>(null);
   const [editingPenjamin, setEditingPenjamin] = useState<any | null>(null);
   const [editingLitmas, setEditingLitmas] = useState<any | null>(null);
+  // ID layanan yang sedang diedit (dari list_data, bisa dari tabel selain litmas)
+  const [editingLayananId, setEditingLayananId] = useState<number | null>(null);
+  const [editingLayananTable, setEditingLayananTable] = useState<string>('litmas');
   
   // Validasi & Hitungan
   const [tglLahir, setTglLahir] = useState("");
@@ -228,8 +372,9 @@ export default function OperatorRegistrasiTest() {
   // Perkara & File Upload
   const [perkaraList, setPerkaraList] = useState<any[]>([]);
   const [tempPerkara, setTempPerkara] = useState({
-      pasal: '', tindak_pidana: '', nomor_putusan: '', 
+      pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', 
       vonis_pidana: '', denda: '', subsider_pidana: '',
+      uang_pengganti: '', restitusi: '',
       tanggal_mulai_ditahan: '', tanggal_ekspirasi: ''
   });
   const [fileSuratPermintaan, setFileSuratPermintaan] = useState<File | null>(null);
@@ -244,9 +389,12 @@ export default function OperatorRegistrasiTest() {
     setSelectedJenisLitmas("");
   }, [layananSubTab, tahapanLayanan]);
 
+  const kategoriLayananAktif = hitungKategori ? hitungKategori : (userRoleCategory === 'Anak' ? 'Anak' : 'Dewasa');
+  const activeHierarki = kategoriLayananAktif === 'Anak' ? HIERARKI_LAYANAN_ANAK : HIERARKI_LAYANAN_DEWASA;
+
   const currentJenisOptions = (tahapanLayanan && layananSubTab) 
       // @ts-ignore
-      ? (HIERARKI_LAYANAN[layananSubTab]?.[tahapanLayanan] || []).map((j: string) => ({ jenis: j }))
+      ? (activeHierarki[layananSubTab]?.[tahapanLayanan] || []).map((j: string) => ({ jenis: j }))
       : [];
 
   const formatDateTime = (isoString: string | null) => {
@@ -288,7 +436,7 @@ export default function OperatorRegistrasiTest() {
 
   const refreshEditData = async (idKlien: number) => {
     try {
-        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!fk_litmas_pk(nama))`).eq('id_klien', idKlien).single();
+        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))`).eq('id_klien', idKlien).single();
         if (error) throw error;
         const safeData = data as any;
         setEditingKlien(safeData);
@@ -365,6 +513,9 @@ export default function OperatorRegistrasiTest() {
     if (bapas) setRefBapas(bapas);
     const { data: kel } = await supabase.from('ref_kelurahan').select(`id_kelurahan, nama_kelurahan, kecamatan_id, ref_kecamatan ( nama_kecamatan )`).limit(2000); 
     if (kel) setRefKelurahan(kel as unknown as RefKelurahanExtended[]);
+    // Fetch ref_perkara jika tabel ada
+    const { data: rpData } = await supabase.from('ref_perkara').select('*').limit(500);
+    if (rpData) setRefPerkara(rpData as RefPerkara[]);
 
     let queryKlien = supabase.from('klien').select('id_klien, nama_klien, nomor_register_lapas').order('id_klien', { ascending: false });
     if (isOpAnak) queryKlien = queryKlien.eq('kategori_usia', 'Anak');
@@ -377,7 +528,7 @@ export default function OperatorRegistrasiTest() {
     setLoading(true);
     try {
       let qK = supabase.from('klien')
-        .select('*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!fk_litmas_pk(nama))') 
+        .select('*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))') 
         .order('id_klien', { ascending: false })
         .limit(20);
       if (isOpAnak) qK = qK.eq('kategori_usia', 'Anak');
@@ -387,8 +538,22 @@ export default function OperatorRegistrasiTest() {
       if (kError) console.error("Error fetching klien list:", kError);
       setDataKlienFull(kData || []);
       
-      const { data: lData } = await supabase.from('litmas').select(`*, klien:klien!fk_litmas_klien (nama_klien), petugas_pk:petugas_pk!fk_litmas_pk (nama, nip), ref_upt(nama_upt)`).order('id_litmas', { ascending: false }).limit(20);
-      setDataLitmas(lData || []);
+      // Fetch semua tabel layanan dan gabungkan
+      const [litmasRes, pendampinganRes, pengawasanRes, pembimbinganRes] = await Promise.all([
+        supabase.from('litmas').select(`*, klien:klien!fk_litmas_klien (nama_klien), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip), ref_upt(nama_upt)`).order('id_litmas', { ascending: false }).limit(20),
+        supabase.from('pendampingan').select(`*, klien:klien!fk_pendampingan_klien (nama_klien), petugas_pk:petugas_pk!pendampingan_nama_pk_fkey (nama, nip)`).order('id_pendampingan', { ascending: false }).limit(20),
+        supabase.from('pengawasan').select(`*, klien:klien!fk_pengawasan_klien (nama_klien), petugas_pk:petugas_pk!pengawasan_nama_pk_fkey (nama, nip)`).order('id_pengawasan', { ascending: false }).limit(20),
+        supabase.from('pembimbingan').select(`*, klien:klien!fk_pembimbingan_klien (nama_klien), petugas_pk:petugas_pk!pembimbingan_nama_pk_fkey (nama, nip)`).order('id_pembimbingan', { ascending: false }).limit(20),
+      ]);
+
+      const allLayanan = [
+        ...(litmasRes.data || []).map((d: any) => ({ ...d, _table: 'litmas', _id: d.id_litmas, kategori_layanan: d.kategori_layanan || 'litmas' })),
+        ...(pendampinganRes.data || []).map((d: any) => ({ ...d, _table: 'pendampingan', _id: d.id_pendampingan, kategori_layanan: 'pendampingan' })),
+        ...(pengawasanRes.data || []).map((d: any) => ({ ...d, _table: 'pengawasan', _id: d.id_pengawasan, kategori_layanan: 'pengawasan' })),
+        ...(pembimbinganRes.data || []).map((d: any) => ({ ...d, _table: 'pembimbingan', _id: d.id_pembimbingan, kategori_layanan: 'pembimbingan' })),
+      ].sort((a, b) => new Date(b.waktu_registrasi || 0).getTime() - new Date(a.waktu_registrasi || 0).getTime());
+
+      setDataLitmas(allLayanan);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, [isOpAnak, isOpDewasa]);
 
@@ -402,7 +567,7 @@ export default function OperatorRegistrasiTest() {
           const { data: pData } = await supabase.from('penjamin').select('id_klien, nama_penjamin, created_at').gte('created_at', sevenDaysAgo).order('created_at', { ascending: false });
           pData?.forEach((p: any) => historyArr.push({ type: 'Penjamin', title: p.nama_penjamin, date: p.created_at, id: p.id_klien }));
           
-          const { data: lData } = await supabase.from('litmas').select('id_litmas, nomor_surat_permintaan, waktu_registrasi, klien:klien!fk_litmas_klien(nama_klien), petugas_pk:petugas_pk!fk_litmas_pk(nama)').gte('waktu_registrasi', sevenDaysAgo).order('waktu_registrasi', { ascending: false });
+          const { data: lData } = await supabase.from('litmas').select('id_litmas, nomor_surat_permintaan, waktu_registrasi, klien (nama_klien), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama)').gte('waktu_registrasi', sevenDaysAgo).order('waktu_registrasi', { ascending: false });
           lData?.forEach((l: any) => historyArr.push({ type: 'Registrasi Layanan', title: `${l.nomor_surat_permintaan} (${l.klien?.nama_klien || 'N/A'}) - PK: ${l.petugas_pk?.nama || 'Belum ditunjuk'}`, date: l.waktu_registrasi, id: l.id_litmas }));
           historyArr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setHistoryData(historyArr);
@@ -412,7 +577,7 @@ export default function OperatorRegistrasiTest() {
   const handleEditClick = async (item: any) => {
     setLoading(true); setMatchesKlien([]); setActiveInput(null);
     try {
-        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!fk_litmas_pk(nama))`).eq('id_klien', item.id_klien).single();
+        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))`).eq('id_klien', item.id_klien).single();
         if (error) throw error;
         const safeData = data as any;
         setEditingKlien(safeData);
@@ -490,11 +655,12 @@ export default function OperatorRegistrasiTest() {
 
   const resetFormState = () => {
     setEditingKlien(null); setEditingPenjamin(null); setEditingLitmas(null);
+    setEditingLayananId(null); setEditingLayananTable('litmas');
     setPerkaraList([]); setSelectedClientId(null); setSelectedPkId(null); setOriginalPkId(null);
     setMatchesKlien([]); setMatchesPenjamin([]); setActiveInput(null); setFileSuratPermintaan(null);
     setTglLahir(""); setHitungUsia(""); setHitungKategori("");
     setKlienDitakPernahDitolak([]);
-    setTempPerkara({ pasal: '', tindak_pidana: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' });
+    setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' });
     
     setNamaAlias(['']); setKewarganegaraan("WNI"); setResidivis("Tidak"); setStatusPerkawinan("");
     setSelectedAgama(""); setSelectedPendidikan(""); setSelectedPekerjaan("");
@@ -510,9 +676,89 @@ export default function OperatorRegistrasiTest() {
 
   const handleCancelButton = (showToast = true) => { resetFormState(); if (showToast) toast({ title: "Edit Dibatalkan", description: "Form direset." }); };
 
+  // Edit layanan dari list_data — buka form layanan dengan data yang sudah ada
+  const handleEditLayananClick = async (layananItem: any) => {
+    setLoading(true);
+    try {
+      const table = layananItem._table || 'litmas';
+      const id = layananItem._id || layananItem.id_litmas;
+      setEditingLayananTable(table);
+      setEditingLayananId(id);
+
+      // Load klien terkait
+      const { data: klienData, error: kErr } = await supabase
+        .from('klien')
+        .select('*, penjamin (*)')
+        .eq('id_klien', layananItem.id_klien)
+        .single();
+      if (kErr) throw kErr;
+
+      const safeKlien = klienData as any;
+      setEditingKlien(safeKlien);
+      setSelectedClientId(safeKlien.id_klien);
+
+      if (safeKlien.tanggal_lahir) {
+        setTglLahir(safeKlien.tanggal_lahir);
+        calculateAgeAndCategory(safeKlien.tanggal_lahir);
+      }
+      setSelectedAgama(safeKlien.agama || "");
+      setSelectedPendidikan(safeKlien.pendidikan || "");
+      setSelectedPekerjaan(safeKlien.pekerjaan || "");
+      setKewarganegaraan(safeKlien.kewarganegaraan || "WNI");
+      setResidivis(safeKlien.residivis || "Tidak");
+      setStatusPerkawinan(safeKlien.status_perkawinan || "");
+      setNamaAlias(safeKlien.nama_alias || ['']);
+      if (safeKlien.kelurahan) handleSelectKelurahan(safeKlien.kelurahan);
+
+      // Set penjamin
+      const pjn = safeKlien.penjamin?.[0] || null;
+      setEditingPenjamin(pjn);
+      if (pjn) {
+        setSelectedHubungan(pjn.hubungan_klien || "");
+        setSelectedAgamaPenjamin(pjn.agama || "");
+        setSelectedPendidikanPenjamin(pjn.pendidikan || "");
+        setSelectedPekerjaanPenjamin(pjn.pekerjaan || "");
+        setPenjaminTglLahir(pjn.tanggal_lahir || "");
+        if (pjn.tanggal_lahir) {
+          const bd = new Date(pjn.tanggal_lahir);
+          const td = new Date();
+          let age = td.getFullYear() - bd.getFullYear();
+          const m = td.getMonth() - bd.getMonth();
+          if (m < 0 || (m === 0 && td.getDate() < bd.getDate())) age--;
+          setPenjaminUsia(age.toString());
+        }
+        if (pjn.kelurahan) handleSelectKelurahanPenjamin(pjn.kelurahan);
+      }
+
+      // Set data layanan
+      setEditingLitmas(layananItem);
+      setSelectedPkId(layananItem.nama_pk || null);
+      setOriginalPkId(layananItem.nama_pk || null);
+      setSelectedJenisLitmas(layananItem.jenis_litmas || "");
+      setSelectedUpt(layananItem.id_upt ? String(layananItem.id_upt) : "");
+      setSelectedBapas(layananItem.asal_bapas || "");
+      setTahapanLayanan(layananItem.tahapan_layanan || "");
+      setLayananSubTab(table);
+      setNomorUrutLayanan(layananItem.nomor_urut ? String(layananItem.nomor_urut).padStart(4, '0') : "");
+
+      // Load perkara jika tabel litmas
+      if (table === 'litmas') {
+        const { data: perkaraData } = await supabase.from('perkara').select('*').eq('id_litmas', id);
+        setPerkaraList(perkaraData || []);
+      } else {
+        setPerkaraList([]);
+      }
+
+      setActiveTab("layanan");
+      toast({ title: "Mode Edit Layanan Aktif", description: `Mengedit layanan ${table} untuk: ${safeKlien.nama_klien}` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Gagal load layanan", description: err.message });
+    } finally { setLoading(false); }
+  };
+
   const refreshEditDataOnly = async (idKlien: number) => {
     try {
-        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!fk_litmas_pk(nama))`).eq('id_klien', idKlien).single();
+        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))`).eq('id_klien', idKlien).single();
         if (error) throw error;
         const safeData = data as any;
         setEditingKlien(safeData);
@@ -575,7 +821,6 @@ export default function OperatorRegistrasiTest() {
         }
 
         // --- 2. Fetch PK Sebelumnya dan Cek Penolakan Sidang ---
-        // --- 2. Fetch PK Sebelumnya dan Cek Penolakan Sidang ---
         if (!editingLitmas || editingLitmas.id_klien !== selectedClientId) {
            // @ts-ignore
            const { data: rawLitmas } = await supabase
@@ -617,7 +862,7 @@ export default function OperatorRegistrasiTest() {
       if(!searchKlienQuery) return fetchTableData();
       setLoading(true);
       const { data, error } = await supabase.from('klien')
-        .select('*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!fk_litmas_pk(nama))') 
+        .select('*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))') 
         .ilike('nama_klien', `%${searchKlienQuery}%`)
         .limit(20);
       if (error) console.error("Error search klien:", error);
@@ -628,7 +873,7 @@ export default function OperatorRegistrasiTest() {
   const handleSearchLitmas = async () => {
       if(!searchLitmasQuery) return fetchTableData();
       setLoading(true);
-      const { data } = await supabase.from('litmas').select(`*, klien:klien!fk_litmas_klien (nama_klien, nomor_register_lapas), petugas_pk:petugas_pk!fk_litmas_pk (nama, nip)`).ilike('nomor_surat_permintaan', `%${searchLitmasQuery}%`).limit(20);
+      const { data } = await supabase.from('litmas').select(`*, klien:klien!fk_litmas_klien (nama_klien, nomor_register_lapas), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip)`).ilike('nomor_surat_permintaan', `%${searchLitmasQuery}%`).limit(20);
       setDataLitmas(data || []);
       setLoading(false);
   };
@@ -725,6 +970,9 @@ export default function OperatorRegistrasiTest() {
                   if (!uploadedFileUrl) { setLoading(false); return; }
               }
 
+              // Tentukan tabel target berdasarkan layananSubTab
+              const targetTable = LAYANAN_TABLE_MAP[layananSubTab] || 'litmas';
+
               const dataLitmas = {
                   id_klien: selectedClientId, id_upt: formData.get('id_upt') ? Number(formData.get('id_upt')) : null, nama_pk: selectedPkId, 
                   nomor_urut: formData.get('nomor_urut') ? Number(formData.get('nomor_urut')) : null, nomor_surat_masuk: formData.get('nomor_surat_masuk') as string,
@@ -739,37 +987,51 @@ export default function OperatorRegistrasiTest() {
                   ...(uploadedFileUrl ? { file_surat_permintaan_url: uploadedFileUrl } : {})
               };
 
-              let litmasId = editingLitmas?.id_litmas;
-              if(editingLitmas) {
-                  const { error } = await supabase.from('litmas').update(dataLitmas as any).eq('id_litmas', litmasId);
+              // Tentukan ID layanan yang sedang diedit
+              const isEditingLayanan = editingLayananId !== null;
+              const currentEditId = editingLayananId || editingLitmas?.id_litmas;
+              
+              // Nama kolom primary key per tabel
+              const pkColumnMap: Record<string, string> = {
+                litmas: 'id_litmas',
+                pendampingan: 'id_pendampingan',
+                pengawasan: 'id_pengawasan',
+                pembimbingan: 'id_pembimbingan',
+              };
+
+              let layananId = currentEditId;
+              if (isEditingLayanan || editingLitmas) {
+                  const { error } = await (supabase.from(targetTable as any) as any).update(dataLitmas).eq(pkColumnMap[targetTable], currentEditId);
                   if(error) throw error;
                   
-                  if (perkaraList.length > 0) {
-                      await supabase.from('perkara').delete().eq('id_litmas', litmasId);
+                  if (targetTable === 'litmas' && perkaraList.length > 0) {
+                      await supabase.from('perkara').delete().eq('id_litmas', currentEditId);
                       const perkaraPayloads = perkaraList.map(p => ({
-                          id_litmas: litmasId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, nomor_putusan: p.nomor_putusan,
-                          vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, subsider_pidana: p.subsider_pidana,
+                          id_litmas: currentEditId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, juncto: p.juncto || null,
+                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, 
+                          subsider_pidana: p.subsider_pidana, uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null,
                           tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, tanggal_ekspirasi: p.tanggal_ekspirasi || null
                       }));
                       await supabase.from('perkara').insert(perkaraPayloads);
                   }
               } else {
-                  const { data, error } = await supabase.from('litmas').insert(dataLitmas as any).select('id_litmas').single();
+                  const { data, error } = await (supabase.from(targetTable as any) as any).insert(dataLitmas).select(`${pkColumnMap[targetTable]}`).single();
                   if (error) throw error;
-                  litmasId = data.id_litmas;
+                  layananId = data[pkColumnMap[targetTable]];
                   
-                  if (perkaraList.length > 0) {
+                  if (targetTable === 'litmas' && perkaraList.length > 0) {
                       const perkaraPayloads = perkaraList.map((p: any) => ({
-                          id_litmas: litmasId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, nomor_putusan: p.nomor_putusan,
-                          vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, subsider_pidana: p.subsider_pidana,
+                          id_litmas: layananId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, juncto: p.juncto || null,
+                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, 
+                          subsider_pidana: p.subsider_pidana, uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null,
                           tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, tanggal_ekspirasi: p.tanggal_ekspirasi || null
                       }));
                       await supabase.from('perkara').insert(perkaraPayloads);
                   }
               }
 
-              const isNewAssignment = !editingLitmas && selectedPkId;
-              const isReAssignment = editingLitmas && selectedPkId && selectedPkId !== originalPkId;
+              const isNewAssignment = !editingLitmas && !isEditingLayanan && selectedPkId;
+              const isReAssignment = (editingLitmas || isEditingLayanan) && selectedPkId && selectedPkId !== originalPkId;
               if (isNewAssignment || isReAssignment) {
                     const klienData = listKlien.find(k => k.id_klien === selectedClientId) || editingKlien;
                     const penjaminData = editingPenjamin || {};
@@ -803,7 +1065,10 @@ export default function OperatorRegistrasiTest() {
       e.preventDefault();
       if (isCategoryMismatch) return toast({ variant: "destructive", title: "Blokir", description: "Usia tidak sesuai role." });
       
+      if (!selectedAgama) return toast({ variant: "destructive", title: "Peringatan", description: "Agama Klien wajib dipilih." });
+      if (!statusPerkawinan) return toast({ variant: "destructive", title: "Peringatan", description: "Status Perkawinan wajib dipilih." });
       if (!selectedPendidikan) return toast({ variant: "destructive", title: "Peringatan", description: "Pendidikan Klien wajib dipilih." });
+      if (!selectedPekerjaan) return toast({ variant: "destructive", title: "Peringatan", description: "Pekerjaan Klien wajib dipilih." });
       if (!selectedKelurahan) return toast({ variant: "destructive", title: "Peringatan", description: "Kelurahan Klien wajib dipilih." });
 
       const formData = new FormData(e.currentTarget);
@@ -815,6 +1080,8 @@ export default function OperatorRegistrasiTest() {
       e.preventDefault();
       if (!selectedClientId) return toast({ variant: "destructive", title: "Error", description: "Pilih Klien dulu." });
       
+      if (!selectedHubungan) return toast({ variant: "destructive", title: "Peringatan", description: "Hubungan Penjamin wajib dipilih." });
+      if (!selectedAgamaPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Agama Penjamin wajib dipilih." });
       if (!selectedPendidikanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Pendidikan Penjamin wajib dipilih." });
       if (!selectedPekerjaanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Pekerjaan Penjamin wajib dipilih." });
       if (!selectedKelurahanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Kelurahan Penjamin wajib dipilih." });
@@ -888,7 +1155,7 @@ export default function OperatorRegistrasiTest() {
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1 bg-slate-100/80 rounded-xl">
             <TabsTrigger value="klien" className="py-3">{editingKlien ? 'Edit Klien' : '1. Data Klien'}</TabsTrigger>
             <TabsTrigger value="penjamin" className="py-3">2. Penjamin</TabsTrigger>
-            <TabsTrigger value="layanan" className="py-3">3. Layanan</TabsTrigger>
+            <TabsTrigger value="layanan" className="py-3">{editingLayananId ? '3. Edit Layanan ✏️' : '3. Layanan'}</TabsTrigger>
             <TabsTrigger value="list_data" className="py-3 flex gap-2"><List className="w-4 h-4" /> Data Terdaftar</TabsTrigger>
           </TabsList>
 
@@ -960,7 +1227,7 @@ export default function OperatorRegistrasiTest() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2"><Label>Jenis Kelamin <span className="text-red-500">*</span></Label><Select name="jenis_kelamin" required defaultValue={editingKlien?.jenis_kelamin || undefined}><SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger><SelectContent><SelectItem value="L">Laki-laki</SelectItem><SelectItem value="P">Perempuan</SelectItem></SelectContent></Select></div>
                         <div className="grid gap-2">
-                          <Label>Agama (ref_agama)</Label>
+                          <Label>Agama (ref_agama) <span className="text-red-500">*</span></Label>
                           <SearchableSelect options={refAgama} value={selectedAgama} onSelect={setSelectedAgama} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" allowClear={true}/>
                         </div>
                       </div>
@@ -1003,7 +1270,7 @@ export default function OperatorRegistrasiTest() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label>Status Perkawinan</Label>
+                        <Label>Status Perkawinan <span className="text-red-500">*</span></Label>
                         <Select value={statusPerkawinan} onValueChange={setStatusPerkawinan}>
                             <SelectTrigger><SelectValue placeholder="Pilih Status..." /></SelectTrigger>
                             <SelectContent><SelectItem value="Belum Kawin">Belum Kawin</SelectItem><SelectItem value="Kawin">Kawin</SelectItem><SelectItem value="Cerai Hidup">Cerai Hidup</SelectItem><SelectItem value="Cerai Mati">Cerai Mati</SelectItem></SelectContent>
@@ -1011,7 +1278,7 @@ export default function OperatorRegistrasiTest() {
                       </div>
                       
                       <div className="grid gap-2">
-                          <Label>Pekerjaan (ref_pekerjaan)</Label>
+                          <Label>Pekerjaan (ref_pekerjaan) <span className="text-red-500">*</span></Label>
                           <SearchableSelect options={refPekerjaan} value={selectedPekerjaan} onSelect={setSelectedPekerjaan} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" allowClear={true}/>
                       </div>
                       <div className="grid gap-2"><Label>Minat / Bakat</Label><Input name="minat_bakat" defaultValue={editingKlien?.minat_bakat || ''} /></div>
@@ -1042,8 +1309,8 @@ export default function OperatorRegistrasiTest() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                          <Label>Nomor Telepon <span className="text-red-500">*</span></Label>
-                          <Input name="nomor_telepon" required defaultValue={editingKlien?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" />
+                          <Label>Nomor Telepon <span className="text-slate-400 text-xs">(Opsional — isi "-" jika tidak ada)</span></Label>
+                          <Input name="nomor_telepon" defaultValue={editingKlien?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Isi '-' jika tidak ada nomor telepon" />
                       </div>
                     </div>
                   </div>
@@ -1108,7 +1375,7 @@ export default function OperatorRegistrasiTest() {
             <Card className="border-t-4 border-t-green-600 shadow-sm">
               <CardHeader><CardTitle>Data Penjamin</CardTitle><CardDescription>Informasi keluarga.</CardDescription></CardHeader>
               <CardContent>
-                <form key={editingPenjamin ? `penjamin-${editingPenjamin.id_klien}` : 'penjamin-new'} onSubmit={initiateSavePenjamin} className="space-y-6">
+                <form key={editingPenjamin ? `penjamin-${editingPenjamin.id_klien}` : 'penjamin-new'} onSubmit={initiateSavePenjamin} className="space-y-6 mx-auto">
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200"><ClientSelector listKlien={listKlien} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} editingKlien={editingKlien} handleCancelButton={handleCancelButton} loading={loading} userRoleCategory={userRoleCategory} /></div>
                   <div className={cn("space-y-6", !selectedClientId && "opacity-50 pointer-events-none")}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1129,11 +1396,11 @@ export default function OperatorRegistrasiTest() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                          <Label>Hubungan (ref_hubungan)</Label>
+                          <Label>Hubungan (ref_hubungan) <span className="text-red-500">*</span></Label>
                           <SearchableSelect options={refHubungan} value={selectedHubungan} onSelect={setSelectedHubungan} labelKey="nama_hubungan" valueKey="nama_hubungan" placeholder="Pilih Hubungan..." searchPlaceholder="Cari hubungan..." name="hubungan_klien" allowClear={true}/>
                       </div>
                       <div className="grid gap-2">
-                          <Label>Agama (ref_agama)</Label>
+                          <Label>Agama (ref_agama) <span className="text-red-500">*</span></Label>
                           <SearchableSelect options={refAgama} value={selectedAgamaPenjamin} onSelect={setSelectedAgamaPenjamin} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" allowClear={true}/>
                       </div>
                       <div className="grid gap-2"><Label>Tempat Lahir <span className="text-red-500">*</span></Label><Input name="tempat_lahir" required defaultValue={editingPenjamin?.tempat_lahir || ''} /></div>
@@ -1176,10 +1443,22 @@ export default function OperatorRegistrasiTest() {
 
           {/* TAB 3: LAYANAN */}
           <TabsContent value="layanan">
-            <Card className="border-t-4 border-t-blue-600 shadow-sm">
-              <CardHeader><CardTitle>Registrasi Layanan & Dokumen</CardTitle><CardDescription>Pilih layanan, upload surat permintaan, dan input perkara.</CardDescription></CardHeader>
+            <Card className={cn("border-t-4 shadow-sm", editingLayananId ? "border-t-amber-500 bg-amber-50/30" : "border-t-blue-600")}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{editingLayananId ? 'Edit Layanan Terdaftar' : 'Registrasi Layanan & Dokumen'}</CardTitle>
+                    <CardDescription>{editingLayananId ? `Mengedit layanan ${editingLayananTable.toUpperCase()} — ID: ${editingLayananId}` : 'Pilih layanan, upload surat permintaan, dan input perkara.'}</CardDescription>
+                  </div>
+                  {editingLayananId && (
+                    <Button variant="outline" size="sm" onClick={() => handleCancelButton(true)}>
+                      <XCircle className="w-4 h-4 mr-2" /> Batal Edit
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
               <CardContent>
-                <form key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'} onSubmit={initiateSaveLayanan} className="space-y-6">
+                <form key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'} onSubmit={initiateSaveLayanan} className="space-y-6 mx-auto">
                   
                   <Tabs value={layananSubTab} onValueChange={setLayananSubTab} className="w-full mb-6">
                     <TabsList className="grid w-full grid-cols-4 bg-blue-50/50 p-1 rounded-xl">
@@ -1282,27 +1561,31 @@ export default function OperatorRegistrasiTest() {
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded shadow-sm">
                         <div className="md:col-span-2 grid gap-2"><Label>Pasal</Label><Input value={tempPerkara.pasal} onChange={(e) => setTempPerkara({...tempPerkara, pasal: e.target.value})} placeholder="Cth: 363" /></div>
                         <div className="md:col-span-3 grid gap-2"><Label>Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({...tempPerkara, tindak_pidana: e.target.value})} placeholder="Pencurian" /></div>
-                        <div className="md:col-span-3 grid gap-2"><Label>No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({...tempPerkara, nomor_putusan: e.target.value})} /></div>
+                        <div className="md:col-span-3 grid gap-2"><Label>Juncto (Jo.)</Label><Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({...tempPerkara, juncto: e.target.value})} placeholder="Cth: Jo. Ps. 55" /></div>
+                        <div className="md:col-span-4 grid gap-2"><Label>No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({...tempPerkara, nomor_putusan: e.target.value})} /></div>
                         <div className="md:col-span-4 grid gap-2"><Label>Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({...tempPerkara, vonis_pidana: val})} /></div>
                         
                         <div className="md:col-span-3 grid gap-2"><Label>Denda (Rp)</Label><Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({...tempPerkara, denda: e.target.value})} /></div>
                         <div className="md:col-span-4 grid gap-2"><Label>Subsider</Label><DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({...tempPerkara, subsider_pidana: val})} /></div>
+                        <div className="md:col-span-3 grid gap-2"><Label>Uang Pengganti (Rp)</Label><Input type="number" value={tempPerkara.uang_pengganti} onChange={(e) => setTempPerkara({...tempPerkara, uang_pengganti: e.target.value})} placeholder="0" /></div>
+                        <div className="md:col-span-2 grid gap-2"><Label>Restitusi (Rp)</Label><Input type="number" value={tempPerkara.restitusi} onChange={(e) => setTempPerkara({...tempPerkara, restitusi: e.target.value})} placeholder="0" /></div>
                         <div className="md:col-span-2 grid gap-2"><Label>Mulai Ditahan</Label><Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_mulai_ditahan: e.target.value})} /></div>
                         <div className="md:col-span-2 grid gap-2"><Label>Ekspirasi</Label><Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({...tempPerkara, tanggal_ekspirasi: e.target.value})} /></div>
                         
                         <div className="md:col-span-1">
-                          <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: "destructive", title: "Gagal", description: "Pasal & Tindak Pidana wajib diisi." }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-red-600 hover:bg-red-700 w-full"><Plus className="w-5 h-5" /></Button>
+                          <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: "destructive", title: "Gagal", description: "Pasal & Tindak Pidana wajib diisi." }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-red-600 hover:bg-red-700 w-full"><Plus className="w-5 h-5" /></Button>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         {perkaraList.map((p, idx) => (
                           <div key={p.id || idx} className="flex items-center justify-between bg-white p-3 rounded border border-red-200 text-sm">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                              <div><span className="text-xs text-slate-500 block">Pasal</span><span className="font-bold">{p.pasal}</span></div>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
+                              <div><span className="text-xs text-slate-500 block">Pasal</span><span className="font-bold">{p.pasal}</span>{p.juncto && <span className="text-xs text-slate-400 block">Jo. {p.juncto}</span>}</div>
                               <div><span className="text-xs text-slate-500 block">Pidana</span><span>{p.tindak_pidana}</span></div>
                               <div><span className="text-xs text-slate-500 block">Vonis</span><span>{p.vonis_pidana}</span></div>
-                              <div><span className="text-xs text-slate-500 block">Ekspirasi</span><span className="text-red-600 font-medium">{p.tanggal_ekspirasi}</span></div>
+                              <div><span className="text-xs text-slate-500 block">Uang Pengganti</span><span className="text-orange-600 font-medium">{p.uang_pengganti ? `Rp ${Number(p.uang_pengganti).toLocaleString('id-ID')}` : '-'}</span></div>
+                              <div><span className="text-xs text-slate-500 block">Ekspirasi</span><span className="text-red-600 font-medium">{p.tanggal_ekspirasi || '-'}</span></div>
                             </div>
                             <Button type="button" variant="ghost" size="sm" onClick={() => { const newList = [...perkaraList]; newList.splice(idx, 1); setPerkaraList(newList); }} className="text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4" /></Button>
                           </div>
@@ -1502,6 +1785,7 @@ export default function OperatorRegistrasiTest() {
                                 }
                             </TableCell>
                             <TableCell className="text-right">
+                                <div className="flex gap-1 justify-end">
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
@@ -1510,6 +1794,16 @@ export default function OperatorRegistrasiTest() {
                                 >
                                     <Eye className="w-4 h-4 text-slate-500 hover:text-blue-600"/>
                                 </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => handleEditLayananClick(l)}
+                                    title="Edit Layanan"
+                                >
+                                    <Pencil className="w-4 h-4 text-amber-500 hover:text-amber-700"/>
+                                </Button>
+                                </div>
                             </TableCell>
                           </TableRow>
                         )) : (

@@ -13,6 +13,7 @@ import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/admin";
 import About from "./pages/About";
+import WajibLapor from "./pages/WajibLapor";
 
 //Auth
 import UpdatePasswordPage from "./pages/auth/UpdatePassword";
@@ -167,6 +168,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/wajib-lapor"
+              element={
+                <ProtectedRoute permission= "access_admin">
+                  <WajibLapor/>
+                </ProtectedRoute>
+              }
+            />
+            
             <Route path="/about" element={<About/>}/>
 
             {/* Catch-all */}

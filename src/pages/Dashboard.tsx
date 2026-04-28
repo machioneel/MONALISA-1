@@ -14,7 +14,8 @@ import {
   LogOut, User, Shield, Settings, FileText, Briefcase, BarChart3, Mail, Building2, 
   ClipboardList, TrendingUp, CheckCircle2, Menu, X, Activity, Loader2, Users, Info,
   AlertTriangle, Clock, Calendar as CalendarIcon, UserCheck, Key, Megaphone, MapPin, 
-  ChevronRight, Sparkles, Circle, ArrowRight
+  ChevronRight, Sparkles, Circle, ArrowRight,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -75,6 +76,7 @@ const menuItems = [
   { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimkemas', icon: Users },
   { path: '/test/tpp', permission: 'access_tpp', label: 'TPP', icon: TrendingUp },
   { path: '/test/laporan', permission: 'access_laporan', label: 'Laporan', icon: FileText },
+  { path: '/wajib-lapor', permission: 'access_admin', label: 'Wajib Lapor', icon: CheckCircle },
   { path: '/about', permission:'access_admin', label: 'About', icon: Info},
 ];
 
