@@ -742,6 +742,216 @@ export type Database = {
         }
         Relationships: []
       }
+      pendampingan: {
+          Row: {
+            id_pendampingan: number
+            id_klien: number | null
+            id_upt: number | null
+            nama_pk: string | null
+            nomor_urut: number | null
+            nomor_surat_masuk: string | null
+            tanggal_diterima_bapas: string | null
+            jenis_litmas: string | null
+            tanggal_registrasi: string | null
+            nomor_register_litmas: string | null
+            asal_bapas: string | null
+            nomor_surat_permintaan: string | null
+            tanggal_surat_permintaan: string | null
+            nomor_surat_pelimpahan: string | null
+            tanggal_surat_pelimpahan: string | null
+            created_at: string | null
+            status: string | null
+            catatan_revisi: string | null
+            tenggat_waktu: string | null
+            surat_tugas_signed_url: string | null
+            hasil_litmas_url: string | null
+            anev_notes: string | null
+            reviewed_at: string | null
+            tanggal_sidang_tpp: string | null
+            tpp_schedule_id: string | null
+            waktu_registrasi: string | null
+            waktu_tunjuk_pk: string | null
+            waktu_upload_surat_tugas: string | null
+            waktu_upload_laporan: string | null
+            waktu_verifikasi_anev: string | null
+            waktu_daftar_tpp: string | null
+            waktu_sidang_tpp: string | null
+            waktu_selesai: string | null
+            file_surat_permintaan_url: string | null
+            assigned_anev_id: string | null
+            kategori_layanan: string | null
+            tahapan_layanan: string | null
+          }
+          Insert: {
+            [key: string]: any
+          }
+          Update: {
+            [key: string]: any
+          }
+          Relationships: [
+            {
+              foreignKeyName: "fk_pendampingan_klien"
+              columns: ["id_klien"]
+              isOneToOne: false
+              referencedRelation: "klien"
+              referencedColumns: ["id_klien"]
+            },
+            {
+              foreignKeyName: "pendampingan_nama_pk_fkey"
+              columns: ["nama_pk"]
+              isOneToOne: false
+              referencedRelation: "petugas_pk"
+              referencedColumns: ["id"]
+            }
+          ]
+        }
+        pengawasan: {
+          Row: {
+            id_pengawasan: number
+            id_klien: number | null
+            id_upt: number | null
+            nama_pk: string | null
+            nomor_urut: number | null
+            nomor_surat_masuk: string | null
+            tanggal_diterima_bapas: string | null
+            jenis_litmas: string | null
+            tanggal_registrasi: string | null
+            nomor_register_litmas: string | null
+            asal_bapas: string | null
+            nomor_surat_permintaan: string | null
+            tanggal_surat_permintaan: string | null
+            nomor_surat_pelimpahan: string | null
+            tanggal_surat_pelimpahan: string | null
+            created_at: string | null
+            status: string | null
+            catatan_revisi: string | null
+            tenggat_waktu: string | null
+            surat_tugas_signed_url: string | null
+            hasil_litmas_url: string | null
+            anev_notes: string | null
+            reviewed_at: string | null
+            tanggal_sidang_tpp: string | null
+            tpp_schedule_id: string | null
+            waktu_registrasi: string | null
+            waktu_tunjuk_pk: string | null
+            waktu_upload_surat_tugas: string | null
+            waktu_upload_laporan: string | null
+            waktu_verifikasi_anev: string | null
+            waktu_daftar_tpp: string | null
+            waktu_sidang_tpp: string | null
+            waktu_selesai: string | null
+            file_surat_permintaan_url: string | null
+            assigned_anev_id: string | null
+            kategori_layanan: string | null
+            tahapan_layanan: string | null
+          }
+          Insert: { [key: string]: any }
+          Update: { [key: string]: any }
+          Relationships: [
+            {
+              foreignKeyName: "fk_pengawasan_klien"
+              columns: ["id_klien"]
+              isOneToOne: false
+              referencedRelation: "klien"
+              referencedColumns: ["id_klien"]
+            },
+            {
+              foreignKeyName: "pengawasan_nama_pk_fkey"
+              columns: ["nama_pk"]
+              isOneToOne: false
+              referencedRelation: "petugas_pk"
+              referencedColumns: ["id"]
+            }
+          ]
+        }
+
+        pembimbingan: {
+          Row: {
+            id_pembimbingan: number
+            id_klien: number | null
+            id_upt: number | null
+            nama_pk: string | null
+            nomor_urut: number | null
+            nomor_surat_masuk: string | null
+            tanggal_diterima_bapas: string | null
+            jenis_litmas: string | null
+            tanggal_registrasi: string | null
+            nomor_register_litmas: string | null
+            asal_bapas: string | null
+            nomor_surat_permintaan: string | null
+            tanggal_surat_permintaan: string | null
+            nomor_surat_pelimpahan: string | null
+            tanggal_surat_pelimpahan: string | null
+            created_at: string | null
+            status: string | null
+            catatan_revisi: string | null
+            tenggat_waktu: string | null
+            surat_tugas_signed_url: string | null
+            hasil_litmas_url: string | null
+            anev_notes: string | null
+            reviewed_at: string | null
+            tanggal_sidang_tpp: string | null
+            tpp_schedule_id: string | null
+            waktu_registrasi: string | null
+            waktu_tunjuk_pk: string | null
+            waktu_upload_surat_tugas: string | null
+            waktu_upload_laporan: string | null
+            waktu_verifikasi_anev: string | null
+            waktu_daftar_tpp: string | null
+            waktu_sidang_tpp: string | null
+            waktu_selesai: string | null
+            file_surat_permintaan_url: string | null
+            assigned_anev_id: string | null
+            kategori_layanan: string | null
+            tahapan_layanan: string | null
+          }
+          Insert: { [key: string]: any }
+          Update: { [key: string]: any }
+          Relationships: [
+            {
+              foreignKeyName: "fk_pembimbingan_klien"
+              columns: ["id_klien"]
+              isOneToOne: false
+              referencedRelation: "klien"
+              referencedColumns: ["id_klien"]
+            },
+            {
+              foreignKeyName: "pembimbingan_nama_pk_fkey"
+              columns: ["nama_pk"]
+              isOneToOne: false
+              referencedRelation: "petugas_pk"
+              referencedColumns: ["id"]
+            }
+          ]
+        }
+
+        ref_perkara: {
+        Row: {
+          id_perkara: number
+          aturan_uu: string | null
+          pasal: string | null
+          ayat: string | null
+          nama_perkara: string | null
+          kategori: string | null
+        }
+        Insert: {
+          id_perkara?: number
+          aturan_uu?: string | null
+          pasal?: string | null
+          ayat?: string | null
+          nama_perkara?: string | null
+          kategori?: string | null
+        }
+        Update: {
+          id_perkara?: number
+          aturan_uu?: string | null
+          pasal?: string | null
+          ayat?: string | null
+          nama_perkara?: string | null
+          kategori?: string | null
+        }
+        Relationships: []
+      }
 
       ref_kelurahan: {
         Row: {
@@ -772,7 +982,6 @@ export type Database = {
           }
         ]
       }
-
     }
     Views: {
       [_ in never]: never

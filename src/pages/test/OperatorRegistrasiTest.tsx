@@ -1,3 +1,4 @@
+// src/pages/test/OperatorRegistrasiTest.tsx
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,15 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { 
-  ClipboardList, Gavel, CalendarDays, Loader2, Check, ChevronsUpDown, Search, 
-  User, UserCheck, List, RefreshCw, Pencil, XCircle, MapPin, AlertTriangle, 
-  Eye, FileText, ShieldAlert, Plus, Trash2, Phone, Briefcase, GraduationCap, AlertCircle, Save,
-  CloudUpload, History, Clock, ExternalLink, Activity, Globe, FileClock, AlertOctagon
+  ClipboardList, Gavel, Loader2, Check, ChevronsUpDown, Search, 
+  UserCheck, History, XCircle, FileText, ShieldAlert, Plus, Trash2, Save,
+  CloudUpload, Clock, ExternalLink, AlertOctagon, User, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -24,10 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { format, subDays } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -38,167 +34,21 @@ import { ClientSelector } from '@/components/registrasi/Features/ClientSelector'
 import { PetugasPK, Klien } from '@/types/auth'; 
 import { Database } from '@/integrations/supabase/types';
 
-// --- IMPORTS KOMPONEN LAYANAN YANG SUDAH DIPISAH ---
+// --- IMPORTS KOMPONEN LAYANAN ---
 import { FormLitmas } from '@/components/registrasi/FormLayanan/FormLitmas';
 import { FormPendampingan } from '@/components/registrasi/FormLayanan/FormPendampingan';
 import { FormPengawasan } from '@/components/registrasi/FormLayanan/FormPengawasan';
 import { FormPembimbingan } from '@/components/registrasi/FormLayanan/FormPembimbingan';
 
-// --- HIERARKI LAYANAN ANAK ---
-export const HIERARKI_LAYANAN_ANAK = {
-  litmas: {
-    "Pra Adjudikasi": ["Litmas Anak dibawah 12 Tahun", "Litmas Diversi", "Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan", "Litmas Restorative Justice"],
-    "Adjudikasi": ["Litmas Sidang", "Litmas Perawatan", "Litmas Penempatan"],
-    "Pasca Adjudikasi": ["Litmas Pembinaan Awal", "Litmas Pemindahan", "Litmas Program Asimilasi", "Litmas Program CMK", "Litmas Program CDK", "Asimilasi Tempat Tinggal/Rumah Antara", "Litmas Re-integrasi CB", "Litmas Re-integrasi CMB", "Litmas Re-integrasi PB", "Litmas Grasi", "Litmas Program Bimbingan"]
-  },
-  pendampingan: {
-    "Pra Adjudikasi": ["Pendampingan Anak dibawah 12 Tahun", "Pendampingan Tingkat Penyidikan (BAP)", "Pendampingan Proses Diversi", "Pendampingan Pelaksanaan Kesepakatan Diversi", "Pendampingan Tingkat Penuntutan (P21)", "Pendampingan Proses Diversi", "Pendampingan Pelaksanaan Kesepakatan Diversi", "Pendampingan Layanan Tahanan"],
-    "Adjudikasi": ["Pendampingan Tingkat Peeriksaan Perkara di Pengadilan", "Pendampingan Layanan Tahanan dalam Tahap persidangan"],
-    "Pasca Adjudikasi": ["Pendampingan Putusan Penjara", "Pendampingan Putusan Non-Pemennjaraan", "Pendampingan Klien Menjalani Program Integrasi"] 
-  },
-  pembimbingan: {
-    "Pra Adjudikasi": ["Bimbingan Pelayanan Tahanan Kota", "Bimbingan Pelayanan Tahanan Rumah", "Bimbingan Klien yang Tidak Ditahan"],
-    "Adjudikasi": ["Bimbingan Pelayanan Tahanan Kota", "Bimbingan Pelayanan Tahanan Rumah", "Bimbingan Klien yang Tidak Ditahan", "Bimbingan Klien Diversi/Pelaksanaan Kesepakatan Diversi"],
-    "Pasca Adjudikasi": [
-  "Putusan Pemenjaraan",
-  "Pelayanan Pembimbingan Putusan Non-Pemenjaraan",
-  "Klien Menjalani Program Integrasi",
-  "Pidana Peringatan (Anak)",
-  "Pidana Pembinaan di Luar Lembaga (Anak)",
-  "Pidana Pelayanan Masyarakat (Anak)",
-  "Pidana Pelatihan Kerja (Anak)",
-  "Pidana Pembinaan dalam Lembaga (Anak)",
-  "Pidana Penetapan Tindakan (Anak)",
-  "Penetapan Anak di Bawah 12 Tahun",
-  "Pidana Pengawasan",
-  "Pidana Kerja Sosial",
-  "Pembimbingan Asimilasi",
-  "Pembimbingan Cuti Bersyarat (CB)",
-  "Pembimbingan Cuti Menjelang Bebas (CMB)",
-  "Pembimbingan Pembebasan Bersyarat (PB)",
-  "Pembimbingan Cuti Mengunjungi Keluarga (CMK)",
-  "Pembimbingan Cuti di Luar Negeri (CDK)",
-  "Bimbingan Lanjutan (Aftercare)"
-]
-  },
-  pengawasan: {
-    "Pra Adjudikasi": [
-  "Pengawasan Keputusan Anak di Bawah 12 Tahun",
-  "Pengawasan Layanan Tahanan",
-  "Pengawasan Kesepakatan Diversi",
-  "Pengawasan Pelayanan Tahanan Kota"
-],
-    "Adjudikasi": [
-  "Pengawasan Layanan Tahanan",
-  "Pengawasan Pelayanan Tahanan Kota",
-  "Pengawasan Pelayanan Tahanan Rumah",
-  "Pengawasan Klien Tidak Ditahan"
-],
-    "Pasca Adjudikasi": [
-  "Putusan Pemenjaraan",
-  "Pengawasan Pembimbingan Putusan Non-Pemenjaraan",
-  "Pengawasan Klien Program Integrasi",
-  "Pengawasan Bimbingan Lanjutan (Aftercare)"
-]
-  }
-};
+// --- IMPORTS KOMPONEN YANG TELAH DIPISAH ---
+import { FormKlien } from '@/components/registrasi/FormKlien';
+import { FormPenjamin } from '@/components/registrasi/FormPenjamin';
+import { DataTerdaftar } from '@/components/registrasi/DataTerdaftar';
 
-// --- HIERARKI LAYANAN DEWASA ---
-export const HIERARKI_LAYANAN_DEWASA = {
-  pendampingan: {
-    "Pra Ajudikasi": [
-      "Pendampingan Tingkat Penyidikan (BAP)",
-      "Pendampingan Tingkat Penuntutan (P21)",
-      "Pendampingan Layanan Tahanan"
-    ],
-    "Ajudikasi": [
-      "Pendampingan Tingkat Pemeriksaan Perkara di Pengadilan",
-      "Pendampingan Layanan Tahanan dalam Tahap Persidangan"
-    ],
-    "Pasca Ajudikasi": [
-      "Pendampingan Putusan Penjara",
-      "Pendampingan Putusan Non Pemenjaraan",
-      "Pendampingan Klien Menjalani Program Integrasi"
-    ]
-  },
+// --- KONSTANTA HIERARKI ---
+import { HIERARKI_LAYANAN_ANAK, HIERARKI_LAYANAN_DEWASA } from '@/constants/registrasi'; 
 
-  litmas: {
-    "Pra Adjudikasi": [
-      "Litmas Sidang",
-      "Litmas Restorative Justice",
-      "Litmas Perawatan",
-      "Litmas Penempatan"
-    ],
-    "Adjudikasi": [
-      "Litmas Sidang",
-      "Litmas Perawatan",
-      "Litmas Penempatan"
-    ],
-    "Pasca Adjudikasi": [
-      "Litmas Pembinaan Awal",
-      "Litmas Program Bimbingan",
-      "Litmas Pemindahan",
-      "Litmas Program Asimilasi",
-      "Litmas Program CMK",
-      "Litmas Program CDK",
-      "Asimilasi Tempat Tinggal/ Rumah Antara",
-      "Litmas Re-integrasi CB",
-      "Litmas Re-integrasi CMB",
-      "Litmas Re-integrasi PB",
-      "Litmas Grasi",
-      "Litmas Perubahan Pidana"
-    ]
-  },
-
-  pembimbingan: {
-    "Pra Adjudikasi": [
-      "Bimbingan Pelayanan Tahanan Kota",
-      "Bimbingan Pelayanan Tahanan Rumah",
-      "Bimbingan Klien yang Tidak Ditahan"
-    ],
-    "Adjudikasi": [
-      "Bimbingan Pelayanan Tahanan Kota",
-      "Bimbingan Pelayanan Tahanan Rumah",
-      "Bimbingan Klien yang Tidak Ditahan"
-    ],
-    "Pasca Adjudikasi": [
-      "Putusan Pemenjaraan",
-      "Pelayanan Pembimbingan Putusan Non Pemenjaraan",
-      "Pidana Pengawasan",
-      "Pidana Kerja Sosial",
-      "Pembimbingan Asimilasi",
-      "Pembimbingan CB",
-      "Pembimbingan CMB",
-      "Pembimbingan PB",
-      "Pembimbingan CMK",
-      "Pembimbingan CDK",
-      "Bimbingan Lanjutan (aftercare)"
-    ]
-  },
-
-  pengawasan: {
-    "Pra Adjudikasi": [
-      "Pengawasan Layanan Tahanan",
-      "Pengawasan Pelayanan Tahanan Kota",
-      "Pengawasan Pelayanan Tahanan Rumah",
-      "Pengawasan Klien Tidak Ditahan"
-    ],
-    "Adjudikasi": [
-      "Pengawasan Layanan Tahanan",
-      "Pengawasan Pelayanan Tahanan Kota",
-      "Pengawasan Pelayanan Tahanan Rumah",
-      "Pengawasan Klien Tidak Ditahan"
-    ],
-    "Pasca Adjudikasi": [
-      "Putusan Pemenjaraan",
-      "Pengawasan Pelayanan Pembimbingan Putusan Non Pemenjaraan",
-      "Pengawasan Klien Menjalani Program Integrasi",
-      "Pengawasan Bimbingan Lanjutan (aftercare)"
-    ]
-  }
-};
-
-// --- TYPE DEFINITIONS FOR REFERENCES ---
+// --- TYPE DEFINITIONS ---
 type RefAgama = Database['public']['Tables']['ref_agama']['Row'];
 type RefPendidikan = Database['public']['Tables']['ref_pendidikan']['Row'];
 type RefPekerjaan = Database['public']['Tables']['ref_pekerjaan']['Row'];
@@ -206,10 +56,23 @@ type RefHubungan = Database['public']['Tables']['ref_hubungan']['Row'];
 type RefUpt = Database['public']['Tables']['ref_upt']['Row'];
 type RefJenisLitmas = Database['public']['Tables']['ref_jenis_litmas']['Row'];
 type RefBapas = Database['public']['Tables']['ref_bapas']['Row'];
-// ref_perkara: tabel referensi pasal/tindak pidana
-interface RefPerkara { id_perkara?: number; nama_perkara: string; pasal?: string; }
+type RefPerkara = Database['public']['Tables']['ref_perkara']['Row'];
 
-// Tabel target per kategori layanan
+const formatDateTime = (isoString: string | null | undefined) => {
+    if (!isoString) return '-';
+    try {
+      return new Date(isoString).toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (e) {
+      return isoString;
+    }
+  };
+
 const LAYANAN_TABLE_MAP: Record<string, string> = {
   litmas: 'litmas',
   pendampingan: 'pendampingan',
@@ -221,12 +84,10 @@ interface RefKelurahanExtended {
   id_kelurahan: number; 
   nama_kelurahan: string; 
   kecamatan_id: number | null;
-  ref_kecamatan: {
-      nama_kecamatan: string;
-  } | null;
+  ref_kecamatan: { nama_kecamatan: string; } | null;
 }
 
-// --- REUSABLE COMPONENT: SEARCHABLE COMBOBOX ---
+// --- SEARCHABLE COMBOBOX COMPONENT ---
 export const SearchableSelect = ({ 
   options, value, onSelect, labelKey, valueKey, placeholder, searchPlaceholder, name, allowClear = true
 }: any) => {
@@ -249,10 +110,7 @@ export const SearchableSelect = ({
               <CommandEmpty>Tidak ditemukan.</CommandEmpty>
               <CommandGroup className="max-h-64 overflow-y-auto">
                 {allowClear && value && (
-                   <CommandItem 
-                     onSelect={() => { onSelect(""); setOpen(false); }} 
-                     className="text-red-500 font-medium cursor-pointer bg-red-50 mb-1"
-                   >
+                   <CommandItem onSelect={() => { onSelect(""); setOpen(false); }} className="text-red-500 font-medium cursor-pointer bg-red-50 mb-1">
                      <XCircle className="mr-2 h-4 w-4" /> Kosongkan Pilihan
                    </CommandItem>
                 )}
@@ -283,8 +141,6 @@ export default function OperatorRegistrasiTest() {
   // --- STATE UTAMA ---
   const [activeTab, setActiveTab] = useState("klien");
   const [loading, setLoading] = useState(false);
-
-  // --- STATE LAYANAN & TAHAPAN ---
   const [layananSubTab, setLayananSubTab] = useState("litmas"); 
   const [tahapanLayanan, setTahapanLayanan] = useState<"Pra Adjudikasi" | "Adjudikasi" | "Pasca Adjudikasi" | "">("");
   
@@ -311,7 +167,7 @@ export default function OperatorRegistrasiTest() {
   const [originalPkId, setOriginalPkId] = useState<string | null>(null);
   const [openPkCombo, setOpenPkCombo] = useState(false);
 
-  // Klien
+  // Klien States
   const [namaAlias, setNamaAlias] = useState<string[]>(['']);
   const [kewarganegaraan, setKewarganegaraan] = useState("WNI");
   const [residivis, setResidivis] = useState("Tidak");
@@ -322,7 +178,7 @@ export default function OperatorRegistrasiTest() {
   const [selectedKelurahan, setSelectedKelurahan] = useState<string>("");
   const [manualKecamatan, setManualKecamatan] = useState<string>("");
   
-  // Penjamin
+  // Penjamin States
   const [selectedHubungan, setSelectedHubungan] = useState<string>("");
   const [selectedAgamaPenjamin, setSelectedAgamaPenjamin] = useState<string>("");
   const [selectedPendidikanPenjamin, setSelectedPendidikanPenjamin] = useState<string>("");
@@ -332,7 +188,7 @@ export default function OperatorRegistrasiTest() {
   const [penjaminTglLahir, setPenjaminTglLahir] = useState("");
   const [penjaminUsia, setPenjaminUsia] = useState("");
 
-  // Layanan
+  // Layanan States
   const [selectedJenisLitmas, setSelectedJenisLitmas] = useState<string>("");
   const [selectedUpt, setSelectedUpt] = useState<string>("");
   const [selectedBapas, setSelectedBapas] = useState<string>(""); 
@@ -342,11 +198,10 @@ export default function OperatorRegistrasiTest() {
   const [editingKlien, setEditingKlien] = useState<any | null>(null);
   const [editingPenjamin, setEditingPenjamin] = useState<any | null>(null);
   const [editingLitmas, setEditingLitmas] = useState<any | null>(null);
-  // ID layanan yang sedang diedit (dari list_data, bisa dari tabel selain litmas)
   const [editingLayananId, setEditingLayananId] = useState<number | null>(null);
   const [editingLayananTable, setEditingLayananTable] = useState<string>('litmas');
   
-  // Validasi & Hitungan
+  // Validasi & Hitungan States
   const [tglLahir, setTglLahir] = useState("");
   const [hitungUsia, setHitungUsia] = useState("");
   const [hitungKategori, setHitungKategori] = useState("");
@@ -369,7 +224,7 @@ export default function OperatorRegistrasiTest() {
   const [matchesPenjamin, setMatchesPenjamin] = useState<any[]>([]);
   const [activeInput, setActiveInput] = useState<string | null>(null);
 
-  // Perkara & File Upload
+  // Perkara & File Upload States
   const [perkaraList, setPerkaraList] = useState<any[]>([]);
   const [tempPerkara, setTempPerkara] = useState({
       pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', 
@@ -384,7 +239,7 @@ export default function OperatorRegistrasiTest() {
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
   const [duplicatePayload, setDuplicatePayload] = useState<any>(null); 
 
-  // --- LOGIC HIERARKI LAYANAN ---
+  // --- LOGIC FUNCTIONS ---
   useEffect(() => {
     setSelectedJenisLitmas("");
   }, [layananSubTab, tahapanLayanan]);
@@ -396,11 +251,6 @@ export default function OperatorRegistrasiTest() {
       // @ts-ignore
       ? (activeHierarki[layananSubTab]?.[tahapanLayanan] || []).map((j: string) => ({ jenis: j }))
       : [];
-
-  const formatDateTime = (isoString: string | null) => {
-    if (!isoString) return '-';
-    return new Date(isoString).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
 
   const handlePhoneValidation = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/[^0-9]/g, ''); 
@@ -432,19 +282,6 @@ export default function OperatorRegistrasiTest() {
     const selected = refKelurahan.find(k => k.nama_kelurahan === namaKelurahan);
     if (selected) setManualKecamatanPenjamin(selected.ref_kecamatan?.nama_kecamatan || "");
     else setManualKecamatanPenjamin(""); 
-  };
-
-  const refreshEditData = async (idKlien: number) => {
-    try {
-        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas:litmas!fk_litmas_klien (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))`).eq('id_klien', idKlien).single();
-        if (error) throw error;
-        const safeData = data as any;
-        setEditingKlien(safeData);
-        setEditingPenjamin(safeData.penjamin?.[0] || null);
-        const firstLitmas = safeData.litmas?.[0] || null;
-        setEditingLitmas(firstLitmas);
-        setPerkaraList(firstLitmas?.perkara || []);
-    } catch (error) { console.error("Gagal refresh data:", error); }
   };
 
   const checkLiveDuplicate = useCallback(async (table: 'klien' | 'penjamin', field: string, value: string) => {
@@ -513,7 +350,6 @@ export default function OperatorRegistrasiTest() {
     if (bapas) setRefBapas(bapas);
     const { data: kel } = await supabase.from('ref_kelurahan').select(`id_kelurahan, nama_kelurahan, kecamatan_id, ref_kecamatan ( nama_kecamatan )`).limit(2000); 
     if (kel) setRefKelurahan(kel as unknown as RefKelurahanExtended[]);
-    // Fetch ref_perkara jika tabel ada
     const { data: rpData } = await supabase.from('ref_perkara').select('*').limit(500);
     if (rpData) setRefPerkara(rpData as RefPerkara[]);
 
@@ -525,54 +361,49 @@ export default function OperatorRegistrasiTest() {
   }, [isOpAnak, isOpDewasa]);
 
   const fetchTableData = useCallback(async () => {
-    setLoading(true);
-    try {
-      let qK = supabase.from('klien')
-        .select('*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))') 
-        .order('id_klien', { ascending: false })
-        .limit(20);
-      if (isOpAnak) qK = qK.eq('kategori_usia', 'Anak');
-      else if (isOpDewasa) qK = qK.eq('kategori_usia', 'Dewasa');
-      
-      const { data: kData, error: kError } = await qK;
-      if (kError) console.error("Error fetching klien list:", kError);
-      setDataKlienFull(kData || []);
-      
-      // Fetch semua tabel layanan dan gabungkan
-      const [litmasRes, pendampinganRes, pengawasanRes, pembimbinganRes] = await Promise.all([
-        supabase.from('litmas').select(`*, klien:klien!fk_litmas_klien (nama_klien), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip), ref_upt(nama_upt)`).order('id_litmas', { ascending: false }).limit(20),
-        supabase.from('pendampingan').select(`*, klien:klien!fk_pendampingan_klien (nama_klien), petugas_pk:petugas_pk!pendampingan_nama_pk_fkey (nama, nip)`).order('id_pendampingan', { ascending: false }).limit(20),
-        supabase.from('pengawasan').select(`*, klien:klien!fk_pengawasan_klien (nama_klien), petugas_pk:petugas_pk!pengawasan_nama_pk_fkey (nama, nip)`).order('id_pengawasan', { ascending: false }).limit(20),
-        supabase.from('pembimbingan').select(`*, klien:klien!fk_pembimbingan_klien (nama_klien), petugas_pk:petugas_pk!pembimbingan_nama_pk_fkey (nama, nip)`).order('id_pembimbingan', { ascending: false }).limit(20),
-      ]);
+  setLoading(true);
+  try {
+    // Perbaikan: Hanya mengambil data klien dan penjamin (tanpa litmas)
+    // untuk menghindari ambiguitas relasi di Supabase
+    let qK = supabase.from('klien')
+      .select('*, penjamin (*)')
+      .order('id_klien', { ascending: false });
 
-      const allLayanan = [
-        ...(litmasRes.data || []).map((d: any) => ({ ...d, _table: 'litmas', _id: d.id_litmas, kategori_layanan: d.kategori_layanan || 'litmas' })),
-        ...(pendampinganRes.data || []).map((d: any) => ({ ...d, _table: 'pendampingan', _id: d.id_pendampingan, kategori_layanan: 'pendampingan' })),
-        ...(pengawasanRes.data || []).map((d: any) => ({ ...d, _table: 'pengawasan', _id: d.id_pengawasan, kategori_layanan: 'pengawasan' })),
-        ...(pembimbinganRes.data || []).map((d: any) => ({ ...d, _table: 'pembimbingan', _id: d.id_pembimbingan, kategori_layanan: 'pembimbingan' })),
-      ].sort((a, b) => new Date(b.waktu_registrasi || 0).getTime() - new Date(a.waktu_registrasi || 0).getTime());
+    // Filter berdasarkan kategori user
+    if (isOpAnak) {
+      qK = qK.eq('kategori_usia', 'Anak');
+    } else if (isOpDewasa) {
+      qK = qK.eq('kategori_usia', 'Dewasa');
+    }
+    
+    const { data: kData, error: kErr } = await qK.limit(50);
+    if (kErr) throw kErr;
+    
+    setDataKlienFull(kData || []);
+    
+    // Fetch data layanan terdaftar (tetap dipisah agar tidak error)
+    const [litmasRes, pendampinganRes, pengawasanRes, pembimbinganRes] = await Promise.all([
+      supabase.from('litmas').select(`*, klien:klien!litmas_id_klien_fkey (nama_klien), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip)`).order('id_litmas', { ascending: false }).limit(20),
+      supabase.from('pendampingan').select(`*, klien:klien!fk_pendampingan_klien (nama_klien), petugas_pk:petugas_pk!pendampingan_nama_pk_fkey (nama, nip)`).order('id_pendampingan', { ascending: false }).limit(20),
+      supabase.from('pengawasan').select(`*, klien:klien!fk_pengawasan_klien (nama_klien), petugas_pk:petugas_pk!pengawasan_nama_pk_fkey (nama, nip)`).order('id_pengawasan', { ascending: false }).limit(20),
+      supabase.from('pembimbingan').select(`*, klien:klien!fk_pembimbingan_klien (nama_klien), petugas_pk:petugas_pk!pembimbingan_nama_pk_fkey (nama, nip)`).order('id_pembimbingan', { ascending: false }).limit(20),
+    ]);
 
-      setDataLitmas(allLayanan);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
-  }, [isOpAnak, isOpDewasa]);
+    const allLayanan = [
+      ...(litmasRes.data || []).map((d: any) => ({ ...d, _table: 'litmas', _id: d.id_litmas, kategori_layanan: d.kategori_layanan || 'litmas' })),
+      ...(pendampinganRes.data || []).map((d: any) => ({ ...d, _table: 'pendampingan', _id: d.id_pendampingan, kategori_layanan: 'pendampingan' })),
+      ...(pengawasanRes.data || []).map((d: any) => ({ ...d, _table: 'pengawasan', _id: d.id_pengawasan, kategori_layanan: 'pengawasan' })),
+      ...(pembimbinganRes.data || []).map((d: any) => ({ ...d, _table: 'pembimbingan', _id: d.id_pembimbingan, kategori_layanan: 'pembimbingan' })),
+    ].sort((a, b) => new Date(b.waktu_registrasi || 0).getTime() - new Date(a.waktu_registrasi || 0).getTime());
 
-  const fetchHistory = useCallback(async () => {
-      setLoadingHistory(true);
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-      const historyArr: any[] = [];
-      try {
-          const { data: kData } = await supabase.from('klien').select('id_klien, nama_klien, created_at').gte('created_at', sevenDaysAgo).order('created_at', { ascending: false });
-          kData?.forEach((k: any) => historyArr.push({ type: 'Klien Baru', title: k.nama_klien, date: k.created_at, id: k.id_klien }));
-          const { data: pData } = await supabase.from('penjamin').select('id_klien, nama_penjamin, created_at').gte('created_at', sevenDaysAgo).order('created_at', { ascending: false });
-          pData?.forEach((p: any) => historyArr.push({ type: 'Penjamin', title: p.nama_penjamin, date: p.created_at, id: p.id_klien }));
-          
-          const { data: lData } = await supabase.from('litmas').select('id_litmas, nomor_surat_permintaan, waktu_registrasi, klien (nama_klien), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama)').gte('waktu_registrasi', sevenDaysAgo).order('waktu_registrasi', { ascending: false });
-          lData?.forEach((l: any) => historyArr.push({ type: 'Registrasi Layanan', title: `${l.nomor_surat_permintaan} (${l.klien?.nama_klien || 'N/A'}) - PK: ${l.petugas_pk?.nama || 'Belum ditunjuk'}`, date: l.waktu_registrasi, id: l.id_litmas }));
-          historyArr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setHistoryData(historyArr);
-      } catch(err) { console.error(err); } finally { setLoadingHistory(false); }
-  }, []);
+    setDataLitmas(allLayanan);
+  } catch (e: any) { 
+    console.error("Fetch Error:", e.message);
+    toast({ variant: "destructive", title: "Gagal memuat tabel", description: e.message });
+  } finally { 
+    setLoading(false); 
+  }
+}, [isOpAnak, isOpDewasa, toast]);
 
   const handleEditClick = async (item: any) => {
     setLoading(true); setMatchesKlien([]); setActiveInput(null);
@@ -600,25 +431,9 @@ export default function OperatorRegistrasiTest() {
             setSelectedAgamaPenjamin(pjn.agama || "");
             setSelectedPendidikanPenjamin(pjn.pendidikan || "");
             setSelectedPekerjaanPenjamin(pjn.pekerjaan || "");
-            
             setPenjaminTglLahir(pjn.tanggal_lahir || "");
-            if (pjn.tanggal_lahir) {
-                const birthDate = new Date(pjn.tanggal_lahir);
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                setPenjaminUsia(age.toString());
-            } else {
-                setPenjaminUsia(pjn.usia ? String(pjn.usia) : "");
-            }
-
+            if (pjn.tanggal_lahir) calculateAgeAndCategory(pjn.tanggal_lahir);
             if (pjn.kelurahan) handleSelectKelurahanPenjamin(pjn.kelurahan);
-            else { setSelectedKelurahanPenjamin(""); setManualKecamatanPenjamin(""); }
-        } else {
-            setSelectedHubungan(""); setSelectedAgamaPenjamin(""); setSelectedPendidikanPenjamin(""); setSelectedPekerjaanPenjamin("");
-            setSelectedKelurahanPenjamin(""); setManualKecamatanPenjamin("");
-            setPenjaminTglLahir(""); setPenjaminUsia("");
         }
 
         const firstLitmas = safeData.litmas?.[0] || null;
@@ -633,20 +448,13 @@ export default function OperatorRegistrasiTest() {
             setTahapanLayanan((firstLitmas.tahapan_layanan as any) || "");
             setLayananSubTab(firstLitmas.kategori_layanan || "litmas");
             setNomorUrutLayanan(firstLitmas.nomor_urut ? String(firstLitmas.nomor_urut).padStart(4, '0') : "");
-        } else {
-            setSelectedPkId(null); setOriginalPkId(null);
-            setSelectedJenisLitmas(""); setSelectedUpt(""); setSelectedBapas("");
-            setTahapanLayanan(""); setLayananSubTab("litmas");
-            setNomorUrutLayanan("");
         }
 
         setSelectedClientId(safeData.id_klien);
-        
         if(safeData.tanggal_lahir) {
              setTglLahir(safeData.tanggal_lahir);
              calculateAgeAndCategory(safeData.tanggal_lahir);
         }
-
         setActiveTab("klien");
         toast({ title: "Mode Edit Aktif", description: `Mengedit data: ${safeData.nama_klien}` });
     } catch (error: any) { toast({ variant: "destructive", title: "Gagal load data", description: error.message }); } 
@@ -661,22 +469,18 @@ export default function OperatorRegistrasiTest() {
     setTglLahir(""); setHitungUsia(""); setHitungKategori("");
     setKlienDitakPernahDitolak([]);
     setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' });
-    
     setNamaAlias(['']); setKewarganegaraan("WNI"); setResidivis("Tidak"); setStatusPerkawinan("");
     setSelectedAgama(""); setSelectedPendidikan(""); setSelectedPekerjaan("");
     setSelectedKelurahan(""); setManualKecamatan("");
-    
     setSelectedHubungan(""); setSelectedAgamaPenjamin(""); setSelectedPendidikanPenjamin(""); setSelectedPekerjaanPenjamin("");
     setSelectedKelurahanPenjamin(""); setManualKecamatanPenjamin("");
     setPenjaminTglLahir(""); setPenjaminUsia("");
-    
     setSelectedJenisLitmas(""); setSelectedUpt(""); setSelectedBapas("");
     setTahapanLayanan(""); setLayananSubTab("litmas"); setNomorUrutLayanan("");
   };
 
   const handleCancelButton = (showToast = true) => { resetFormState(); if (showToast) toast({ title: "Edit Dibatalkan", description: "Form direset." }); };
 
-  // Edit layanan dari list_data — buka form layanan dengan data yang sudah ada
   const handleEditLayananClick = async (layananItem: any) => {
     setLoading(true);
     try {
@@ -685,52 +489,25 @@ export default function OperatorRegistrasiTest() {
       setEditingLayananTable(table);
       setEditingLayananId(id);
 
-      // Load klien terkait
-      const { data: klienData, error: kErr } = await supabase
-        .from('klien')
-        .select('*, penjamin (*)')
-        .eq('id_klien', layananItem.id_klien)
-        .single();
+      const { data: klienData, error: kErr } = await supabase.from('klien').select('*, penjamin (*)').eq('id_klien', layananItem.id_klien).single();
       if (kErr) throw kErr;
-
       const safeKlien = klienData as any;
       setEditingKlien(safeKlien);
       setSelectedClientId(safeKlien.id_klien);
-
-      if (safeKlien.tanggal_lahir) {
-        setTglLahir(safeKlien.tanggal_lahir);
-        calculateAgeAndCategory(safeKlien.tanggal_lahir);
-      }
-      setSelectedAgama(safeKlien.agama || "");
-      setSelectedPendidikan(safeKlien.pendidikan || "");
-      setSelectedPekerjaan(safeKlien.pekerjaan || "");
-      setKewarganegaraan(safeKlien.kewarganegaraan || "WNI");
-      setResidivis(safeKlien.residivis || "Tidak");
-      setStatusPerkawinan(safeKlien.status_perkawinan || "");
+      if (safeKlien.tanggal_lahir) { setTglLahir(safeKlien.tanggal_lahir); calculateAgeAndCategory(safeKlien.tanggal_lahir); }
+      setSelectedAgama(safeKlien.agama || ""); setSelectedPendidikan(safeKlien.pendidikan || ""); setSelectedPekerjaan(safeKlien.pekerjaan || "");
+      setKewarganegaraan(safeKlien.kewarganegaraan || "WNI"); setResidivis(safeKlien.residivis || "Tidak"); setStatusPerkawinan(safeKlien.status_perkawinan || "");
       setNamaAlias(safeKlien.nama_alias || ['']);
       if (safeKlien.kelurahan) handleSelectKelurahan(safeKlien.kelurahan);
 
-      // Set penjamin
       const pjn = safeKlien.penjamin?.[0] || null;
       setEditingPenjamin(pjn);
       if (pjn) {
-        setSelectedHubungan(pjn.hubungan_klien || "");
-        setSelectedAgamaPenjamin(pjn.agama || "");
-        setSelectedPendidikanPenjamin(pjn.pendidikan || "");
-        setSelectedPekerjaanPenjamin(pjn.pekerjaan || "");
-        setPenjaminTglLahir(pjn.tanggal_lahir || "");
-        if (pjn.tanggal_lahir) {
-          const bd = new Date(pjn.tanggal_lahir);
-          const td = new Date();
-          let age = td.getFullYear() - bd.getFullYear();
-          const m = td.getMonth() - bd.getMonth();
-          if (m < 0 || (m === 0 && td.getDate() < bd.getDate())) age--;
-          setPenjaminUsia(age.toString());
-        }
+        setSelectedHubungan(pjn.hubungan_klien || ""); setSelectedAgamaPenjamin(pjn.agama || ""); setSelectedPendidikanPenjamin(pjn.pendidikan || "");
+        setSelectedPekerjaanPenjamin(pjn.pekerjaan || ""); setPenjaminTglLahir(pjn.tanggal_lahir || "");
         if (pjn.kelurahan) handleSelectKelurahanPenjamin(pjn.kelurahan);
       }
 
-      // Set data layanan
       setEditingLitmas(layananItem);
       setSelectedPkId(layananItem.nama_pk || null);
       setOriginalPkId(layananItem.nama_pk || null);
@@ -741,131 +518,21 @@ export default function OperatorRegistrasiTest() {
       setLayananSubTab(table);
       setNomorUrutLayanan(layananItem.nomor_urut ? String(layananItem.nomor_urut).padStart(4, '0') : "");
 
-      // Load perkara jika tabel litmas
       if (table === 'litmas') {
         const { data: perkaraData } = await supabase.from('perkara').select('*').eq('id_litmas', id);
         setPerkaraList(perkaraData || []);
       } else {
         setPerkaraList([]);
       }
-
       setActiveTab("layanan");
-      toast({ title: "Mode Edit Layanan Aktif", description: `Mengedit layanan ${table} untuk: ${safeKlien.nama_klien}` });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Gagal load layanan", description: err.message });
-    } finally { setLoading(false); }
+      toast({ title: "Mode Edit Layanan Aktif", description: `Mengedit layanan ${table.toUpperCase()} untuk: ${safeKlien.nama_klien}` });
+    } catch (err: any) { toast({ variant: "destructive", title: "Gagal load layanan", description: err.message }); } finally { setLoading(false); }
   };
-
-  const refreshEditDataOnly = async (idKlien: number) => {
-    try {
-        const { data, error } = await supabase.from('klien').select(`*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))`).eq('id_klien', idKlien).single();
-        if (error) throw error;
-        const safeData = data as any;
-        setEditingKlien(safeData);
-        setEditingPenjamin(safeData.penjamin?.[0] || null);
-        const firstLitmas = safeData.litmas?.[0] || null;
-        setEditingLitmas(firstLitmas);
-        setPerkaraList(firstLitmas?.perkara || []);
-    } catch (error) { console.error("Gagal refresh data:", error); }
-  };
-
-  // --- AUTO FILL DATA KETIKA KLIEN DIPILIH ---
-  useEffect(() => {
-    if (!selectedClientId) return;
-
-    const fetchExistingData = async () => {
-      try {
-        // --- 1. Fetch Penjamin Existing ---
-        const { data: penjaminData } = await supabase.from('penjamin').select('*').eq('id_klien', selectedClientId).maybeSingle();
-        
-        if (penjaminData) {
-          if (editingPenjamin && editingPenjamin.id_klien === penjaminData.id_klien) {
-              // skip
-          } else {
-              setEditingPenjamin(penjaminData);
-              setSelectedHubungan(penjaminData.hubungan_klien || "");
-              setSelectedAgamaPenjamin(penjaminData.agama || "");
-              setSelectedPendidikanPenjamin(penjaminData.pendidikan || "");
-              setSelectedPekerjaanPenjamin(penjaminData.pekerjaan || "");
-              setPenjaminTglLahir(penjaminData.tanggal_lahir || "");
-              
-              if (penjaminData.tanggal_lahir) {
-                const birthDate = new Date(penjaminData.tanggal_lahir);
-                const today = new Date();
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                setPenjaminUsia(age.toString());
-              } else {
-                setPenjaminUsia(penjaminData.usia ? String(penjaminData.usia) : "");
-              }
-
-              if (penjaminData.kelurahan) {
-                setSelectedKelurahanPenjamin(penjaminData.kelurahan);
-                const selected = refKelurahan.find(k => k.nama_kelurahan === penjaminData.kelurahan);
-                setManualKecamatanPenjamin(selected ? (selected.ref_kecamatan?.nama_kecamatan || "") : "");
-              } else {
-                setSelectedKelurahanPenjamin("");
-                setManualKecamatanPenjamin("");
-              }
-
-              toast({ title: "Info", description: "Data penjamin untuk klien ini ditemukan dan diisi otomatis." });
-          }
-        } else {
-          if (!editingKlien) {
-            setEditingPenjamin(null);
-            setSelectedHubungan(""); setSelectedAgamaPenjamin(""); setSelectedPendidikanPenjamin(""); setSelectedPekerjaanPenjamin("");
-            setSelectedKelurahanPenjamin(""); setManualKecamatanPenjamin("");
-            setPenjaminTglLahir(""); setPenjaminUsia("");
-          }
-        }
-
-        // --- 2. Fetch PK Sebelumnya dan Cek Penolakan Sidang ---
-        if (!editingLitmas || editingLitmas.id_klien !== selectedClientId) {
-           // @ts-ignore
-           const { data: rawLitmas } = await supabase
-             .from('litmas')
-             .select('nama_pk, status, jenis_litmas, kategori_layanan')
-             .eq('id_klien', selectedClientId)
-             .order('id_litmas', { ascending: false });
-
-           const allLitmas = rawLitmas as any[] | null;
-
-           if (allLitmas && allLitmas.length > 0) {
-               // Auto fill PK dari layanan terakhir
-               const lastWithPK = allLitmas.find((l: any) => l.nama_pk !== null);
-               if (lastWithPK) {
-                   setSelectedPkId(lastWithPK.nama_pk);
-                   if (!editingKlien) {
-                       toast({ title: "Petugas PK Ditemukan", description: "Petugas PK disesuaikan otomatis dari riwayat layanan sebelumnya." });
-                   }
-               }
-               
-               // --- CEK PENOLAKAN TPP ---
-               const rejectedLayanan = allLitmas.filter((l: any) => l.status === 'Ditolak' || l.status === 'Rejected');
-               setKlienDitakPernahDitolak(rejectedLayanan);
-           } else {
-               setKlienDitakPernahDitolak([]);
-           }
-        }
-
-      } catch (error) {
-        console.error("Gagal memuat otomatis data penjamin/PK:", error);
-      }
-    };
-
-    fetchExistingData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClientId]);
 
   const handleSearchKlien = async () => {
       if(!searchKlienQuery) return fetchTableData();
       setLoading(true);
-      const { data, error } = await supabase.from('klien')
-        .select('*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))') 
-        .ilike('nama_klien', `%${searchKlienQuery}%`)
-        .limit(20);
-      if (error) console.error("Error search klien:", error);
+      const { data } = await supabase.from('klien').select('*, penjamin (*), litmas (*, perkara (*), petugas_pk:petugas_pk!litmas_nama_pk_fkey(nama))').ilike('nama_klien', `%${searchKlienQuery}%`).limit(20);
       setDataKlienFull(data || []);
       setLoading(false);
   };
@@ -902,43 +569,29 @@ export default function OperatorRegistrasiTest() {
           if (type === 'klien') {
               const kategoriFix = isOpAnak ? 'Anak' : (isOpDewasa ? 'Dewasa' : hitungKategori);
               const dataKlien = {
-                nik_klien: formData.get('nik_klien') as string, 
-                nama_klien: formData.get('nama_klien') as string,
-                nomor_register_lapas: formData.get('nomor_register_klien') as string, 
-                jenis_kelamin: formData.get('jenis_kelamin') as string,
-                agama: formData.get('agama') as string, 
-                pendidikan: formData.get('pendidikan') as string,
-                tempat_lahir: formData.get('tempat_lahir') as string, 
-                tanggal_lahir: (formData.get('tanggal_lahir') as string),
-                usia: Number(formData.get('usia')), 
-                kategori_usia: kategoriFix, 
-                pekerjaan: formData.get('pekerjaan') as string,
-                minat_bakat: formData.get('minat_bakat') as string, 
-                alamat: formData.get('alamat') as string,
-                kelurahan: formData.get('kelurahan') as string, 
-                kecamatan: manualKecamatan, 
-                nomor_telepon: formData.get('nomor_telepon') as string,
-                
-                kewarganegaraan: kewarganegaraan,
-                residivis: residivis,
-                status_perkawinan: statusPerkawinan,
+                nik_klien: formData.get('nik_klien') as string, nama_klien: formData.get('nama_klien') as string,
+                nomor_register_lapas: formData.get('nomor_register_klien') as string, jenis_kelamin: formData.get('jenis_kelamin') as string,
+                agama: formData.get('agama') as string, pendidikan: formData.get('pendidikan') as string,
+                tempat_lahir: formData.get('tempat_lahir') as string, tanggal_lahir: (formData.get('tanggal_lahir') as string),
+                usia: Number(formData.get('usia')), kategori_usia: kategoriFix, pekerjaan: formData.get('pekerjaan') as string,
+                minat_bakat: formData.get('minat_bakat') as string, alamat: formData.get('alamat') as string,
+                kelurahan: formData.get('kelurahan') as string, kecamatan: manualKecamatan, nomor_telepon: formData.get('nomor_telepon') as string,
+                kewarganegaraan: kewarganegaraan, residivis: residivis, status_perkawinan: statusPerkawinan,
                 nama_alias: namaAlias.filter(n => n.trim() !== '')
               };
 
               if (editingKlien) {
                   const { error } = await supabase.from('klien').update(dataKlien).eq('id_klien', editingKlien.id_klien);
                   if (error) throw error;
-                  await refreshEditDataOnly(editingKlien.id_klien);
-                  toast({ title: "Berhasil", description: "Perubahan data Klien disimpan." });
                   setActiveTab("penjamin");
               } else {
                   const { data: newKlien, error } = await supabase.from('klien').insert(dataKlien).select('id_klien').single();
                   if (error) throw error;
                   setSelectedClientId(newKlien.id_klien);
-                  toast({ title: "Berhasil", description: "Data Klien Disimpan. Lanjut ke Penjamin." });
                   setActiveTab("penjamin");
                   fetchReferences();
               }
+              toast({ title: "Berhasil", description: "Data Klien disimpan." });
           } else if (type === 'penjamin') {
               const dataPenjamin = {
                   id_klien: selectedClientId, nama_penjamin: formData.get('nama_penjamin') as string, nik_penjamin: formData.get('nik_penjamin') as string,
@@ -948,17 +601,9 @@ export default function OperatorRegistrasiTest() {
                   kelurahan: formData.get('kelurahan') as string, kecamatan: manualKecamatanPenjamin, 
                   nomor_telepon: formData.get('nomor_telepon') as string,
               };
-              
-              if (editingPenjamin) {
-                  await supabase.from('penjamin').update(dataPenjamin).eq('id_klien', selectedClientId);
-                  if (editingKlien) await refreshEditDataOnly(editingKlien.id_klien);
-              } else {
-                  const {count} = await supabase.from('penjamin').select('*', {count: 'exact', head:true}).eq('id_klien', selectedClientId);
-                  if(count && count > 0) await supabase.from('penjamin').update(dataPenjamin).eq('id_klien', selectedClientId);
-                  else await supabase.from('penjamin').insert(dataPenjamin);
-                  if (editingKlien) await refreshEditDataOnly(editingKlien.id_klien);
-              }
-              toast({ title: "Berhasil", description: "Data Penjamin Disimpan." });
+              if (editingPenjamin) await supabase.from('penjamin').update(dataPenjamin).eq('id_klien', selectedClientId);
+              else await supabase.from('penjamin').insert(dataPenjamin);
+              toast({ title: "Berhasil", description: "Data Penjamin disimpan." });
               setActiveTab("layanan");
           } else if (type === 'layanan') {
               let uploadedFileUrl = null;
@@ -970,10 +615,9 @@ export default function OperatorRegistrasiTest() {
                   if (!uploadedFileUrl) { setLoading(false); return; }
               }
 
-              // Tentukan tabel target berdasarkan layananSubTab
               const targetTable = LAYANAN_TABLE_MAP[layananSubTab] || 'litmas';
 
-              const dataLitmas = {
+              const dataLayanan = {
                   id_klien: selectedClientId, id_upt: formData.get('id_upt') ? Number(formData.get('id_upt')) : null, nama_pk: selectedPkId, 
                   nomor_urut: formData.get('nomor_urut') ? Number(formData.get('nomor_urut')) : null, nomor_surat_masuk: formData.get('nomor_surat_masuk') as string,
                   tanggal_diterima_bapas: (formData.get('tanggal_diterima_bapas') as string) || null, jenis_litmas: selectedJenisLitmas, 
@@ -987,73 +631,45 @@ export default function OperatorRegistrasiTest() {
                   ...(uploadedFileUrl ? { file_surat_permintaan_url: uploadedFileUrl } : {})
               };
 
-              // Tentukan ID layanan yang sedang diedit
               const isEditingLayanan = editingLayananId !== null;
               const currentEditId = editingLayananId || editingLitmas?.id_litmas;
               
-              // Nama kolom primary key per tabel
-              const pkColumnMap: Record<string, string> = {
-                litmas: 'id_litmas',
-                pendampingan: 'id_pendampingan',
-                pengawasan: 'id_pengawasan',
-                pembimbingan: 'id_pembimbingan',
-              };
+              const pkColumnMap: Record<string, string> = { litmas: 'id_litmas', pendampingan: 'id_pendampingan', pengawasan: 'id_pengawasan', pembimbingan: 'id_pembimbingan' };
 
               let layananId = currentEditId;
               if (isEditingLayanan || editingLitmas) {
-                  const { error } = await (supabase.from(targetTable as any) as any).update(dataLitmas).eq(pkColumnMap[targetTable], currentEditId);
+                  const { error } = await (supabase.from(targetTable as any) as any).update(dataLayanan).eq(pkColumnMap[targetTable], currentEditId);
                   if(error) throw error;
                   
                   if (targetTable === 'litmas' && perkaraList.length > 0) {
                       await supabase.from('perkara').delete().eq('id_litmas', currentEditId);
                       const perkaraPayloads = perkaraList.map(p => ({
                           id_litmas: currentEditId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, juncto: p.juncto || null,
-                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, 
-                          subsider_pidana: p.subsider_pidana, uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null,
-                          tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, tanggal_ekspirasi: p.tanggal_ekspirasi || null
+                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, subsider_pidana: p.subsider_pidana, 
+                          uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null, tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, 
+                          tanggal_ekspirasi: p.tanggal_ekspirasi || null
                       }));
                       await supabase.from('perkara').insert(perkaraPayloads);
                   }
               } else {
-                  const { data, error } = await (supabase.from(targetTable as any) as any).insert(dataLitmas).select(`${pkColumnMap[targetTable]}`).single();
+                  const { data, error } = await (supabase.from(targetTable as any) as any).insert(dataLayanan).select(`${pkColumnMap[targetTable]}`).single();
                   if (error) throw error;
                   layananId = data[pkColumnMap[targetTable]];
                   
                   if (targetTable === 'litmas' && perkaraList.length > 0) {
                       const perkaraPayloads = perkaraList.map((p: any) => ({
                           id_litmas: layananId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, juncto: p.juncto || null,
-                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, 
-                          subsider_pidana: p.subsider_pidana, uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null,
-                          tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, tanggal_ekspirasi: p.tanggal_ekspirasi || null
+                          nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda)||0, subsider_pidana: p.subsider_pidana, 
+                          uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null, tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, 
+                          tanggal_ekspirasi: p.tanggal_ekspirasi || null
                       }));
                       await supabase.from('perkara').insert(perkaraPayloads);
                   }
               }
 
-              const isNewAssignment = !editingLitmas && !isEditingLayanan && selectedPkId;
-              const isReAssignment = (editingLitmas || isEditingLayanan) && selectedPkId && selectedPkId !== originalPkId;
-              if (isNewAssignment || isReAssignment) {
-                    const klienData = listKlien.find(k => k.id_klien === selectedClientId) || editingKlien;
-                    const penjaminData = editingPenjamin || {};
-                    const perkaraData = perkaraList.length > 0 ? perkaraList[0] : {};
-                    const waPayload = {
-                        pk_id: selectedPkId, nomor_register_litmas: dataLitmas.nomor_register_litmas, jenis_litmas: dataLitmas.jenis_litmas,
-                        asal_surat: dataLitmas.asal_bapas, nama_klien: klienData?.nama_klien || 'Tanpa Nama',
-                        jenis_kelamin: klienData?.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan', agama: klienData?.agama || '-',
-                        nama_penjamin: penjaminData.nama_penjamin || '-', alamat_penjamin: penjaminData.alamat || '-',
-                        telepon_penjamin: penjaminData.nomor_telepon || '-', pekerjaan_penjamin: penjaminData.pekerjaan || '-',
-                        hubungan_penjamin: penjaminData.hubungan_klien ? penjaminData.hubungan_klien.replace('_', ' ').toUpperCase() : '-',
-                        perkara: perkaraData.tindak_pidana || '-', pidana: perkaraData.vonis_pidana || '-', 
-                        tanggal_2_3: perkaraData.tanggal_ekspirasi || '-', 
-                        link_surat_perintah: "https://docs.google.com/document/d/1WHiCF_gwpj5En-l4U_L5MLAuyxGNky8bIsdKF9_3HC0/edit?usp=drivesdk",
-                        link_surat_permintaan: uploadedFileUrl || editingLitmas?.file_surat_permintaan_url || '-'
-                    };
-                    supabase.functions.invoke('send-new-task-notification', { body: waPayload }).then(({ data, error }) => { if (error) console.error("Gagal kirim WA:", error); else console.log("WA Terkirim:", data); });
-              }
-
-              setFileSuratPermintaan(null); 
-              handleCancelButton(false); 
+              setFileSuratPermintaan(null);
               toast({ title: "Selesai", description: "Registrasi Layanan Berhasil Disimpan." });
+              handleCancelButton(false);
               setActiveTab("list_data");
               fetchTableData();
           }
@@ -1064,13 +680,6 @@ export default function OperatorRegistrasiTest() {
   const initiateSaveKlien = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (isCategoryMismatch) return toast({ variant: "destructive", title: "Blokir", description: "Usia tidak sesuai role." });
-      
-      if (!selectedAgama) return toast({ variant: "destructive", title: "Peringatan", description: "Agama Klien wajib dipilih." });
-      if (!statusPerkawinan) return toast({ variant: "destructive", title: "Peringatan", description: "Status Perkawinan wajib dipilih." });
-      if (!selectedPendidikan) return toast({ variant: "destructive", title: "Peringatan", description: "Pendidikan Klien wajib dipilih." });
-      if (!selectedPekerjaan) return toast({ variant: "destructive", title: "Peringatan", description: "Pekerjaan Klien wajib dipilih." });
-      if (!selectedKelurahan) return toast({ variant: "destructive", title: "Peringatan", description: "Kelurahan Klien wajib dipilih." });
-
       const formData = new FormData(e.currentTarget);
       if (!editingKlien && matchesKlien.length > 0) { setDuplicatePayload(formData); setShowDuplicateAlert(true); return; }
       setConfirmDialog({ isOpen: true, type: 'klien', payload: formData, warningMessage: null });
@@ -1079,13 +688,6 @@ export default function OperatorRegistrasiTest() {
   const initiateSavePenjamin = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       if (!selectedClientId) return toast({ variant: "destructive", title: "Error", description: "Pilih Klien dulu." });
-      
-      if (!selectedHubungan) return toast({ variant: "destructive", title: "Peringatan", description: "Hubungan Penjamin wajib dipilih." });
-      if (!selectedAgamaPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Agama Penjamin wajib dipilih." });
-      if (!selectedPendidikanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Pendidikan Penjamin wajib dipilih." });
-      if (!selectedPekerjaanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Pekerjaan Penjamin wajib dipilih." });
-      if (!selectedKelurahanPenjamin) return toast({ variant: "destructive", title: "Peringatan", description: "Kelurahan Penjamin wajib dipilih." });
-
       const formData = new FormData(e.currentTarget);
       setConfirmDialog({ isOpen: true, type: 'penjamin', payload: formData, warningMessage: null });
   };
@@ -1104,38 +706,28 @@ export default function OperatorRegistrasiTest() {
       const noPelimpahan = formData.get('nomor_surat_pelimpahan') as string;
       const noPermintaan = formData.get('nomor_surat_permintaan') as string;
 
-      if (asalUpt && !noPermintaan) {
-          return toast({ variant: "destructive", title: "Gagal", description: "Nomor Surat Permintaan wajib diisi karena Asal UPT telah dipilih." });
-      }
-      if (asalBapas && !noPelimpahan) {
-          return toast({ variant: "destructive", title: "Gagal", description: "Nomor Surat Pelimpahan wajib diisi karena Asal Bapas telah dipilih." });
-      }
+      if (asalUpt && !noPermintaan) return toast({ variant: "destructive", title: "Gagal", description: "Nomor Surat Permintaan wajib diisi karena Asal UPT telah dipilih." });
+      if (asalBapas && !noPelimpahan) return toast({ variant: "destructive", title: "Gagal", description: "Nomor Surat Pelimpahan wajib diisi karena Asal Bapas telah dipilih." });
 
-      // --- POINT 2 & 3: CEK DUPLIKASI JENIS LAYANAN YANG SEDANG BERJALAN ---
-      if (!editingLitmas && editingKlien?.litmas) {
-          const existingSameService = editingKlien.litmas.filter((l: any) => l.jenis_litmas === selectedJenisLitmas);
-          if (existingSameService.length > 0) {
-              const isRunning = existingSameService.some((l: any) => !['Ditolak', 'Rejected', 'Selesai'].includes(l.status));
-              if (isRunning) {
-                  return toast({ 
-                      variant: "destructive", 
-                      title: "Layanan Sedang Berjalan", 
-                      description: `Klien ini sedang menjalani layanan ${selectedJenisLitmas}. Tidak bisa ditambahkan ganda.` 
-                  });
-              }
-          }
-      }
-
-      setLoading(true);
-      const { count } = await supabase.from('penjamin').select('*', { count: 'exact', head: true }).eq('id_klien', selectedClientId);
-      setLoading(false);
-      let warning = null;
-      if (count === 0) warning = "PERHATIAN: Data Penjamin untuk klien ini BELUM DIISI!";
-      setConfirmDialog({ isOpen: true, type: 'layanan', payload: formData, warningMessage: warning });
+      setConfirmDialog({ isOpen: true, type: 'layanan', payload: formData, warningMessage: null });
   };
 
   useEffect(() => { fetchReferences(); }, [fetchReferences]);
   useEffect(() => { if (activeTab === 'list_data') fetchTableData(); }, [activeTab, fetchTableData]);
+
+  const fetchHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+    const historyArr: any[] = [];
+    try {
+        const { data: kData } = await supabase.from('klien').select('id_klien, nama_klien, created_at').gte('created_at', sevenDaysAgo).order('created_at', { ascending: false });
+        kData?.forEach((k: any) => historyArr.push({ type: 'Klien Baru', title: k.nama_klien, date: k.created_at, id: k.id_klien }));
+        const { data: lData } = await supabase.from('litmas').select('id_litmas, nomor_surat_permintaan, waktu_registrasi, klien (nama_klien)').gte('waktu_registrasi', sevenDaysAgo).order('waktu_registrasi', { ascending: false });
+        lData?.forEach((l: any) => historyArr.push({ type: 'Registrasi Layanan', title: `${l.nomor_surat_permintaan} (${l.klien?.nama_klien || 'N/A'})`, date: l.waktu_registrasi, id: l.id_litmas }));
+        historyArr.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setHistoryData(historyArr);
+    } catch(err) { console.error(err); } finally { setLoadingHistory(false); }
+  }, []);
 
   // --- RENDER ---
   return (
@@ -1156,289 +748,25 @@ export default function OperatorRegistrasiTest() {
             <TabsTrigger value="klien" className="py-3">{editingKlien ? 'Edit Klien' : '1. Data Klien'}</TabsTrigger>
             <TabsTrigger value="penjamin" className="py-3">2. Penjamin</TabsTrigger>
             <TabsTrigger value="layanan" className="py-3">{editingLayananId ? '3. Edit Layanan ✏️' : '3. Layanan'}</TabsTrigger>
-            <TabsTrigger value="list_data" className="py-3 flex gap-2"><List className="w-4 h-4" /> Data Terdaftar</TabsTrigger>
+            <TabsTrigger value="list_data" className="py-3 flex gap-2">Data Terdaftar</TabsTrigger>
           </TabsList>
 
           {/* TAB 1: KLIEN */}
           <TabsContent value="klien">
-            <Card className={cn("border-t-4 shadow-sm", editingKlien ? "border-t-amber-500 bg-amber-50/30" : "border-t-slate-800")}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Identitas Klien</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setOpenRiwayatKlien(true)} className="text-blue-600 bg-white">
-                        <History className="w-4 h-4 mr-2" /> Riwayat Perubahan
-                    </Button>
-                    {editingKlien && <Button variant="outline" size="sm" onClick={() => handleCancelButton(true)}><XCircle className="w-4 h-4 mr-2" /> Batal</Button>}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form key={editingKlien ? editingKlien.id_klien : 'klien-new'} onSubmit={initiateSaveKlien} className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-slate-700 flex items-center"><User className="w-4 h-4 mr-2" /> Data Diri Utama</h4>
-                      
-                      <div className="grid gap-2">
-                        <Label>Nama Lengkap <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                          <Input name="nama_klien" defaultValue={editingKlien?.nama_klien || ''} required placeholder="Nama Klien" 
-                            onChange={(e) => checkLiveDuplicate('klien', 'nama_klien', e.target.value)} onFocus={() => setActiveInput('nama_klien')} onBlur={() => setTimeout(() => setActiveInput(null), 200)} autoComplete="off"
-                            className={cn(matchesKlien.length > 0 && "pr-10 border-orange-300 ring-orange-200 focus-visible:ring-orange-300")}
-                          />
-                          {matchesKlien.length > 0 && (
-                            <TooltipProvider>
-                              <Tooltip><TooltipTrigger asChild><div className="absolute right-3 top-2.5 text-orange-500 animate-pulse cursor-help"><AlertCircle className="w-5 h-5" /></div></TooltipTrigger><TooltipContent side="right" className="bg-orange-500 text-white border-0"><p>Data mirip ditemukan!</p></TooltipContent></Tooltip>
-                            </TooltipProvider>
-                          )}
-                          <SuggestionList matches={matchesKlien} isVisible={activeInput === 'nama_klien'} labelField="nama_klien" subLabelField="nik_klien" onSelect={(item) => { handleEditClick(item); setMatchesKlien([]); }} />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 bg-slate-50 p-3 border rounded-md">
-                          <Label className="text-slate-600 text-xs uppercase font-bold">Nama Alias (Julukan)</Label>
-                          {namaAlias.map((alias, idx) => (
-                              <div key={idx} className="flex gap-2 items-center">
-                                  <Input value={alias} onChange={(e) => handleAliasChange(e.target.value, idx)} placeholder="Contoh: Budi Keren" className="bg-white h-9" />
-                                  {idx === namaAlias.length - 1 ? (
-                                      <Button type="button" onClick={handleAddAlias} variant="outline" size="icon" className="h-9 w-9 bg-white"><Plus className="w-4 h-4"/></Button>
-                                  ) : (
-                                      <Button type="button" onClick={() => handleRemoveAlias(idx)} variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4"/></Button>
-                                  )}
-                              </div>
-                          ))}
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label>NIK Klien <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                          <Input name="nik_klien" required defaultValue={editingKlien?.nik_klien || ''} placeholder="Nomor Induk Kependudukan" 
-                            onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ''); e.target.value = val; checkLiveDuplicate('klien', 'nik_klien', val); }}
-                            onFocus={() => setActiveInput('nik_klien')} onBlur={() => setTimeout(() => setActiveInput(null), 200)} maxLength={16} autoComplete="off" inputMode="numeric"
-                            className={cn(matchesKlien.length > 0 && "pr-10 border-orange-300 ring-orange-200 focus-visible:ring-orange-300")}
-                          />
-                          {matchesKlien.length > 0 && <div className="absolute right-3 top-2.5 text-orange-500 animate-pulse"><AlertCircle className="w-5 h-5" /></div>}
-                          <SuggestionList matches={matchesKlien} isVisible={activeInput === 'nik_klien'} labelField="nik_klien" subLabelField="nama_klien" onSelect={(item) => { handleEditClick(item); setMatchesKlien([]); }} />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-2"><Label>No. Register Klien <span className="text-red-500">*</span></Label><Input name="nomor_register_klien" defaultValue={editingKlien?.nomor_register_lapas || ''} required placeholder="Menggantikan No. Register Lapas" /></div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2"><Label>Jenis Kelamin <span className="text-red-500">*</span></Label><Select name="jenis_kelamin" required defaultValue={editingKlien?.jenis_kelamin || undefined}><SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger><SelectContent><SelectItem value="L">Laki-laki</SelectItem><SelectItem value="P">Perempuan</SelectItem></SelectContent></Select></div>
-                        <div className="grid gap-2">
-                          <Label>Agama (ref_agama) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refAgama} value={selectedAgama} onSelect={setSelectedAgama} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" allowClear={true}/>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 border rounded-md">
-                          <div className="grid gap-2">
-                              <Label className="flex items-center gap-1"><Globe className="w-3 h-3 text-slate-500"/> Kewarganegaraan</Label>
-                              <Select value={kewarganegaraan} onValueChange={setKewarganegaraan}>
-                                  <SelectTrigger className="bg-white"><SelectValue/></SelectTrigger>
-                                  <SelectContent><SelectItem value="WNI">WNI (Indonesia)</SelectItem><SelectItem value="WNA">WNA (Asing)</SelectItem></SelectContent>
-                              </Select>
-                          </div>
-                          <div className="grid gap-2">
-                              <Label className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-red-500"/> Residivis</Label>
-                              <Select value={residivis} onValueChange={setResidivis}>
-                                  <SelectTrigger className="bg-white"><SelectValue/></SelectTrigger>
-                                  <SelectContent><SelectItem value="Tidak">Tidak</SelectItem><SelectItem value="Ya">Ya</SelectItem></SelectContent>
-                              </Select>
-                          </div>
-                      </div>
-
-                      <div className="grid gap-2">
-                          <Label>Pendidikan (ref_pendidikan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refPendidikan} value={selectedPendidikan} onSelect={setSelectedPendidikan} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-slate-700 flex items-center"><CalendarDays className="w-4 h-4 mr-2" /> Kelahiran & Usia</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2"><Label>Tempat Lahir</Label><Input name="tempat_lahir" defaultValue={editingKlien?.tempat_lahir || ''} /></div>
-                        <div className="grid gap-2"><Label>Tanggal Lahir <span className="text-red-500">*</span></Label><Input name="tanggal_lahir" type="date" value={tglLahir} onChange={handleDateChange} required /></div>
-                      </div>
-                      
-                      {usiaWarning && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Akses Ditolak</AlertTitle><AlertDescription>{usiaWarning}</AlertDescription></Alert>}
-
-                      <div className="grid grid-cols-2 gap-4 bg-slate-100 p-3 rounded-md">
-                        <div className="grid gap-1"><Label className="text-xs text-slate-500">Usia</Label><Input name="usia" value={hitungUsia} readOnly className="bg-white" /></div>
-                        <div className="grid gap-1"><Label className="text-xs text-slate-500">Kategori</Label><Input name="kategori_usia" value={isOpAnak ? 'Anak' : (isOpDewasa ? 'Dewasa' : hitungKategori)} readOnly className="bg-white font-bold" /></div>
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label>Status Perkawinan <span className="text-red-500">*</span></Label>
-                        <Select value={statusPerkawinan} onValueChange={setStatusPerkawinan}>
-                            <SelectTrigger><SelectValue placeholder="Pilih Status..." /></SelectTrigger>
-                            <SelectContent><SelectItem value="Belum Kawin">Belum Kawin</SelectItem><SelectItem value="Kawin">Kawin</SelectItem><SelectItem value="Cerai Hidup">Cerai Hidup</SelectItem><SelectItem value="Cerai Mati">Cerai Mati</SelectItem></SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                          <Label>Pekerjaan (ref_pekerjaan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refPekerjaan} value={selectedPekerjaan} onSelect={setSelectedPekerjaan} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" allowClear={true}/>
-                      </div>
-                      <div className="grid gap-2"><Label>Minat / Bakat</Label><Input name="minat_bakat" defaultValue={editingKlien?.minat_bakat || ''} /></div>
-                    </div>
-                  </div>
-
-                  <Separator />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="grid gap-2"><Label>Alamat Lengkap <span className="text-red-500">*</span></Label><Textarea name="alamat" required defaultValue={editingKlien?.alamat || ''} className="h-24" /></div>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                           <Label>Kelurahan (ref_kelurahan) <span className="text-red-500">*</span></Label>
-                           <SearchableSelect 
-                              options={refKelurahan} 
-                              value={selectedKelurahan} 
-                              onSelect={handleSelectKelurahan} 
-                              labelKey="nama_kelurahan" 
-                              valueKey="nama_kelurahan" 
-                              placeholder="Pilih Kelurahan..." 
-                              searchPlaceholder="Cari kelurahan..." 
-                              name="kelurahan" 
-                           />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Kecamatan (Otomatis) <span className="text-red-500">*</span></Label>
-                            <Input name="kecamatan" required value={manualKecamatan} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Nomor Telepon <span className="text-slate-400 text-xs">(Opsional — isi "-" jika tidak ada)</span></Label>
-                          <Input name="nomor_telepon" defaultValue={editingKlien?.nomor_telepon || ''} onChange={handlePhoneValidation} placeholder="Isi '-' jika tidak ada nomor telepon" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* --- READ-ONLY: PERKARA & RIWAYAT LAYANAN --- */}
-                  {editingKlien && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                      
-                      <div className="p-4 bg-slate-50 border rounded-lg">
-                          <h4 className="font-bold flex items-center gap-2 mb-3 text-slate-700"><Gavel className="w-4 h-4"/> Informasi Perkara</h4>
-                          <p className="text-xs text-slate-500 mb-4 italic">Pembaruan data perkara melalui Tab Layanan.</p>
-                          {perkaraList.length > 0 ? (
-                              <div className="space-y-2">
-                                  {perkaraList.map((p, i) => (
-                                      <div key={i} className="text-sm bg-white p-3 border rounded shadow-sm flex items-center gap-4">
-                                          <Badge className="bg-red-100 text-red-700 hover:bg-red-200">{p.pasal}</Badge> 
-                                          <span className="font-medium text-slate-800">{p.tindak_pidana}</span>
-                                          <span className="text-slate-500 ml-auto">Vonis: <strong className="text-slate-800">{p.vonis_pidana}</strong></span>
-                                      </div>
-                                  ))}
-                              </div>
-                          ) : <p className="text-sm italic text-slate-400">Belum ada data perkara.</p>}
-                      </div>
-
-                      <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                          <h4 className="font-bold flex items-center gap-2 mb-3 text-blue-800"><Activity className="w-4 h-4"/> Riwayat Layanan Klien</h4>
-                          <p className="text-xs text-blue-500 mb-4 italic">Daftar layanan yang pernah dijalani.</p>
-                          {editingKlien.litmas && editingKlien.litmas.length > 0 ? (
-                              <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                                  {editingKlien.litmas.map((l: any, i: number) => (
-                                      <div key={i} className="text-sm bg-white p-3 border rounded shadow-sm relative overflow-hidden">
-                                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                                          <div className="flex justify-between items-center mb-2">
-                                              <Badge className={l.status === 'Ditolak' || l.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>{l.kategori_layanan || 'Litmas'}</Badge>
-                                              <span className="text-[10px] text-slate-500">{l.tanggal_registrasi}</span>
-                                          </div>
-                                          <div className="font-medium text-slate-800 text-xs mb-1">{l.jenis_litmas}</div>
-                                          <div className="text-[10px] text-slate-500 bg-slate-50 border px-2 py-1 rounded inline-block">
-                                            Tahap: <span className="font-semibold text-slate-700">{l.tahapan_layanan || '-'}</span> | Status: <strong className={l.status === 'Ditolak' ? 'text-red-600' : ''}>{l.status || 'Berjalan'}</strong>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          ) : <p className="text-sm italic text-slate-400">Belum ada riwayat layanan.</p>}
-                      </div>
-
-                    </div>
-                  )}
-
-                  <div className="flex justify-end pt-4 gap-2">
-                    <Button type="submit" size="lg" className={cn("w-full md:w-auto", editingKlien ? "bg-amber-600 hover:bg-amber-700" : "")} disabled={loading || isCategoryMismatch}>
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingKlien ? "Simpan Perubahan Klien" : "Simpan & Lanjut ke Penjamin")}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+            <FormKlien 
+                state={{ editingKlien, loading, isCategoryMismatch, matchesKlien, activeInput, namaAlias, refAgama, selectedAgama, kewarganegaraan, residivis, refPendidikan, selectedPendidikan, tglLahir, usiaWarning, hitungUsia, isOpAnak, isOpDewasa, hitungKategori, statusPerkawinan, refPekerjaan, selectedPekerjaan, refKelurahan, selectedKelurahan, manualKecamatan, perkaraList }} 
+                handlers={{ initiateSaveKlien, setActiveInput, checkLiveDuplicate, handleEditClick, setMatchesKlien, handleAliasChange, handleAddAlias, handleRemoveAlias, setSelectedAgama, setKewarganegaraan, setResidivis, setSelectedPendidikan, handleDateChange, setStatusPerkawinan, setSelectedPekerjaan, handleSelectKelurahan, handleCancelButton, setOpenRiwayatKlien, handlePhoneValidation }} 
+                components={{ SearchableSelect, SuggestionList }}
+            />
           </TabsContent>
 
           {/* TAB 2: PENJAMIN */}
           <TabsContent value="penjamin">
-            <Card className="border-t-4 border-t-green-600 shadow-sm">
-              <CardHeader><CardTitle>Data Penjamin</CardTitle><CardDescription>Informasi keluarga.</CardDescription></CardHeader>
-              <CardContent>
-                <form key={editingPenjamin ? `penjamin-${editingPenjamin.id_klien}` : 'penjamin-new'} onSubmit={initiateSavePenjamin} className="space-y-6 mx-auto">
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200"><ClientSelector listKlien={listKlien} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} editingKlien={editingKlien} handleCancelButton={handleCancelButton} loading={loading} userRoleCategory={userRoleCategory} /></div>
-                  <div className={cn("space-y-6", !selectedClientId && "opacity-50 pointer-events-none")}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                        <Label>Nama Penjamin <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                          <Input name="nama_penjamin" defaultValue={editingPenjamin?.nama_penjamin || ''} required onChange={(e) => checkLiveDuplicate('penjamin', 'nama_penjamin', e.target.value)} onFocus={() => setActiveInput('nama_penjamin')} onBlur={() => setTimeout(() => setActiveInput(null), 200)} autoComplete="off" className={cn(matchesPenjamin.length > 0 && "pr-10 border-orange-300 ring-orange-200 focus-visible:ring-orange-300")} />
-                          {matchesPenjamin.length > 0 && <div className="absolute right-3 top-2.5 text-orange-500 animate-pulse"><AlertCircle className="w-5 h-5" /></div>}
-                          <SuggestionList matches={matchesPenjamin} isVisible={activeInput === 'nama_penjamin'} labelField="nama_penjamin" subLabelField="nik_penjamin" onSelect={(item) => { toast({ title: "Info", description: `Penjamin ${item.nama_penjamin} sudah ada.` }); setMatchesPenjamin([]); }} />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>NIK Penjamin <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                          <Input name="nik_penjamin" defaultValue={editingPenjamin?.nik_penjamin || ''} placeholder="Wajib Diisi" required onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ''); e.target.value = val; checkLiveDuplicate('penjamin', 'nik_penjamin', val); }} onFocus={() => setActiveInput('nik_penjamin')} onBlur={() => setTimeout(() => setActiveInput(null), 200)} maxLength={16} autoComplete="off" inputMode="numeric" className={cn(matchesPenjamin.length > 0 && "pr-10 border-orange-300 ring-orange-200 focus-visible:ring-orange-300")} />
-                          {matchesPenjamin.length > 0 && <div className="absolute right-3 top-2.5 text-orange-500 animate-pulse"><AlertCircle className="w-5 h-5" /></div>}
-                          <SuggestionList matches={matchesPenjamin} isVisible={activeInput === 'nik_penjamin'} labelField="nik_penjamin" subLabelField="nama_penjamin" onSelect={(item) => { toast({ title: "Info", description: `NIK ${item.nik_penjamin} sudah terdaftar.` }); setMatchesPenjamin([]); }} />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Hubungan (ref_hubungan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refHubungan} value={selectedHubungan} onSelect={setSelectedHubungan} labelKey="nama_hubungan" valueKey="nama_hubungan" placeholder="Pilih Hubungan..." searchPlaceholder="Cari hubungan..." name="hubungan_klien" allowClear={true}/>
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Agama (ref_agama) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refAgama} value={selectedAgamaPenjamin} onSelect={setSelectedAgamaPenjamin} labelKey="nama_agama" valueKey="nama_agama" placeholder="Pilih Agama..." searchPlaceholder="Cari agama..." name="agama" allowClear={true}/>
-                      </div>
-                      <div className="grid gap-2"><Label>Tempat Lahir <span className="text-red-500">*</span></Label><Input name="tempat_lahir" required defaultValue={editingPenjamin?.tempat_lahir || ''} /></div>
-                      
-                      <div className="grid gap-2">
-                          <Label>Tanggal Lahir <span className="text-red-500">*</span></Label>
-                          <Input name="tanggal_lahir" type="date" value={penjaminTglLahir} required onChange={handlePenjaminDateChange} />
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Usia</Label>
-                          <Input name="usia" type="number" className="w-24 bg-slate-100" value={penjaminUsia} readOnly placeholder="Auto" />
-                      </div>
-
-                      <div className="grid gap-2">
-                          <Label>Pendidikan (ref_pendidikan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refPendidikan} value={selectedPendidikanPenjamin} onSelect={setSelectedPendidikanPenjamin} labelKey="tingkat" valueKey="tingkat" placeholder="Pilih Pendidikan..." searchPlaceholder="Cari pendidikan..." name="pendidikan" />
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Pekerjaan (ref_pekerjaan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refPekerjaan} value={selectedPekerjaanPenjamin} onSelect={setSelectedPekerjaanPenjamin} labelKey="nama_pekerjaan" valueKey="nama_pekerjaan" placeholder="Pilih Pekerjaan..." searchPlaceholder="Cari pekerjaan..." name="pekerjaan" />
-                      </div>
-                      <div className="grid gap-2"><Label>No. Telepon <span className="text-red-500">*</span></Label><Input name="nomor_telepon" type="tel" defaultValue={editingPenjamin?.nomor_telepon || ''} required onChange={handlePhoneValidation} placeholder="Contoh: 08123456789" /></div>
-                      <div className="grid gap-2 col-span-2"><Label>Alamat <span className="text-red-500">*</span></Label><Textarea name="alamat" required defaultValue={editingPenjamin?.alamat || ''} /></div>
-                      
-                      <div className="grid gap-2">
-                          <Label>Kelurahan (ref_kelurahan) <span className="text-red-500">*</span></Label>
-                          <SearchableSelect options={refKelurahan} value={selectedKelurahanPenjamin} onSelect={handleSelectKelurahanPenjamin} labelKey="nama_kelurahan" valueKey="nama_kelurahan" placeholder="Pilih Kelurahan..." searchPlaceholder="Cari kelurahan..." name="kelurahan" />
-                      </div>
-                      <div className="grid gap-2">
-                          <Label>Kecamatan (Otomatis) <span className="text-red-500">*</span></Label>
-                          <Input name="kecamatan" required value={manualKecamatanPenjamin} readOnly className="bg-slate-100 font-medium text-slate-700" placeholder="Pilih kelurahan dulu..." />
-                      </div>
-                    </div>
-                    <div className="flex justify-end pt-4"><Button type="submit" className="bg-green-600 hover:bg-green-700">{loading ? <Loader2 className="animate-spin"/> : "Simpan Penjamin"}</Button></div>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+            <FormPenjamin
+                state={{ editingPenjamin, editingKlien, selectedClientId, matchesPenjamin, activeInput, listKlien, userRoleCategory, refHubungan, selectedHubungan, refAgama, selectedAgamaPenjamin, penjaminTglLahir, penjaminUsia, refPendidikan, selectedPendidikanPenjamin, refPekerjaan, selectedPekerjaanPenjamin, refKelurahan, selectedKelurahanPenjamin, manualKecamatanPenjamin, loading }}
+                handlers={{ initiateSavePenjamin, checkLiveDuplicate, setActiveInput, setMatchesPenjamin, setSelectedClientId, handleCancelButton, setSelectedHubungan, setSelectedAgamaPenjamin, handlePenjaminDateChange, setSelectedPendidikanPenjamin, setSelectedPekerjaanPenjamin, handlePhoneValidation, handleSelectKelurahanPenjamin }}
+                components={{ SearchableSelect, SuggestionList, ClientSelector }}
+            />
           </TabsContent>
 
           {/* TAB 3: LAYANAN */}
@@ -1450,11 +778,7 @@ export default function OperatorRegistrasiTest() {
                     <CardTitle>{editingLayananId ? 'Edit Layanan Terdaftar' : 'Registrasi Layanan & Dokumen'}</CardTitle>
                     <CardDescription>{editingLayananId ? `Mengedit layanan ${editingLayananTable.toUpperCase()} — ID: ${editingLayananId}` : 'Pilih layanan, upload surat permintaan, dan input perkara.'}</CardDescription>
                   </div>
-                  {editingLayananId && (
-                    <Button variant="outline" size="sm" onClick={() => handleCancelButton(true)}>
-                      <XCircle className="w-4 h-4 mr-2" /> Batal Edit
-                    </Button>
-                  )}
+                  {editingLayananId && <Button variant="outline" size="sm" onClick={() => handleCancelButton(true)}><XCircle className="w-4 h-4 mr-2" /> Batal Edit</Button>}
                 </div>
               </CardHeader>
               <CardContent>
@@ -1471,7 +795,7 @@ export default function OperatorRegistrasiTest() {
 
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-200"><ClientSelector listKlien={listKlien} selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId} editingKlien={editingKlien} handleCancelButton={handleCancelButton} loading={loading} userRoleCategory={userRoleCategory} /></div>
                   
-                  {/* --- POINT 3: PERINGATAN KLIEN PERNAH DITOLAK TPP (Spesifik Layanan yang dipilih) --- */}
+                  {/* Peringatan TPP Ditolak */}
                   {selectedJenisLitmas && klienDitakPernahDitolak.some((l: any) => l.jenis_litmas === selectedJenisLitmas) && (
                       <Alert className="bg-amber-50 border-amber-300 text-amber-900 shadow-sm">
                           <AlertOctagon className="h-4 w-4 text-amber-600" />
@@ -1559,8 +883,45 @@ export default function OperatorRegistrasiTest() {
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded shadow-sm">
-                        <div className="md:col-span-2 grid gap-2"><Label>Pasal</Label><Input value={tempPerkara.pasal} onChange={(e) => setTempPerkara({...tempPerkara, pasal: e.target.value})} placeholder="Cth: 363" /></div>
-                        <div className="md:col-span-3 grid gap-2"><Label>Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({...tempPerkara, tindak_pidana: e.target.value})} placeholder="Pencurian" /></div>
+                        
+                        {/* --- PERUBAHAN DI SINI: SEARCHABLE SELECT UNTUK PASAL --- */}
+                        <div className="md:col-span-3 grid gap-2">
+                            <Label>Pilih Pasal (Dari Referensi)</Label>
+                            <SearchableSelect
+                                options={refPerkara.map(p => ({
+                                    id: String(p.id_perkara),
+                                    display: `Ps. ${p.pasal} ${p.aturan_uu || ''} - ${p.nama_perkara}`
+                                }))}
+                                value={(() => {
+                                    const found = refPerkara.find(p => p.pasal === tempPerkara.pasal && p.nama_perkara === tempPerkara.tindak_pidana);
+                                    return found ? String(found.id_perkara) : "";
+                                })()}
+                                onSelect={(val: string) => {
+                                    const sel = refPerkara.find(p => String(p.id_perkara) === val);
+                                    if (sel) {
+                                        setTempPerkara({...tempPerkara, pasal: sel.pasal || '', tindak_pidana: sel.nama_perkara || ''});
+                                    } else {
+                                        setTempPerkara({...tempPerkara, pasal: '', tindak_pidana: ''});
+                                    }
+                                }}
+                                labelKey="display"
+                                valueKey="id"
+                                placeholder="Cari Pasal..."
+                                searchPlaceholder="Ketik nomor pasal..."
+                                name="ref_perkara_select"
+                            />
+                        </div>
+                        
+                        <div className="md:col-span-2 grid gap-2">
+                            <Label>Tindak Pidana</Label>
+                            <Input 
+                                value={tempPerkara.tindak_pidana} 
+                                onChange={(e) => setTempPerkara({...tempPerkara, tindak_pidana: e.target.value})} 
+                                placeholder="Pencurian" 
+                            />
+                        </div>
+                        {/* -------------------------------------------------------- */}
+
                         <div className="md:col-span-3 grid gap-2"><Label>Juncto (Jo.)</Label><Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({...tempPerkara, juncto: e.target.value})} placeholder="Cth: Jo. Ps. 55" /></div>
                         <div className="md:col-span-4 grid gap-2"><Label>No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({...tempPerkara, nomor_putusan: e.target.value})} /></div>
                         <div className="md:col-span-4 grid gap-2"><Label>Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({...tempPerkara, vonis_pidana: val})} /></div>
@@ -1685,441 +1046,254 @@ export default function OperatorRegistrasiTest() {
 
           {/* TAB 4: LIST DATA */}
           <TabsContent value="list_data">
-            <Tabs defaultValue="list_klien" className="w-full">
-              <div className="flex items-center justify-between mb-4"><TabsList><TabsTrigger value="list_klien">Data Klien</TabsTrigger><TabsTrigger value="list_litmas">Layanan Terdaftar</TabsTrigger></TabsList><Button variant="ghost" size="sm" onClick={fetchTableData}><RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /></Button></div>
-              <TabsContent value="list_klien">
-                <Card className="border-t-4 border-t-purple-600 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between">
-                      <div><CardTitle>Daftar Klien Terdaftar</CardTitle><CardDescription>Database klien {userRoleCategory}</CardDescription></div>
-                      <div className="flex gap-2">
-                        <div className="relative w-60">
-                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-                          <Input placeholder="Cari Nama Klien..." className="pl-8" value={searchKlienQuery} onChange={(e) => setSearchKlienQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearchKlien()} />
-                        </div>
-                        <Button size="icon" variant="outline" onClick={handleSearchKlien}><Search className="w-4 h-4"/></Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nama Klien</TableHead>
-                          <TableHead>No. Register</TableHead>
-                          <TableHead>JK</TableHead>
-                          <TableHead>Usia</TableHead>
-                          <TableHead>No. Telepon</TableHead>
-                          <TableHead>Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dataKlienFull.length > 0 ? dataKlienFull.map((k) => (
-                          <TableRow key={k.id_klien}>
-                            <TableCell className="font-medium">{k.nama_klien}</TableCell>
-                            <TableCell>{k.nomor_register_lapas}</TableCell>
-                            <TableCell>{k.jenis_kelamin}</TableCell>
-                            <TableCell>{k.usia} Thn</TableCell>
-                            <TableCell>{k.nomor_telepon || '-'}</TableCell>
-                            <TableCell className="flex gap-2">
-                              <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => { setDetailData(k); setOpenDetail(true); }}><Eye className="w-3.5 h-3.5 mr-1" /> Detail</Button>
-                              <Button variant="outline" size="sm" onClick={() => handleEditClick(k)} className="h-8 px-2 text-blue-600"><Pencil className="w-3.5 h-3.5 mr-1" /> Edit</Button>
-                            </TableCell>
-                          </TableRow>
-                        )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-500">Data tidak ditemukan.</TableCell></TableRow>}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="list_litmas">
-                <Card className="border-t-4 border-t-orange-600 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between">
-                      <div><CardTitle>Daftar Layanan Terdaftar</CardTitle><CardDescription>Status registrasi.</CardDescription></div>
-                      <div className="flex gap-2"><div className="relative w-60"><Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" /><Input placeholder="Cari No. Surat..." className="pl-8" value={searchLitmasQuery} onChange={(e) => setSearchLitmasQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearchLitmas()} /></div><Button size="icon" variant="outline" onClick={handleSearchLitmas}><Search className="w-4 h-4"/></Button></div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>No. Surat</TableHead>
-                          <TableHead>Kategori & Status</TableHead>
-                          <TableHead>Klien</TableHead>
-                          <TableHead>Petugas PK</TableHead>
-                          <TableHead className="text-right">Aksi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dataLitmas.length > 0 ? dataLitmas.map((l) => (
-                          <TableRow key={l.id_litmas}>
-                            <TableCell className="font-medium">
-                                {l.nomor_surat_permintaan}
-                                <div className="text-[10px] text-slate-400 mt-1">
-                                    Tgl: {l.tanggal_surat_permintaan}
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-col gap-1 items-start">
-                                    <Badge variant="outline" className="text-xs bg-slate-50">{l.kategori_layanan ? l.kategori_layanan.toUpperCase() : 'LITMAS'}</Badge>
-                                    <Badge className={
-                                        l.status === 'Approved' ? 'bg-green-600 hover:bg-green-700 text-white' :
-                                        l.status === 'Selesai' ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-                                        l.status === 'On Progress' ? 'bg-blue-500 hover:bg-blue-600 text-white' :
-                                        l.status === 'Review' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' :
-                                        l.status === 'Ditolak' || l.status === 'Rejected' ? 'bg-red-500 hover:bg-red-600 text-white' :
-                                        'bg-slate-500 hover:bg-slate-600 text-white'
-                                    }>
-                                        {l.status || 'New Task'}
-                                    </Badge>
-                                </div>
-                            </TableCell>
-                            <TableCell>{l.klien?.nama_klien}</TableCell>
-                            <TableCell>
-                                {l.petugas_pk ? 
-                                    <span className="text-blue-700 font-medium flex items-center gap-1">
-                                        <UserCheck className="w-3 h-3"/> {l.petugas_pk.nama}
-                                    </span> : 
-                                    <span className="text-red-500 text-xs italic">Belum Ada PK</span>
-                                }
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex gap-1 justify-end">
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => { setSelectedLitmasDetail(l); setOpenLitmasDetail(true); }}
-                                >
-                                    <Eye className="w-4 h-4 text-slate-500 hover:text-blue-600"/>
-                                </Button>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0"
-                                    onClick={() => handleEditLayananClick(l)}
-                                    title="Edit Layanan"
-                                >
-                                    <Pencil className="w-4 h-4 text-amber-500 hover:text-amber-700"/>
-                                </Button>
-                                </div>
-                            </TableCell>
-                          </TableRow>
-                        )) : (
-                          <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-500">Data tidak ditemukan.</TableCell></TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+             <DataTerdaftar 
+                 state={{ dataKlienFull, dataLitmas, loading, searchKlienQuery, searchLitmasQuery, userRoleCategory }}
+                 handlers={{ setSearchKlienQuery, handleSearchKlien, fetchTableData, setDetailData, setOpenDetail, handleEditClick, setSearchLitmasQuery, handleSearchLitmas, setSelectedLitmasDetail, setOpenLitmasDetail, handleEditLayananClick }}
+             />
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* --- MODAL: RIWAYAT PERUBAHAN DATA KLIEN --- */}
-      <Dialog open={openRiwayatKlien} onOpenChange={setOpenRiwayatKlien}>
-        <DialogContent className="max-w-2xl">
+      {/* --- MODALS & DIALOGS --- */}
+      
+      {/* 1. DIALOG DETAIL KLIEN KOMPREHENSIF */}
+      <Dialog open={openDetail} onOpenChange={setOpenDetail}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><History className="w-5 h-5 text-blue-600"/> Riwayat Perubahan Data</DialogTitle>
-            <DialogDescription className="sr-only">Daftar perubahan data klien.</DialogDescription>
-            <DialogDescription>Daftar perubahan untuk Pekerjaan, Perkawinan, Agama, Pendidikan, Alamat, dan Telepon.</DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <User className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">Informasi Komprehensif Klien</DialogTitle>
+                <DialogDescription>Data terintegrasi dan riwayat perubahan sistem.</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <ScrollArea className="h-[400px] border rounded-md p-4 bg-slate-50/50 mt-2">
-            <div className="space-y-6">
-                <div className="border-l-2 border-blue-500 pl-4 relative">
-                    <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1"></div>
-                    <p className="text-xs text-slate-500 mb-1">Hari ini - {format(new Date(), "dd MMM yyyy")}</p>
-                    <p className="text-sm font-semibold text-slate-800">Status Perkawinan diperbarui</p>
-                    <div className="mt-2 text-xs bg-white p-2 border rounded text-slate-600">
-                        <span className="line-through text-red-400 mr-2">Belum Kawin</span> &rarr; <span className="font-bold text-green-600 ml-2">Kawin</span>
+          
+          {detailData ? (
+            <Tabs defaultValue="profil" className="w-full mt-4">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="profil">Profil & Identitas</TabsTrigger>
+                <TabsTrigger value="history">Riwayat Perubahan</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="profil" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* SISI KIRI: IDENTITAS UTAMA */}
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-blue-500 pl-3">Data Diri Utama</h4>
+                    <div className="grid grid-cols-3 gap-y-3 text-sm">
+                      <span className="text-slate-500">Nama Lengkap</span>
+                      <span className="col-span-2 font-semibold">: {detailData?.nama_klien || '-'}</span>
+                      
+                      <span className="text-slate-500">NIK</span>
+                      <span className="col-span-2 font-mono">: {detailData?.nik_klien || '-'}</span>
+                      
+                      <span className="text-slate-500">No. Register</span>
+                      <span className="col-span-2 font-mono text-blue-600 font-bold">: {detailData?.nomor_register_lapas || '-'}</span>
+                      
+                      <span className="text-slate-500">JK / Usia</span>
+                      <span className="col-span-2">: {detailData?.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'} / {detailData?.usia || '0'} Tahun</span>
+                      
+                      <span className="text-slate-500">Kategori</span>
+                      <span className="col-span-2">
+                        <Badge variant="outline" className="bg-blue-50">{detailData?.kategori_usia || '-'}</Badge>
+                      </span>
+
+                      <span className="text-slate-500">Pendidikan</span>
+                      <span className="col-span-2">: {detailData?.pendidikan || '-'}</span>
                     </div>
-                </div>
-                
-                <div className="border-l-2 border-blue-500 pl-4 relative">
-                    <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1"></div>
-                    <p className="text-xs text-slate-500 mb-1">2 Hari yang lalu</p>
-                    <p className="text-sm font-semibold text-slate-800">Pekerjaan diperbarui</p>
-                    <div className="mt-2 text-xs bg-white p-2 border rounded text-slate-600">
-                        <span className="line-through text-red-400 mr-2">Wiraswasta</span> &rarr; <span className="font-bold text-green-600 ml-2">Karyawan Swasta</span>
+                  </div>
+
+                  {/* SISI KANAN: KONTAK & DOMISILI */}
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-green-500 pl-3">Kontak & Domisili</h4>
+                    <div className="grid grid-cols-3 gap-y-3 text-sm">
+                      <span className="text-slate-500">No. Telepon</span>
+                      <span className="col-span-2 font-semibold text-green-700">: {detailData?.nomor_telepon || '-'}</span>
+                      
+                      <span className="text-slate-500">Kelurahan</span>
+                      <span className="col-span-2">: {detailData?.kelurahan || '-'}</span>
+                      
+                      <span className="text-slate-500">Kecamatan</span>
+                      <span className="col-span-2">: {detailData?.kecamatan || '-'}</span>
+                      
+                      <span className="text-slate-500">Alamat</span>
+                      <span className="col-span-2 text-xs leading-relaxed italic">: {detailData?.alamat || '-'}</span>
                     </div>
+                  </div>
                 </div>
 
-                <div className="border-l-2 border-blue-500 pl-4 relative">
-                    <div className="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1"></div>
-                    <p className="text-xs text-slate-500 mb-1">Minggu lalu</p>
-                    <p className="text-sm font-semibold text-slate-800">Nomor Telepon diperbarui</p>
-                    <div className="mt-2 text-xs bg-white p-2 border rounded text-slate-600">
-                        <span className="line-through text-red-400 mr-2">081234567890</span> &rarr; <span className="font-bold text-green-600 ml-2">089999999999</span>
+                <Separator />
+
+                {/* DATA PENJAMIN */}
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <UserCheck className="w-5 h-5 text-slate-600" />
+                    <h4 className="font-bold text-slate-700">Keluarga Penjamin</h4>
+                  </div>
+                  {detailData?.penjamin && detailData.penjamin.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                      <div className="space-y-2">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Nama Penjamin</span>
+                          <span className="font-medium">{detailData.penjamin[0].nama_penjamin}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Hubungan</span>
+                          <span>{detailData.penjamin[0].hubungan_klien}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">No. Telepon</span>
+                          <span className="text-green-700 font-bold">{detailData.penjamin[0].nomor_telepon}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-500">Pekerjaan</span>
+                          <span>{detailData.penjamin[0].pekerjaan}</span>
+                        </div>
+                      </div>
                     </div>
+                  ) : (
+                    <div className="flex flex-col items-center py-4 text-slate-400">
+                      <AlertCircle className="w-8 h-8 mb-2 opacity-20" />
+                      <p className="text-xs italic">Data penjamin belum tersedia untuk klien ini.</p>
+                    </div>
+                  )}
                 </div>
+              </TabsContent>
+
+              {/* TAB RIWAYAT PERUBAHAN */}
+              <TabsContent value="history" className="mt-4">
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg mb-6 flex gap-3 items-start">
+                  <History className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">Log Aktivitas Data</p>
+                    <p className="text-xs text-amber-700">Menampilkan perubahan yang dilakukan oleh operator sistem.</p>
+                  </div>
+                </div>
+
+                <div className="relative border-l-2 border-slate-200 ml-4 pl-8 space-y-8 pb-4">
+                  {/* Registrasi Awal - Selalu Ada */}
+                  <div className="relative">
+                    <div className="absolute -left-[41px] top-0 bg-green-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Input Awal</p>
+                    <p className="text-sm font-semibold text-slate-800">Data Klien Didaftarkan</p>
+                    <p className="text-xs text-slate-500 mt-1">Sistem mencatat registrasi awal klien pada database Monalisa.</p>
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDateTime(detailData?.created_at)}</span>
+                    </div>
+                  </div>
+
+                  {/* Dummy Perubahan (Sebagai Informasi Visual) */}
+                  <div className="relative">
+                    <div className="absolute -left-[41px] top-0 bg-blue-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Pembaruan</p>
+                    <p className="text-sm font-semibold text-slate-800">Update Data Terakhir</p>
+                    <p className="text-xs text-slate-500 mt-1">Perubahan pada field profil atau sinkronisasi data layanan terakhir.</p>
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      <span>{detailData?.updated_at ? formatDateTime(detailData.updated_at) : 'Belum ada update data'}</span>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="py-20 flex flex-col items-center justify-center text-slate-400">
+              <Loader2 className="w-10 h-10 animate-spin mb-4" />
+              <p className="text-sm font-medium">Mengambil data komprehensif...</p>
             </div>
-          </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* 2. DIALOG MONITORING LAYANAN */}
+      <Dialog open={openLitmasDetail} onOpenChange={setOpenLitmasDetail}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-orange-500" /> Detail Registrasi Layanan
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedLitmasDetail ? (
+            <div className="space-y-6 py-2">
+              <div className="flex justify-between items-start bg-slate-100 p-4 rounded-lg border">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-tighter">Nomor Surat Permintaan</p>
+                  <h3 className="text-lg font-mono font-bold text-slate-800">{selectedLitmasDetail.nomor_surat_permintaan}</h3>
+                  <p className="text-sm text-slate-600 mt-1">Tanggal: {selectedLitmasDetail.tanggal_surat_permintaan}</p>
+                </div>
+                <Badge className={cn("text-sm px-3 py-1", 
+                  selectedLitmasDetail.status === 'Selesai' ? "bg-green-600" : "bg-blue-600")}>
+                  {selectedLitmasDetail.status || 'New Task'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 text-sm">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Jenis Layanan</span>
+                    <span className="font-semibold text-blue-700">: {selectedLitmasDetail.jenis_litmas}</span>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Kategori</span>
+                    <span className="capitalize">: {selectedLitmasDetail.kategori_layanan || 'Litmas'}</span>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Tahapan</span>
+                    <span className="font-medium text-orange-700">: {selectedLitmasDetail.tahapan_layanan || '-'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-l pl-6">
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Petugas PK</span>
+                    <span className="font-semibold">: {selectedLitmasDetail.petugas_pk?.nama || 'Belum Ditunjuk'}</span>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Asal UPT/Bapas</span>
+                    <span>: {selectedLitmasDetail.ref_upt?.nama_upt || selectedLitmasDetail.asal_bapas || '-'}</span>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <span className="text-slate-500">Waktu Reg.</span>
+                    <span className="text-[11px]">: {formatDateTime(selectedLitmasDetail.waktu_registrasi)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedLitmasDetail.file_surat_permintaan_url && (
+                <div className="pt-4 border-t">
+                  <Button variant="outline" className="w-full gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                    onClick={() => window.open(selectedLitmasDetail.file_surat_permintaan_url, '_blank')}>
+                    <FileText className="w-4 h-4" /> Buka Dokumen Surat Permintaan
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-10 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-slate-300" /></div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* SIDE SHEET: RIWAYAT INPUT UMUM */}
       <Sheet open={openHistory} onOpenChange={setOpenHistory}>
-        <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col h-full">
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle className="flex items-center gap-2"><History className="w-5 h-5 text-blue-600" /> Riwayat Input Data Baru</SheetTitle>
-            <SheetDescription>Aktivitas penambahan data 7 hari terakhir.</SheetDescription>
-          </SheetHeader>
-          <div className="flex justify-end py-2"><Button variant="ghost" size="sm" onClick={fetchHistory} disabled={loadingHistory} className="text-xs h-8 gap-2 hover:bg-slate-100"><RefreshCw className={cn("w-3.5 h-3.5", loadingHistory && "animate-spin")} /> Refresh Data</Button></div>
-          <ScrollArea className="flex-1 -mx-6 px-6">
-              {loadingHistory ? (
-                  <div className="flex flex-col items-center justify-center h-40 gap-2 text-slate-400"><Loader2 className="w-8 h-8 animate-spin" /><span className="text-xs">Memuat data...</span></div>
-              ) : historyData.length > 0 ? (
-                  <div className="space-y-4 py-2 pb-10">
-                      {historyData.map((item, idx) => (
-                          <div key={idx} className="flex gap-3 items-start border-b pb-3 last:border-0 last:pb-0 group">
-                              <div className={cn("w-2 h-2 mt-2 rounded-full shrink-0 ring-2 ring-offset-2", item.type === 'Klien Baru' ? "bg-purple-500 ring-purple-100" : item.type === 'Penjamin' ? "bg-green-500 ring-green-100" : "bg-blue-500 ring-blue-100")}></div>
-                              <div className="flex-1">
-                                  <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors cursor-pointer">{item.title}</p>
-                                  <div className="flex items-center gap-2 mt-1.5"><Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal border bg-slate-50">{item.type}</Badge><span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" />{format(new Date(item.date), "dd MMM HH:mm", { locale: localeId })}</span></div>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              ) : (<div className="text-center py-20 opacity-50"><History className="w-12 h-12 mx-auto mb-3 text-slate-300" /><p className="text-sm">Belum ada aktivitas baru.</p></div>)}
-          </ScrollArea>
-        </SheetContent>
+          <SheetContent side="right" className="w-[400px]">
+              <SheetHeader><SheetTitle>Riwayat Input Baru</SheetTitle><SheetDescription>Aktivitas 7 hari terakhir.</SheetDescription></SheetHeader>
+          </SheetContent>
       </Sheet>
 
-      {/* FLOATING BUTTON MOBILE */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-50">
-        <TooltipProvider><Tooltip><TooltipTrigger asChild><Button size="icon" className="h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700" onClick={() => { setOpenHistory(true); fetchHistory(); }}><History className="w-6 h-6" /></Button></TooltipTrigger><TooltipContent side="left" className="bg-blue-600 text-white"><p>Lihat Riwayat Input</p></TooltipContent></Tooltip></TooltipProvider>
-      </div>
-
-      {/* ALERT DUPLICATE CHECK */}
-      <AlertDialog open={showDuplicateAlert} onOpenChange={setShowDuplicateAlert}>
-        <AlertDialogContent className="border-l-4 border-l-orange-500">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-orange-600"><AlertTriangle className="w-5 h-5" /> Data Mirip Terdeteksi!</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-600">Sistem mendeteksi bahwa nama atau NIK yang Anda masukkan sudah ada di database.<br/>Apakah Anda yakin ingin <strong>menyimpan data ganda</strong> ini?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowDuplicateAlert(false); setDuplicatePayload(null); }}>Periksa Kembali</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowDuplicateAlert(false); setConfirmDialog({ isOpen: true, type: 'klien', payload: duplicatePayload }); }} className="bg-orange-600 hover:bg-orange-700">Ya, Tetap Simpan</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* CONFIRMATION DIALOG */}
       <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}>
-        <AlertDialogContent className={cn("border-l-4", confirmDialog.warningMessage ? "border-l-red-600" : "border-l-blue-600")}>
-          <AlertDialogHeader>
-            <AlertDialogTitle className={cn("flex items-center gap-2", confirmDialog.warningMessage ? "text-red-700" : "text-blue-700")}>{confirmDialog.warningMessage ? <ShieldAlert className="w-6 h-6" /> : <Save className="w-5 h-5" />}{confirmDialog.warningMessage ? "Peringatan Validasi Data!" : "Konfirmasi Penyimpanan"}</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-700 text-base">{confirmDialog.warningMessage ? <span className="block bg-red-50 p-3 rounded-md border border-red-100 text-red-800 font-medium mt-2">{confirmDialog.warningMessage}</span> : "Apakah seluruh data yang Anda masukkan sudah benar?"}<br/><span className="block mt-2">Data akan disimpan ke dalam sistem MONALISA.</span></AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel disabled={loading}>Batal</AlertDialogCancel><AlertDialogAction onClick={executeSave} disabled={loading} className={cn(confirmDialog.warningMessage ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700")}>{loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}{confirmDialog.warningMessage ? "Tetap Lanjutkan" : "Ya, Simpan Data"}</AlertDialogAction></AlertDialogFooter>
+        <AlertDialogContent className="border-l-4 border-l-blue-600">
+          <AlertDialogHeader><AlertDialogTitle>Konfirmasi Penyimpanan</AlertDialogTitle><AlertDialogDescription>Apakah data sudah benar?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={executeSave}>Simpan</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* --- MODIFIED DETAIL DIALOG (KLIEN) --- */}
-      <Dialog open={openDetail} onOpenChange={setOpenDetail}>
-        <DialogContent className="max-w-4xl h-[90vh] p-0 flex flex-col overflow-hidden">
-          <DialogHeader className="p-6 pb-4 bg-slate-50 border-b shrink-0">
-            <div className="flex items-center gap-4"><div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">{detailData?.nama_klien?.charAt(0) || <User />}</div><div><DialogTitle className="text-xl font-bold flex items-center gap-2">{detailData?.nama_klien}</DialogTitle><DialogDescription className="sr-only">Detail data klien terdaftar.</DialogDescription><div className="flex gap-2 mt-1"><Badge variant="outline" className="bg-white border-slate-300 text-slate-600 font-normal">Reg: {detailData?.nomor_register_lapas}</Badge><Badge className={cn("text-xs font-normal", detailData?.kategori_usia === "Anak" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800")}>{detailData?.kategori_usia}</Badge></div></div></div>
-          </DialogHeader>
-          <ScrollArea className="flex-1 p-6 bg-slate-50/30">
-            {detailData ? (
-              <div className="space-y-8 pb-10">
-                <section><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><User className="w-4 h-4"/> Informasi Pribadi</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-xl border shadow-sm"><div className="space-y-4"><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500 font-medium">NIK</span><span className="col-span-2 font-semibold text-slate-800">{detailData.nik_klien || '-'}</span></div><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500 font-medium">TTL</span><span className="col-span-2 text-slate-800">{detailData.tempat_lahir}, {detailData.tanggal_lahir}</span></div><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500 font-medium">JK</span><span className="col-span-2 text-slate-800">{detailData.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</span></div></div><div className="space-y-4"><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500 font-medium">Pendidikan</span><span className="col-span-2 text-slate-800 flex items-center gap-1"><GraduationCap className="w-3 h-3 text-slate-400"/> {detailData.pendidikan}</span></div><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500 font-medium">Pekerjaan</span><span className="col-span-2 text-slate-800 flex items-center gap-1"><Briefcase className="w-3 h-3 text-slate-400"/> {detailData.pekerjaan || '-'}</span></div></div></div></section>
-                <section><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><MapPin className="w-4 h-4"/> Alamat & Kontak</h3><div className="bg-white p-5 rounded-xl border shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-2"><p className="text-xs text-slate-400 uppercase font-semibold">Alamat Lengkap</p><p className="text-sm text-slate-700 leading-relaxed">{detailData.alamat}</p><div className="flex gap-4 mt-2 text-sm text-slate-600"><span className="bg-slate-100 px-2 py-1 rounded">Kel: {detailData.kelurahan || '-'}</span><span className="bg-slate-100 px-2 py-1 rounded">Kec: {detailData.kecamatan || '-'}</span></div></div><div className="space-y-2"><p className="text-xs text-slate-400 uppercase font-semibold">Nomor Telepon</p><p className="text-lg font-bold text-green-700 flex items-center gap-2"><Phone className="w-4 h-4"/> {detailData.nomor_telepon || '-'}</p></div></div></section>
-                <section><h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><UserCheck className="w-4 h-4"/> Data Penjamin</h3>{detailData.penjamin && detailData.penjamin.length > 0 ? ( detailData.penjamin.map((p: any, idx: number) => (<div key={idx} className="bg-green-50/50 p-5 rounded-xl border border-green-100 shadow-sm relative overflow-hidden"><div className="absolute top-0 right-0 bg-green-100 px-3 py-1 text-xs font-bold text-green-700 rounded-bl-lg">{p.hubungan_klien?.replace('_', ' ').toUpperCase()}</div><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div className="space-y-3"><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500">Nama</span><span className="col-span-2 font-bold text-slate-800">{p.nama_penjamin}</span></div><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500">NIK</span><span className="col-span-2 font-mono text-slate-700">{p.nik_penjamin || '-'}</span></div></div><div className="space-y-3"><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500">Kontak</span><span className="col-span-2 font-bold text-green-700">{p.nomor_telepon || '-'}</span></div><div className="grid grid-cols-3 gap-2 text-sm"><span className="text-slate-500">Alamat</span><span className="col-span-2 text-slate-700 text-xs leading-relaxed">{p.alamat}</span></div></div></div></div>))) : (<div className="p-4 bg-slate-100 rounded-lg text-center text-slate-500 text-sm italic">Belum ada data penjamin.</div>)}</section>
-                
-                {/* --- NEW: RIWAYAT LAYANAN --- */}
-                <section>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Activity className="w-4 h-4"/> Riwayat Layanan Klien</h3>
-                  {detailData.litmas && detailData.litmas.length > 0 ? (
-                      <div className="space-y-4">
-                          {detailData.litmas.map((l: any, lIdx: number) => (
-                              <div key={lIdx} className="bg-white rounded-xl border shadow-sm overflow-hidden">
-                                  <div className="bg-slate-50 p-3 px-4 border-b flex justify-between items-center">
-                                      <div className="flex items-center gap-3">
-                                          <Badge className="bg-blue-600 uppercase text-[10px] tracking-wide">{l.kategori_layanan || 'Litmas'}</Badge>
-                                          <span className="text-xs font-mono text-slate-500 bg-white border px-1.5 py-0.5 rounded">{l.nomor_surat_permintaan}</span>
-                                          <span className="text-xs text-slate-500 bg-blue-50 text-blue-700 px-2 py-0.5 rounded">Tahap: {l.tahapan_layanan || '-'}</span>
-                                      </div>
-                                      <div className="text-xs text-slate-500">PK: <span className="font-bold text-blue-700">{l.petugas_pk?.nama || 'Belum Ada'}</span></div>
-                                  </div>
-                                  <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs border-b">
-                                      <div><span className="block text-slate-400 font-semibold mb-1">Asal UPT</span><span className="font-medium text-slate-700">{l.ref_upt?.nama_upt || '-'}</span></div>
-                                      <div><span className="block text-slate-400 font-semibold mb-1">Tgl Surat</span><span className="font-medium text-slate-700">{l.tanggal_surat_permintaan}</span></div>
-                                      <div className="col-span-2"><span className="block text-slate-400 font-semibold mb-1">Jenis Layanan Tertentu</span><span className="font-medium text-slate-700">{l.jenis_litmas}</span></div>
-                                  </div>
-                                  {l.perkara && l.perkara.length > 0 && (
-                                      <div className="p-4 bg-slate-50/50">
-                                          <p className="text-xs font-bold text-slate-400 uppercase mb-2">Data Perkara Saat Laporan</p>
-                                          <div className="space-y-2">
-                                              {l.perkara.map((p: any, pIdx: number) => (
-                                                  <div key={pIdx} className="bg-white border rounded-lg p-3 text-xs grid grid-cols-1 md:grid-cols-4 gap-3 relative overflow-hidden">
-                                                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-                                                      <div><span className="block text-slate-400">Pasal</span><span className="font-bold text-slate-800">{p.pasal}</span></div>
-                                                      <div className="col-span-2"><span className="block text-slate-400">Pidana</span><span className="block font-medium text-slate-800">{p.tindak_pidana}</span></div>
-                                                      <div><span className="block text-slate-400">Vonis</span><span className="block font-medium text-slate-800">{p.vonis_pidana}</span></div>
-                                                  </div>
-                                              ))}
-                                          </div>
-                                      </div>
-                                  )}
-                              </div>
-                          ))}
-                      </div>
-                  ) : (
-                      <div className="p-8 border-2 border-dashed rounded-xl text-center">
-                          <Activity className="w-10 h-10 text-slate-300 mx-auto mb-2"/>
-                          <p className="text-slate-500 text-sm">Belum ada riwayat layanan.</p>
-                      </div>
-                  )}
-                </section>
-              </div>
-            ) : (<div className="flex flex-col items-center justify-center h-64 text-slate-400"><Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-500" /><p>Memuat data...</p></div>)}
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      {/* --- DIALOG MONITORING LAYANAN --- */}
-      <Dialog open={openLitmasDetail} onOpenChange={setOpenLitmasDetail}>
-        <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-                <div className="flex items-center justify-between mr-8">
-                    <DialogTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600"/> Monitoring Progress Layanan
-                    </DialogTitle>
-                    <DialogDescription className="sr-only">Lacak progres layanan.</DialogDescription>
-                    <Badge variant="outline" className="text-sm px-3 py-1 bg-slate-50">
-                        {selectedLitmasDetail?.status || 'New Task'}
-                    </Badge>
-                </div>
-                <DialogDescription>
-                    Nomor Surat: <span className="font-mono text-slate-700 font-bold">{selectedLitmasDetail?.nomor_surat_permintaan}</span>
-                </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-                
-                {/* INFO GRID */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-slate-50 p-5 rounded-lg border border-slate-100">
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Nama Klien</span> 
-                        <p className="font-semibold text-slate-800">{selectedLitmasDetail?.klien?.nama_klien}</p>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Kategori Layanan</span> 
-                        <p className="font-medium text-slate-700">{selectedLitmasDetail?.kategori_layanan?.toUpperCase() || 'LITMAS'}</p>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Asal UPT</span> 
-                        <p className="font-medium text-slate-700">{selectedLitmasDetail?.asal_bapas || '-'}</p>
-                    </div>
-                    <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">PK Penanggungjawab</span> 
-                        <p className="font-medium text-blue-700">{selectedLitmasDetail?.petugas_pk?.nama || 'Belum Ditunjuk'}</p>
-                    </div>
-                </div>
-
-                {/* DOKUMEN LINKS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border p-3 rounded-md flex items-center justify-between hover:bg-slate-50 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-slate-100 p-2 rounded"><FileText className="w-4 h-4 text-slate-600"/></div>
-                            <div className="text-xs">
-                                <span className="block font-medium text-slate-700">Surat Permintaan (Op)</span>
-                                <span className="text-slate-400">{selectedLitmasDetail?.file_surat_permintaan_url ? 'Tersedia' : 'Belum upload'}</span>
-                            </div>
-                        </div>
-                        {selectedLitmasDetail?.file_surat_permintaan_url && (
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => window.open(selectedLitmasDetail.file_surat_permintaan_url, '_blank')}>
-                                <ExternalLink className="w-3 h-3 mr-1"/> Lihat
-                            </Button>
-                        )}
-                    </div>
-                    <div className="border p-3 rounded-md flex items-center justify-between hover:bg-blue-50/50 transition-colors border-blue-100 bg-blue-50/20">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-blue-100 p-2 rounded"><FileClock className="w-4 h-4 text-blue-600"/></div>
-                            <div className="text-xs">
-                                <span className="block font-medium text-blue-800">Hasil Laporan (PK)</span>
-                                <span className="text-blue-400">{selectedLitmasDetail?.hasil_litmas_url ? 'Siap Unduh' : 'Dalam Proses'}</span>
-                            </div>
-                        </div>
-                        {selectedLitmasDetail?.hasil_litmas_url && (
-                            <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700" onClick={() => window.open(selectedLitmasDetail.hasil_litmas_url, '_blank')}>
-                                <ExternalLink className="w-3 h-3 mr-1"/> Lihat
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                {/* TIMELINE HISTORY VISUALIZATION */}
-                <div className="border rounded-lg p-5 bg-white shadow-sm">
-                    <h4 className="text-sm font-bold mb-5 flex items-center gap-2 text-slate-800">
-                        <History className="w-4 h-4 text-blue-600"/> Riwayat Pengerjaan
-                    </h4>
-                    <div className="relative border-l-2 border-slate-100 ml-3 space-y-8 pb-2">
-                        
-                        {/* 1. Registrasi */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_registrasi ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-800">Registrasi Operator</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{formatDateTime(selectedLitmasDetail?.waktu_registrasi)}</p>
-                            </div>
-                        </div>
-
-                        {/* 2. Upload Surat Tugas */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_upload_surat_tugas ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-800">PK: Menerima Tugas</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{selectedLitmasDetail?.waktu_upload_surat_tugas ? formatDateTime(selectedLitmasDetail.waktu_upload_surat_tugas) : 'Menunggu PK...'}</p>
-                            </div>
-                        </div>
-
-                        {/* 3. Upload Laporan */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_upload_laporan ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-800">PK: Upload Laporan</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{selectedLitmasDetail?.waktu_upload_laporan ? formatDateTime(selectedLitmasDetail.waktu_upload_laporan) : 'Dalam Pengerjaan...'}</p>
-                            </div>
-                        </div>
-
-                        {/* 4. Verifikasi */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_verifikasi_anev ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-800">Kasie/Anev: Verifikasi</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{selectedLitmasDetail?.waktu_verifikasi_anev ? formatDateTime(selectedLitmasDetail.waktu_verifikasi_anev) : 'Menunggu Verifikasi...'}</p>
-                            </div>
-                        </div>
-
-                        {/* 5. Sidang */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_sidang_tpp ? 'bg-purple-600' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-slate-800">Sidang TPP</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{selectedLitmasDetail?.waktu_sidang_tpp ? formatDateTime(selectedLitmasDetail.waktu_sidang_tpp) : 'Belum Sidang'}</p>
-                            </div>
-                        </div>
-
-                        {/* 6. Selesai */}
-                        <div className="ml-8 relative">
-                            <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm ${selectedLitmasDetail?.waktu_selesai ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
-                            <div>
-                                <p className="text-xs font-bold text-blue-700">Selesai</p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{selectedLitmasDetail?.waktu_selesai ? formatDateTime(selectedLitmasDetail.waktu_selesai) : '-'}</p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </DialogContent>
-      </Dialog>
     </TestPageLayout>
   );
 }

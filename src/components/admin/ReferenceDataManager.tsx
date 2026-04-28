@@ -1,3 +1,4 @@
+// src/components/admin/ReferenceDataManager.tsx
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,18 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Pencil, Database, Loader2, Search } from "lucide-react";
+import { Trash2, Plus, Pencil, Database, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 // --- 1. DEFINISI TIPE DATA (INTERFACE) ---
-// Ini penting agar TypeScript tidak error saat membaca properti tambahan
 interface ColumnConfig {
   key: string;
   label: string;
-  type: "text" | "number" | "relation"; // Tambahkan tipe 'relation'
-  relationTable?: string; // Optional (?)
-  relationKey?: string;   // Optional (?)
-  relationLabel?: string; // Optional (?)
+  type: "text" | "number" | "relation";
+  relationTable?: string;
+  relationKey?: string;
+  relationLabel?: string;
 }
 
 interface TableConfig {
@@ -27,7 +27,7 @@ interface TableConfig {
   columns: ColumnConfig[];
 }
 
-// --- 2. KONFIGURASI TABEL (Updated with Types) ---
+// --- 2. KONFIGURASI TABEL ---
 const TABLE_CONFIGS: Record<string, TableConfig> = {
   ref_bapas: {
     label: "Referensi Bapas",
@@ -64,7 +64,7 @@ const TABLE_CONFIGS: Record<string, TableConfig> = {
     primaryKey: "id_kecamatan",
     columns: [
       { key: "nama_kecamatan", label: "Nama Kecamatan", type: "text" },
-      { key: "kota_administrasi", label: "Kota Administrasi", type: "text" }
+      { key: "kota_id", label: "ID Kota", type: "number" }
     ]
   },
   ref_kelurahan: {
@@ -72,7 +72,6 @@ const TABLE_CONFIGS: Record<string, TableConfig> = {
     primaryKey: "id_kelurahan",
     columns: [
       { key: "nama_kelurahan", label: "Nama Kelurahan", type: "text" },
-      // KONFIGURASI RELASI (Sekarang Valid karena Interface diatas)
       { 
         key: "kecamatan_id", 
         label: "Kecamatan", 
@@ -104,6 +103,17 @@ const TABLE_CONFIGS: Record<string, TableConfig> = {
       { key: "nama_upt", label: "Nama UPT", type: "text" },
       { key: "jenis_instansi", label: "Jenis Instansi", type: "text" }
     ]
+  },
+  ref_perkara: {
+    label: "Ref. Perkara / Tindak Pidana",
+    primaryKey: "id_perkara",
+    columns: [
+      { key: "aturan_uu", label: "Aturan UU", type: "text" },
+      { key: "pasal", label: "Pasal", type: "text" },
+      { key: "ayat", label: "Ayat", type: "text" },
+      { key: "nama_perkara", label: "Nama Perkara", type: "text" },
+      { key: "kategori", label: "Kategori", type: "text" }
+    ]
   }
 };
 
@@ -121,41 +131,36 @@ export function ReferenceDataManager() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // State Relations (Untuk Dropdown)
+  // State Pagination & Rows Per Page
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // State Relations
   const [relationsData, setRelationsData] = useState<Record<string, any[]>>({});
 
-  // State Dialog (Create/Edit)
+  // State Dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState<any>({});
 
-  // 1. Fetch Data Utama & Relasi
   const fetchData = async () => {
     setLoading(true);
     try {
-      // A. Build Query with Relations
       const query = (supabase as any).from(selectedTable).select('*');
-      
       const { data: result, error } = await query.order(config.primaryKey, { ascending: true });
       if (error) throw error;
 
-      // B. Fetch Relation Data (Untuk Dropdown & Mapping Label)
       const newRelations: Record<string, any[]> = {};
-      
       for (const col of config.columns) {
-        // TypeScript sekarang mengenali properti relationTable karena interface ColumnConfig
         if (col.type === 'relation' && col.relationTable) {
-            const { data: relData } = await (supabase as any)
-                .from(col.relationTable)
-                .select('*');
+            const { data: relData } = await (supabase as any).from(col.relationTable).select('*');
             newRelations[col.key] = relData || [];
         }
       }
       
       setRelationsData(newRelations);
       setData(result || []);
-
     } catch (error: any) {
       toast({ variant: "destructive", title: "Gagal memuat data", description: error.message });
     } finally {
@@ -166,9 +171,10 @@ export function ReferenceDataManager() {
   useEffect(() => {
     fetchData();
     setSearchTerm("");
+    setCurrentPage(1); // Reset ke halaman 1 saat ganti tabel
   }, [selectedTable]);
 
-  // 2. Handle CRUD
+  // Handle CRUD
   const handleOpenDialog = (item?: any) => {
     if (item) {
         setEditingId(item[config.primaryKey]);
@@ -185,22 +191,13 @@ export function ReferenceDataManager() {
     try {
         let error;
         if (editingId) {
-            // UPDATE
-            const { error: err } = await (supabase as any)
-                .from(selectedTable)
-                .update(formData)
-                .eq(config.primaryKey, editingId);
+            const { error: err } = await (supabase as any).from(selectedTable).update(formData).eq(config.primaryKey, editingId);
             error = err;
         } else {
-            // INSERT
-            const { error: err } = await (supabase as any)
-                .from(selectedTable)
-                .insert([formData]);
+            const { error: err } = await (supabase as any).from(selectedTable).insert([formData]);
             error = err;
         }
-
         if (error) throw error;
-
         toast({ title: "Sukses", description: "Data berhasil disimpan." });
         setIsDialogOpen(false);
         fetchData();
@@ -214,31 +211,25 @@ export function ReferenceDataManager() {
   const handleDelete = async (id: string | number) => {
     if (!confirm("Yakin ingin menghapus data ini?")) return;
     try {
-        const { error } = await (supabase as any)
-            .from(selectedTable)
-            .delete()
-            .eq(config.primaryKey, id);
-        
+        const { error } = await (supabase as any).from(selectedTable).delete().eq(config.primaryKey, id);
         if (error) throw error;
         toast({ title: "Terhapus", description: "Data berhasil dihapus." });
         fetchData();
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Gagal Hapus", description: "Mungkin data ini sedang digunakan di tabel lain." });
+        toast({ variant: "destructive", title: "Gagal Hapus", description: "Data sedang digunakan." });
     }
   };
 
-  // Helper untuk mendapatkan Label Relasi (Misal ID 1 -> "Cilandak")
   const getRelationLabel = (colKey: string, value: any) => {
     const colConfig = config.columns.find(c => c.key === colKey);
-    // TypeScript check: pastikan properties ada sebelum akses
     if (colConfig?.type === 'relation' && colConfig.relationKey && colConfig.relationLabel && relationsData[colKey]) {
-        const found = relationsData[colKey].find(r => r[colConfig.relationKey!] == value);
+        const found = relationsData[colKey].find(r => String(r[colConfig.relationKey!]) === String(value));
         return found ? found[colConfig.relationLabel!] : value; 
     }
     return value;
   };
 
-  // Filter Data
+  // Logic Filtering & Pagination
   const filteredData = data.filter(item => 
     config.columns.some(col => {
       const val = col.type === 'relation' ? getRelationLabel(col.key, item[col.key]) : item[col.key];
@@ -246,10 +237,12 @@ export function ReferenceDataManager() {
     })
   );
 
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
   return (
     <div className="space-y-6">
-      
-      {/* HEADER & SELECTOR */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
             <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
@@ -271,7 +264,6 @@ export function ReferenceDataManager() {
         </div>
       </div>
 
-      {/* CONTENT CARD */}
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3 border-b bg-slate-50/50">
             <div className="flex justify-between items-center">
@@ -280,99 +272,117 @@ export function ReferenceDataManager() {
                     <Plus className="w-4 h-4 mr-2"/> Tambah Data
                 </Button>
             </div>
-            <div className="relative mt-3">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                <Input 
-                    placeholder={`Cari di ${config.label}...`}
-                    className="pl-9 bg-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col md:flex-row gap-3 mt-3">
+                <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input 
+                        placeholder={`Cari di ${config.label}...`}
+                        className="pl-9 bg-white"
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    />
+                </div>
+                {/* OPSI JUMLAH DATA */}
+                <div className="flex items-center gap-2">
+                    <Label className="text-xs text-slate-500 whitespace-nowrap">Tampilkan:</Label>
+                    <Select value={String(rowsPerPage)} onValueChange={(val) => { setRowsPerPage(Number(val)); setCurrentPage(1); }}>
+                        <SelectTrigger className="w-[80px] h-9 bg-white">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </CardHeader>
         <CardContent className="p-0">
-            <div className="border-0">
-                <Table>
-                    <TableHeader className="bg-slate-50">
-                        <TableRow>
-                            <TableHead className="w-[60px] text-xs font-bold uppercase tracking-wider">ID</TableHead>
-                            {config.columns.map(col => (
-                                <TableHead key={col.key} className="text-xs font-bold uppercase tracking-wider">{col.label}</TableHead>
-                            ))}
-                            <TableHead className="text-right w-[100px] text-xs font-bold uppercase tracking-wider">Aksi</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={config.columns.length + 2} className="text-center py-12 text-slate-500">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Loader2 className="w-6 h-6 animate-spin text-blue-600"/> 
-                                        <span>Memuat data...</span>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ) : filteredData.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={config.columns.length + 2} className="text-center py-12 text-slate-500 italic bg-slate-50/30">
-                                    Belum ada data untuk tabel ini.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredData.map((item, idx) => (
-                                <TableRow key={idx} className="hover:bg-blue-50/50 transition-colors">
-                                    <TableCell className="font-mono text-xs text-slate-500">{item[config.primaryKey]}</TableCell>
-                                    
-                                    {config.columns.map(col => (
-                                        <TableCell key={col.key} className="font-medium text-slate-700">
-                                            {/* RENDER LOGIC: TAMPILKAN LABEL JIKA RELASI */}
-                                            {col.type === 'relation' ? (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
-                                                    {getRelationLabel(col.key, item[col.key])}
-                                                </span>
-                                            ) : (
-                                                item[col.key]
-                                            )}
-                                        </TableCell>
-                                    ))}
-
-                                    <TableCell className="text-right space-x-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600 hover:bg-blue-100" onClick={() => handleOpenDialog(item)}>
-                                            <Pencil className="w-3.5 h-3.5"/>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-100" onClick={() => handleDelete(item[config.primaryKey])}>
-                                            <Trash2 className="w-3.5 h-3.5"/>
-                                        </Button>
+            <Table>
+                <TableHeader className="bg-slate-50">
+                    <TableRow>
+                        <TableHead className="w-[60px] text-xs font-bold uppercase tracking-wider">ID</TableHead>
+                        {config.columns.map(col => (
+                            <TableHead key={col.key} className="text-xs font-bold uppercase tracking-wider">{col.label}</TableHead>
+                        ))}
+                        <TableHead className="text-right w-[100px] text-xs font-bold uppercase tracking-wider">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {loading ? (
+                        <TableRow><TableCell colSpan={config.columns.length + 2} className="text-center py-12 text-slate-500"><Loader2 className="w-6 h-6 animate-spin mx-auto"/></TableCell></TableRow>
+                    ) : paginatedData.length === 0 ? (
+                        <TableRow><TableCell colSpan={config.columns.length + 2} className="text-center py-12 text-slate-500 italic bg-slate-50/30">Data tidak ditemukan.</TableCell></TableRow>
+                    ) : (
+                        paginatedData.map((item, idx) => (
+                            <TableRow key={idx} className="hover:bg-blue-50/50 transition-colors">
+                                <TableCell className="font-mono text-xs text-slate-500">{item[config.primaryKey]}</TableCell>
+                                {config.columns.map(col => (
+                                    <TableCell key={col.key} className="font-medium text-slate-700">
+                                        {col.type === 'relation' ? (
+                                            <span className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                                                {getRelationLabel(col.key, item[col.key])}
+                                            </span>
+                                        ) : item[col.key]}
                                     </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                                ))}
+                                <TableCell className="text-right space-x-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(item)}><Pencil className="w-3.5 h-3.5"/></Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600" onClick={() => handleDelete(item[config.primaryKey])}><Trash2 className="w-3.5 h-3.5"/></Button>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
+
+            {/* NAVIGASI PAGINATION */}
+            {!loading && filteredData.length > 0 && (
+                <div className="flex items-center justify-between p-4 border-t bg-slate-50/30">
+                    <div className="text-xs text-slate-500">
+                        Menampilkan <span className="font-medium">{(currentPage - 1) * rowsPerPage + 1}</span> sampai <span className="font-medium">{Math.min(currentPage * rowsPerPage, filteredData.length)}</span> dari <span className="font-medium">{filteredData.length}</span> data
+                    </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                            disabled={currentPage === 1}
+                            className="h-8 bg-white"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1"/> Sebelumnnya
+                        </Button>
+                        <div className="flex items-center px-3 text-xs font-medium border rounded bg-white">
+                            Halaman {currentPage} dari {totalPages || 1}
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                            disabled={currentPage === totalPages || totalPages === 0}
+                            className="h-8 bg-white"
+                        >
+                            Selanjutnya <ChevronRight className="w-4 h-4 ml-1"/>
+                        </Button>
+                    </div>
+                </div>
+            )}
         </CardContent>
       </Card>
 
-      {/* DYNAMIC DIALOG */}
+      {/* DIALOG CREATE/EDIT */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{editingId ? `Edit Data` : `Tambah Data Baru`}</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? `Edit Data` : `Tambah Data Baru`}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
                 {config.columns.map((col) => (
                     <div key={col.key} className="space-y-2">
                         <Label>{col.label}</Label>
-                        
-                        {/* FORM LOGIC: SELECT UNTUK RELASI, INPUT UNTUK TEXT/NUMBER */}
-                        {col.type === 'relation' && col.relationTable && col.relationKey && col.relationLabel ? (
-                            <Select 
-                                value={String(formData[col.key] || "")} 
-                                onValueChange={(val) => setFormData({...formData, [col.key]: val})}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={`Pilih ${col.label}`} />
-                                </SelectTrigger>
+                        {col.type === 'relation' ? (
+                            <Select value={String(formData[col.key] || "")} onValueChange={(val) => setFormData({...formData, [col.key]: val})}>
+                                <SelectTrigger><SelectValue placeholder={`Pilih ${col.label}`} /></SelectTrigger>
                                 <SelectContent>
                                     {(relationsData[col.key] || []).map((relItem: any) => (
                                         <SelectItem key={relItem[col.relationKey!]} value={String(relItem[col.relationKey!])}>
@@ -394,13 +404,12 @@ export function ReferenceDataManager() {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                <Button onClick={handleSave} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSave} disabled={isSubmitting} className="bg-blue-600">
                     {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin"/>} Simpan
                 </Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
