@@ -1,14 +1,13 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, ExternalLink, History, Calendar, Clock, Upload, CheckCircle2, AlertCircle, UserCheck, Phone, ClipboardList } from 'lucide-react';
+import { FileText, ExternalLink, History, Calendar, Clock, Upload, CheckCircle2, AlertCircle, Phone, ClipboardList } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-
-// Import AnevSelector
 import { AnevSelector } from "./AnevSelector"; 
+import { cn } from "@/lib/utils";
 
 const formatDateTime = (isoString: string | null) => {
     if (!isoString) return '-';
@@ -43,52 +42,39 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper untuk cek apakah Anev sudah ada
   const existingAnevId = task?.assigned_anev_id || task?.id_anev;
   const isAnevAssigned = !!existingAnevId;
 
-  // --- EFFECT: AMBIL NAMA ANEV SAAT DIALOG DIBUKA ---
+  // Untuk ID universal tugas yang terpilih
+  const currentId = task?.id_layanan || task?.id_litmas;
+
   useEffect(() => {
     const fetchAnevName = async () => {
         setAnevName("");
-
         if (!existingAnevId || !isOpen) return;
 
         try {
             const { data, error } = await supabase
                 .from('users')
-                .select(`
-                    employees (
-                        nama
-                    )
-                `)
+                .select(`employees (nama)`)
                 .eq('id', existingAnevId)
                 .single();
             
-            if (error) {
-                console.error("Error fetch anev name:", error);
-                return;
-            }
-
-            // @ts-ignore
-            if (data?.employees?.nama) {
+            if (!error && data?.employees?.nama) {
                 // @ts-ignore
                 setAnevName(data.employees.nama);
             } else {
                 setAnevName("Nama Tidak Ditemukan");
             }
-
         } catch (err) {
             console.error("Gagal memuat nama Anev", err);
         }
     };
-
     fetchAnevName();
-  }, [isOpen, task, existingAnevId]);
+  }, [isOpen, existingAnevId]);
 
   if (!task) return null;
 
-  // --- ACTIONS ---
   const openDoc = (path: string) => {
     if(!path) return;
     const { data } = supabase.storage.from('documents').getPublicUrl(path);
@@ -96,13 +82,11 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
   };
 
   const handleUploadLaporan = async () => {
-    // 1. Validasi File
     if (!fileLaporan) {
       toast({ title: "File Kosong", description: "Mohon pilih file laporan hasil litmas (PDF/DOCX).", variant: "destructive" });
       return;
     }
 
-    // 2. Tentukan ID Anev (Gunakan yang sudah ada ATAU yang baru dipilih)
     const targetAnevId = isAnevAssigned ? existingAnevId : selectedAnevId;
 
     if (!targetAnevId) {
@@ -112,49 +96,30 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
 
     setUploading(true);
     try {
-      // 3. Upload File ke Storage
       const fileExt = fileLaporan.name.split('.').pop();
-      const fileName = `hasil_litmas/${task.id_litmas}_${Date.now()}.${fileExt}`;
+      const fileName = `hasil_litmas/${task.tabel_sumber || 'litmas'}_${currentId}_${Date.now()}.${fileExt}`;
       
-      const { error: uploadError } = await supabase.storage
-        .from('documents') 
-        .upload(fileName, fileLaporan);
-
+      const { error: uploadError } = await supabase.storage.from('documents').upload(fileName, fileLaporan);
       if (uploadError) throw new Error(`Gagal upload file: ${uploadError.message}`);
 
-      // 4. Update Database
-      // Jika Anev sudah ada (Revisi), jangan update kolom assigned_anev_id lagi (biar aman)
-      const updatePayload: any = {
-        status: 'Review', 
-        hasil_litmas_url: fileName,
-        waktu_upload_laporan: new Date().toISOString()
-      };
+      const updatePayload: any = { status: 'Review', hasil_litmas_url: fileName, waktu_upload_laporan: new Date().toISOString() };
+      if (!isAnevAssigned) updatePayload.assigned_anev_id = targetAnevId;
 
-      // Hanya masukkan assigned_anev_id jika ini penunjukan pertama kali
-      if (!isAnevAssigned) {
-        updatePayload.assigned_anev_id = targetAnevId;
-      }
-
-      const { error: updateError } = await supabase
-        .from('litmas')
-        .update(updatePayload)
-        .eq('id_litmas', task.id_litmas);
-
+      const tableName = task.tabel_sumber || 'litmas';
+      const pkColumn = `id_${tableName}`;
+      const { error: updateError } = await supabase.from(tableName).update(updatePayload).eq(pkColumn, currentId);
+      
       if (updateError) throw new Error(`Gagal update database: ${updateError.message}`);
 
-      // --- 5. KIRIM NOTIFIKASI WA KE ANEV ---
-      console.log("Memicu Notifikasi WA...");
       try {
-          // Ambil Nama PK (Current User) untuk pesan WA
           const { data: { user } } = await supabase.auth.getUser();
           let currentPkName = "Petugas PK";
           
           if (user) {
-            //@ts-ignore
+              //@ts-ignore
               const { data: pkData } = await supabase.from('petugas_pk').select('nama').eq('user_id', user.id).maybeSingle();
-              if (pkData) {
-                  currentPkName = pkData.nama;
-              } else {
+              if (pkData) currentPkName = pkData.nama;
+              else {
                   //@ts-ignore
                   const { data: empData } = await supabase.from('users').select('employees(nama)').eq('id', user.id).maybeSingle();
                   //@ts-ignore
@@ -163,40 +128,19 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
           }
 
           const { error: funcError } = await supabase.functions.invoke('notify-anev', {
-              body: {
-                  id_anev: targetAnevId, // Menggunakan ID yang sudah dipastikan di atas
-                  nama_pk: currentPkName,
-                  nama_klien: task?.klien?.nama_klien || "Tanpa Nama",
-                  jenis_litmas: task?.jenis_litmas || "Laporan Litmas"
-              }
+              body: { id_anev: targetAnevId, nama_pk: currentPkName, nama_klien: task?.klien?.nama_klien || "Tanpa Nama", jenis_litmas: task?.jenis_litmas || "Laporan Bimbingan" }
           });
 
           if (funcError) {
-              console.error("Gagal kirim notif WA:", funcError);
-              toast({
-                  variant: "default",
-                  className: "bg-yellow-50 border-yellow-200 text-yellow-800",
-                  title: "Laporan Terupload (WA Gagal)",
-                  description: "Data tersimpan, namun gagal mengirim notifikasi WA ke Anev."
-              });
+              toast({ variant: "default", className: "bg-yellow-50 border-yellow-200 text-yellow-800", title: "Laporan Terupload (WA Gagal)", description: "Data tersimpan, namun gagal mengirim notifikasi WA ke Anev." });
           } else {
-              toast({ 
-                title: "Sukses!", 
-                description: isAnevAssigned 
-                    ? "Laporan Revisi berhasil dikirim ke Anev." 
-                    : "Laporan dikirim dan Anev telah dinotifikasi." 
-              });
+              toast({ title: "Sukses!", description: isAnevAssigned ? "Laporan Revisi berhasil dikirim ke Anev." : "Laporan dikirim dan Anev telah dinotifikasi." });
           }
-
-      } catch (notifErr) {
-          console.error("Error logic notifikasi:", notifErr);
-      }
+      } catch (notifErr) { console.error("Error logic notifikasi:", notifErr); }
       
-      // 6. Reset & Close
       setFileLaporan(null);
       setSelectedAnevId("");
       onOpenChange(false);
-      
       if (onRefresh) onRefresh();
 
     } catch (error: any) {
@@ -220,8 +164,9 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                             <ClipboardList className="w-6 h-6 text-blue-600"/> Detail Tugas Layanan & Bimbingan
                         </DialogTitle>
                         <DialogDescription className="text-xs">
-                            ID: <span className="font-mono font-medium text-slate-700">#{task?.id_litmas}</span> • 
+                            ID: <span className="font-mono font-medium text-slate-700">#{currentId}</span> • 
                             No. Surat: <span className="font-mono font-medium text-slate-700">{task?.nomor_surat_permintaan || '-'}</span>
+                            <Badge variant="outline" className="ml-2 bg-slate-100 text-[10px] text-slate-500">{task?.tabel_sumber?.toUpperCase() || 'LITMAS'}</Badge>
                         </DialogDescription>
                     </div>
                     <Badge variant={task?.status === 'Selesai' ? 'default' : 'outline'} className="text-sm px-3 py-1 uppercase tracking-wide">
@@ -236,47 +181,37 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                 {/* KOLOM KIRI */}
                 <div className="space-y-6">
                     
-                    {/* 1. SEKSI UPLOAD (Visible on Progress / Revision) */}
+                    {/* 1. SEKSI UPLOAD */}
                     {['On Progress', 'Revision'].includes(task?.status) && (
                         <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl shadow-sm space-y-5">
                             <div className="flex items-center gap-2 border-b border-blue-200 pb-3">
                                 <Upload className="w-5 h-5 text-blue-700"/>
                                 <h4 className="font-bold text-blue-900">
-                                    {isAnevAssigned ? "Upload Revisi Laporan" : "Upload Laporan Hasil Litmas"}
+                                    {isAnevAssigned ? "Upload Revisi Laporan" : "Upload Laporan Hasil / Dokumen Bimbingan"}
                                 </h4>
                             </div>
                             
                             <div className="grid md:grid-cols-2 gap-6">
-                                {/* A. Selector Anev (HANYA MUNCUL JIKA ANEV BELUM ADA) */}
                                 {!isAnevAssigned && (
                                     <div className="space-y-2">
                                         <Label className="text-blue-900">Pilih Anev Verifikator <span className="text-red-500">*</span></Label>
                                         <div className="bg-white p-1 rounded-md border border-blue-200">
-                                            <AnevSelector 
-                                                selectedAnevId={selectedAnevId} 
-                                                onSelect={setSelectedAnevId} 
-                                            />
+                                            <AnevSelector selectedAnevId={selectedAnevId} onSelect={setSelectedAnevId} />
                                         </div>
-                                        <p className="text-[10px] text-blue-600/80">
-                                            *Sekali dipilih, Anev tidak dapat diubah.
-                                        </p>
+                                        <p className="text-[10px] text-blue-600/80">*Sekali dipilih, Anev tidak dapat diubah.</p>
                                     </div>
                                 )}
 
-                                {/* Jika Anev sudah ada, tampilkan info statis */}
                                 {isAnevAssigned && (
                                     <div className="space-y-2">
                                         <Label className="text-blue-900">Anev Verifikator</Label>
                                         <div className="bg-blue-100/50 p-2 rounded border border-blue-200 text-sm font-medium text-blue-800">
                                             {anevName || "Memuat..."}
                                         </div>
-                                        <p className="text-[10px] text-blue-600/80 italic">
-                                            Laporan revisi akan dikirim ke Anev ini.
-                                        </p>
+                                        <p className="text-[10px] text-blue-600/80 italic">Laporan revisi akan dikirim ke Anev ini.</p>
                                     </div>
                                 )}
 
-                                {/* B. File Input */}
                                 <div className="space-y-2">
                                     <Label className="text-blue-900">File Laporan (PDF) <span className="text-red-500">*</span></Label>
                                     <div 
@@ -285,17 +220,10 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                         `}
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <input 
-                                            type="file" 
-                                            ref={fileInputRef} 
-                                            className="hidden" 
-                                            accept=".pdf,.doc,.docx"
-                                            onChange={(e) => e.target.files && setFileLaporan(e.target.files[0])}
-                                        />
+                                        <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => e.target.files && setFileLaporan(e.target.files[0])} />
                                         {fileLaporan ? (
                                             <div className="text-blue-700 font-semibold text-sm flex items-center gap-2 px-2">
-                                                <FileText className="w-4 h-4 shrink-0"/> 
-                                                <span className="truncate max-w-[150px]">{fileLaporan.name}</span>
+                                                <FileText className="w-4 h-4 shrink-0"/> <span className="truncate max-w-[150px]">{fileLaporan.name}</span>
                                             </div>
                                         ) : (
                                             <div className="space-y-1">
@@ -308,16 +236,8 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                             </div>
 
                             <div className="flex justify-end pt-2">
-                                <Button 
-                                    onClick={handleUploadLaporan} 
-                                    disabled={uploading}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                                >
-                                    {uploading ? (
-                                        "Mengirim..." 
-                                    ) : (
-                                        <><CheckCircle2 className="w-4 h-4 mr-2"/> Simpan & Kirim ke Anev</>
-                                    )}
+                                <Button onClick={handleUploadLaporan} disabled={uploading} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                                    {uploading ? "Mengirim..." : <><CheckCircle2 className="w-4 h-4 mr-2"/> Simpan & Kirim ke Anev</>}
                                 </Button>
                             </div>
                         </div>
@@ -347,8 +267,8 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                 <p className="font-mono text-slate-700 bg-white inline-block px-2 py-0.5 rounded border">{task?.klien?.nomor_register_lapas || '-'}</p>
                             </div>
                             <div>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Jenis Litmas</span> 
-                                <p className="font-medium text-slate-700">{task?.jenis_litmas || '-'}</p>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Jenis Layanan</span> 
+                                <p className="font-medium text-slate-700">{task?.jenis_litmas || 'Bimbingan Lanjutan'}</p>
                             </div>
                             <div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Kategori Usia</span> 
@@ -456,14 +376,14 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                     <div className="flex items-center gap-3">
                                         <div className="bg-blue-100 p-2 rounded text-blue-600"><FileText className="w-4 h-4"/></div>
                                         <div>
-                                            <p className="text-sm font-medium text-slate-700">Laporan Hasil Litmas</p>
+                                            <p className="text-sm font-medium text-slate-700">Laporan Dokumen / Litmas</p>
                                             <p className="text-[10px] text-slate-400">Uploaded: {formatDateTime(task.waktu_upload_laporan)}</p>
                                         </div>
                                     </div>
                                     <Button variant="ghost" size="sm" onClick={() => openDoc(task.hasil_litmas_url)}>Lihat</Button>
                                 </div>
                             ) : (
-                                <p className="text-xs text-slate-400 italic px-2">Laporan hasil litmas belum diupload.</p>
+                                <p className="text-xs text-slate-400 italic px-2">Laporan dokumen belum diupload.</p>
                             )}
                         </div>
                     </div>
@@ -477,7 +397,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                             {[
                               { date: task?.waktu_registrasi, label: "Registrasi & Penunjukan PK", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_upload_surat_tugas, label: "PK: Upload Surat Tugas", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_upload_laporan, label: "PK: Upload Laporan Litmas", color: "bg-green-500", text: "text-slate-800" },
+                              { date: task?.waktu_upload_laporan, label: "PK: Upload Laporan / Dokumen", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_verifikasi_anev, label: "Anev: Verifikasi & Approval", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_sidang_tpp || (task?.jadwal ? new Date(task.jadwal.tanggal_sidang).toISOString() : null), label: "TPP: Sidang Dilaksanakan", color: "bg-purple-600", text: "text-slate-800" },
                               { date: task?.waktu_selesai, label: "Selesai", color: "bg-blue-600", text: "text-blue-700" }

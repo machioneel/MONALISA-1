@@ -847,7 +847,6 @@ export default function OperatorRegistrasiTest() {
           if (targetTable === 'litmas') {
             await supabase.from('perkara').delete().eq('id_litmas', editingLayananId);
             if (perkaraList.length > 0) {
-              // Hapus field id sementara sebelum insert ulang
               const perkaraPayloads = perkaraList.map(({ id: _id, ...rest }) => ({
                 ...rest,
                 id_litmas: editingLayananId,
@@ -870,6 +869,23 @@ export default function OperatorRegistrasiTest() {
               id_litmas: newData[PK_COLUMN_MAP[targetTable]],
             }));
             await supabase.from('perkara').insert(perkaraPayloads);
+          }
+
+          // FITUR BARU: Trigger Edge Function untuk Notifikasi Task Baru
+          try {
+            const namaKlienLengkap = listKlien.find(k => k.id_klien === selectedClientId)?.nama_klien || "Klien";
+            await supabase.functions.invoke('send-new-task-notification', {
+              body: {
+                layanan_id: newData[PK_COLUMN_MAP[targetTable]],
+                tabel_layanan: targetTable,
+                id_pk: selectedPkId,
+                nama_klien: namaKlienLengkap,
+                jenis_layanan: selectedJenisLitmas
+              }
+            });
+          } catch (notifErr) {
+            console.error("Gagal mengirim notifikasi task baru:", notifErr);
+            // Tidak me-lempar error agar registrasi tetap berhasil walau notif gagal
           }
         }
 

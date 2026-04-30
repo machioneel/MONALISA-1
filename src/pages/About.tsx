@@ -171,6 +171,9 @@ export default function About() {
                 <p className="text-xs text-slate-500">
                     &copy; {new Date().getFullYear()} Balai Pemasyarakatan Kelas I Jakarta Barat. All rights reserved.
                 </p>
+                <p className="text-xs text-slate-500">
+                    Agung Prastyo - (Gatau saya capek)
+                </p>
             </div>
         </div>
 

@@ -2,15 +2,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar, Upload, Clock, CheckCircle, CheckSquare, Eye, FileText } from 'lucide-react';
+import { Calendar, Upload, Clock, CheckCircle, CheckSquare, Eye, FileText, Phone } from 'lucide-react';
 import { SuratTugasGenerator } from '@/components/litmas/SuratTugasGenerator';
 
 interface PKTaskTableProps {
   tasks: any[];
   loading: boolean;
   onViewDetail: (task: any) => void;
-  onUpload: (file: File, taskId: number, type: 'surat_tugas' | 'hasil_litmas') => void;
-  onOpenRegister: (id: number) => void;
+  // FIX: Ubah taskId menjadi task object agar bisa membaca tabel sumber
+  onUpload: (file: File, task: any, type: 'surat_tugas' | 'hasil_litmas') => void;
+  onOpenRegister: (task: any) => void;
 }
 
 export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegister }: PKTaskTableProps) {
@@ -29,15 +30,16 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
       <TableHeader>
         <TableRow className="bg-slate-50 hover:bg-slate-50">
           <TableHead className="w-[25%] font-bold text-slate-700">Identitas Klien</TableHead>
-          <TableHead className="w-[25%] font-bold text-slate-700">Status & Jadwal</TableHead>
-          <TableHead className="w-[20%] font-bold text-slate-700">Detail & Riwayat</TableHead>
-          <TableHead className="w-[30%] font-bold text-slate-700 text-right pr-6">Aksi Cepat</TableHead>
+          <TableHead className="w-[22%] font-bold text-slate-700">Penjamin</TableHead>
+          <TableHead className="w-[18%] font-bold text-slate-700">Status & Jadwal</TableHead>
+          <TableHead className="w-[15%] font-bold text-slate-700">Detail & Riwayat</TableHead>
+          <TableHead className="w-[20%] font-bold text-slate-700">Aksi Cepat</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {tasks.length === 0 ? (
             <TableRow>
-                <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
                     {loading ? "Memuat data..." : "Tidak ada data yang cocok."}
                 </TableCell>
             </TableRow>
@@ -45,25 +47,43 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
             tasks.map((task) => {
                 const status = getStatus(task.status);
                 const schedule = task.jadwal ? formatSidangDate(task.jadwal.tanggal_sidang) : null;
+                const hasPenjamin = task.klien?.penjamin && task.klien.penjamin.length > 0;
+                // FIX: Menangani backward compatibility ID
+                const currentId = task.id_layanan || task.id_litmas; 
 
                 return (
-                <TableRow key={task.id_litmas} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={`${task.tabel_sumber}-${currentId}`} className="hover:bg-slate-50 transition-colors">
                 
                 {/* 1. IDENTITAS KLIEN */}
-                <TableCell className="align-top py-4">
+                <TableCell className="align-top py-4 pr-4">
                     <div className="font-bold text-slate-900 text-base">{task.klien?.nama_klien}</div>
                     <div className="text-xs text-slate-500 font-mono mt-1 mb-2 bg-slate-100 inline-block px-1.5 py-0.5 rounded border border-slate-200">
                         {task.klien?.nomor_register_lapas}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 mb-1">
                         <Badge variant="outline" className="text-[10px] h-5 font-normal text-slate-600 bg-white">
-                            {task.jenis_litmas}
+                            {task.jenis_litmas || 'Bimbingan/Pengawasan'}
                         </Badge>
                     </div>
                 </TableCell>
 
-                {/* 2. STATUS & JADWAL */}
-                <TableCell className="align-top py-4">
+                {/* 2. PENJAMIN */}
+                <TableCell className="align-top py-4 pr-4">
+                    {hasPenjamin ? (
+                        <div className="mt-1 p-2 bg-emerald-50 rounded-md border border-emerald-100 w-fit pr-4">
+                            {/*<p className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider mb-1 opacity-80">Penjamin</p>*/}
+                            <p className="text-[15px] font-semibold text-slate-800">{task.klien.penjamin[0].nama_penjamin}</p>
+                            <p className="text-[15px] text-emerald-700 flex items-center gap-1 mt-0.5 font-medium">
+                                <Phone className="w-2.5 h-2.5"/> {task.klien.penjamin[0].nomor_telepon || 'Tidak ada telepon'}
+                            </p>
+                        </div>
+                    ) : (
+                        <span className="text-[10px] text-slate-400 italic mt-1 block">Tidak ada penjamin</span>
+                    )}
+                </TableCell>
+
+                {/* 3. STATUS & JADWAL */}
+                <TableCell className="align-top py-4 pr-2">
                     <div className="flex flex-col gap-2 items-start">
                         <Badge className={
                             status === 'Approved' ? 'bg-green-600 hover:bg-green-700' :
@@ -91,8 +111,8 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                     </div>
                 </TableCell>
 
-                {/* 3. DETAIL & RIWAYAT */}
-                <TableCell className="align-top py-4">
+                {/* 4. DETAIL & RIWAYAT */}
+                <TableCell className="align-top py-4 pr-4">
                     <Button 
                         variant="ghost" 
                         size="sm" 
@@ -106,31 +126,31 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                     </div>
                 </TableCell>
 
-                {/* 4. AKSI CEPAT */}
-                <TableCell className="align-top py-4 text-right pr-6">
-                    <div className="w-full max-w-[200px] ml-auto space-y-2">
+                {/* 5. AKSI CEPAT */}
+                <TableCell className="align-top py-4">
+                    <div className="w-full max-w-[200px] space-y-2">
                     
-                    {/* SURAT TUGAS: Masih boleh upload langsung karena tidak butuh Anev */}
+                    {/* SURAT TUGAS */}
                     {status === 'New Task' && (
                         <div className="space-y-2">
-                            <div className="w-full"><SuratTugasGenerator litmasId={task.id_litmas} /></div>
+                            <div className="w-full"><SuratTugasGenerator litmasId={currentId} /></div>
                             <div className="relative w-full">
                                 <Button size="sm" variant="secondary" className="w-full text-xs h-9 border shadow-sm font-medium">
                                     <Upload className="w-3 h-3 mr-2"/> Upload TTD
                                 </Button>
-                                <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0], task.id_litmas, 'surat_tugas')} />
+                                {/* FIX: Parsing full task object di onUpload */}
+                                <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0], task, 'surat_tugas')} />
                             </div>
                         </div>
                     )}
 
-                    {/* LAPORAN LITMAS: KITA UBAH DISINI */}
-                    {/* Hapus Input File Langsung, Ganti dengan Tombol Buka Dialog */}
+                    {/* LAPORAN */}
                     {(status === 'On Progress' || status === 'Revision') && (
                         <div className="relative w-full">
                             <Button 
                                 size="sm" 
                                 className="bg-blue-600 w-full hover:bg-blue-700 text-xs h-9 shadow-sm font-medium"
-                                onClick={() => onViewDetail(task)} // Buka dialog detail
+                                onClick={() => onViewDetail(task)}
                             >
                                 <FileText className="w-3 h-3 mr-2"/> Upload Laporan
                             </Button>
@@ -144,7 +164,7 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                     )}
 
                     {status === 'Approved' && (
-                        <Button size="sm" variant="outline" className="border-green-600 text-green-700 bg-green-50/50 w-full hover:bg-green-100 h-9 text-xs font-medium shadow-sm" onClick={() => onOpenRegister(task.id_litmas)}>
+                        <Button size="sm" variant="outline" className="border-green-600 text-green-700 bg-green-50/50 w-full hover:bg-green-100 h-9 text-xs font-medium shadow-sm" onClick={() => onOpenRegister(task)}>
                             <Calendar className="w-3.5 h-3.5 mr-2"/> Daftar Sidang TPP
                         </Button>
                     )}

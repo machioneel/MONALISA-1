@@ -30,19 +30,22 @@ export default function WajibLapor() {
 
     useEffect(() => {
         const fetchClients = async () => {
-            // Ambil semua klien yang sudah disetujui (Approved / Selesai) tanpa terikat PK tertentu
-            const { data } = await supabase
+            // FIX: Menggunakan (supabase as any) agar TypeScript tidak protes
+            // meskipun file types.ts belum di-generate ulang
+            const { data } = await (supabase as any)
                 .from('klien')
                 .select(`
                     id_klien, 
                     nama_klien, 
+                    nik_klien,
                     nomor_register_lapas,
                     litmas!inner(status)
                 `)
                 .in('litmas.status', ['Approved', 'Selesai']);
 
             if (data) {
-                const uniqueClients = Array.from(new Map(data.map(item => [item.id_klien, item])).values());
+                // FIX: Menambahkan cast tipe (item: any)
+                const uniqueClients = Array.from(new Map((data as any[]).map((item: any) => [item.id_klien, item])).values());
                 setClients(uniqueClients);
             }
         };
@@ -137,7 +140,7 @@ export default function WajibLapor() {
                 tanggal_lapor: new Date().toISOString(),
                 foto_url: publicUrlData.publicUrl,
                 keterangan: keterangan,
-                status_validasi: 'Menunggu Validasi' // Lapor dari luar PK mandiri butuh validasi
+                status_validasi: 'Menunggu Validasi'
             });
 
             if (dbError) throw dbError;
@@ -181,16 +184,17 @@ export default function WajibLapor() {
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[400px] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Cari nama atau register..." />
+                                        <CommandInput placeholder="Cari nama, NIK, atau register..." />
                                         <CommandList>
                                             <CommandEmpty>Klien tidak ditemukan / belum TPP.</CommandEmpty>
                                             <CommandGroup className="max-h-64 overflow-y-auto">
+                                                {/* Pencarian dengan NIK */}
                                                 {clients.map((c) => (
-                                                    <CommandItem key={c.id_klien} value={`${c.nama_klien} ${c.nomor_register_lapas}`} onSelect={() => { setSelectedClient(String(c.id_klien)); setOpenCombo(false); }}>
+                                                    <CommandItem key={c.id_klien} value={`${c.nama_klien} ${c.nomor_register_lapas} ${c.nik_klien || ''}`} onSelect={() => { setSelectedClient(String(c.id_klien)); setOpenCombo(false); }}>
                                                         <Check className={cn("mr-2 h-4 w-4", selectedClient === String(c.id_klien) ? "opacity-100" : "opacity-0")} />
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{c.nama_klien}</span>
-                                                            <span className="text-xs text-muted-foreground">Reg: {c.nomor_register_lapas}</span>
+                                                            <span className="text-xs text-muted-foreground">Reg: {c.nomor_register_lapas} {c.nik_klien ? `• NIK: ${c.nik_klien}` : ''}</span>
                                                         </div>
                                                     </CommandItem>
                                                 ))}

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
     User, ListFilter, Search, Camera, CheckCircle2, Eye, 
-    Plus, Image as ImageIcon, ChevronsUpDown, Check, Loader2, Focus, XCircle, AlertCircle, Phone 
+    Plus, Image as ImageIcon, ChevronsUpDown, Check, Loader2, Focus, XCircle, AlertCircle, Phone, History, Clock 
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,58 +26,36 @@ import { PKTaskTable } from '@/components/pk/FormPK/FormLitmas/PKTaskTable';
 import { PKRegisterDialog } from '@/components/pk/FormPK/FormLitmas/PKRegisterDialog';
 import { PKDetailDialog } from '@/components/pk/FormPK/FormLitmas/PKDetailDialog';
 
-interface LitmasTaskData {
-  id_litmas: number;
-  id_klien: number; 
-  created_at: string;
-  updated_at: string | null;
-  status: string | null;
-  jenis_litmas: string | null;
-  kategori_layanan: string | null; 
-  nomor_surat_permintaan: string | null;
-  surat_tugas_signed_url: string | null;
-  hasil_litmas_url: string | null;
-  waktu_registrasi: string | null;
-  waktu_upload_surat_tugas: string | null;
-  waktu_upload_laporan: string | null;
-  waktu_verifikasi_anev: string | null;
-  waktu_sidang_tpp: string | null;
-  waktu_selesai: string | null;
-  asal_bapas: string | null;
-  id_anev?: string | null; 
-  assigned_anev_id?: string | null; 
-  klien: { id_klien: number; nama_klien: string; nomor_register_lapas: string; kategori_usia: string; nomor_telepon: string; penjamin?: any[] | null; } | null;
-  petugas_pk: { nama: string; nip: string; } | null;
-  jadwal: { tanggal_sidang: string; jenis_sidang: string; } | null;
-}
 
 export default function PKTest() {
   const { toast } = useToast();
   const { user, hasRole } = useAuth();
   
-  const [tasks, setTasks] = useState<LitmasTaskData[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [wajibLaporList, setWajibLaporList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [selectedLitmasId, setSelectedLitmasId] = useState<number | null>(null);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
   const [availableSchedules, setAvailableSchedules] = useState<any[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>('');
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
 
   const [activeTab, setActiveTab] = useState<string>("litmas");
 
   // Wajib lapor states
+  const [laporSubTab, setLaporSubTab] = useState<string>("approvement");
+  const [historyClient, setHistoryClient] = useState<any>(null);
+
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [openLaporDialog, setOpenLaporDialog] = useState(false);
   const [selectedLaporClient, setSelectedLaporClient] = useState<string>("");
   const [laporPhoto, setLaporPhoto] = useState<File | null>(null);
   const [laporPhotoPreview, setLaporPhotoPreview] = useState<string | null>(null);
   const [laporKeterangan, setLaporKeterangan] = useState("");
-  const [laporTelepon, setLaporTelepon] = useState(""); // State baru untuk telepon klien
+  const [laporTelepon, setLaporTelepon] = useState(""); 
   const [laporSubmitting, setLaporSubmitting] = useState(false);
   const [openLaporCombo, setOpenLaporCombo] = useState(false);
 
@@ -110,18 +88,55 @@ export default function PKTest() {
             else return;
         } else { setPkName("Administrator"); }
 
-        let query = (supabase as any).from('litmas').select(`*, klien:klien!litmas_id_klien_fkey (*, penjamin (nama_penjamin, nomor_telepon, hubungan_klien, alamat)), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip), jadwal:tpp_schedules!litmas_tpp_schedule_id_fkey (tanggal_sidang, jenis_sidang)`).order('created_at', { ascending: false });
-        if (!isAdmin && pkId) query = query.eq('nama_pk', pkId);
-        
-        const { data: taskData, error: taskError } = await query;
-        if (taskError) throw taskError;
-        setTasks(taskData as unknown as LitmasTaskData[]);
+        const tables = ['litmas', 'pendampingan', 'pengawasan', 'pembimbingan'];
 
-        let wQuery = (supabase as any).from('wajib_lapor').select(`*, klien!inner(id_klien, nama_klien, nomor_register_lapas, nomor_telepon, litmas!inner(nama_pk))`).order('tanggal_lapor', { ascending: false });
-        if (!isAdmin && pkId) wQuery = wQuery.eq('klien.litmas.nama_pk', pkId);
+        const fetchPromises = tables.map(async (table) => {
+            let selectQuery = "";
+            
+            if (table === 'litmas') {
+                selectQuery = `*, klien:klien!litmas_id_klien_fkey (id_klien, nama_klien, nik_klien, nomor_register_lapas, kategori_usia, nomor_telepon, penjamin (nama_penjamin, nomor_telepon, hubungan_klien, alamat)), petugas_pk:petugas_pk!litmas_nama_pk_fkey (nama, nip), jadwal:tpp_schedules!litmas_tpp_schedule_id_fkey (tanggal_sidang, jenis_sidang)`;
+            } else {
+                selectQuery = `*, klien (id_klien, nama_klien, nik_klien, nomor_register_lapas, kategori_usia, nomor_telepon, penjamin (nama_penjamin, nomor_telepon, hubungan_klien, alamat)), petugas_pk (nama, nip)`;
+            }
+
+            let query = (supabase as any).from(table).select(selectQuery);
+            if (!isAdmin && pkId) query = query.eq('nama_pk', pkId);
+            
+            const { data, error } = await query;
+            if (error) { 
+                console.error(`Error fetching ${table}:`, error.message); 
+                return []; 
+            }
+            
+            return (data || []).map((item: any) => ({
+                ...item,
+                id_layanan: item[`id_${table}`] || item.id_litmas,
+                id_litmas: item[`id_${table}`] || item.id_litmas, 
+                tabel_sumber: table,
+                jadwal: item.jadwal || null
+            }));
+        });
+
+        const results = await Promise.all(fetchPromises);
+        const allTasks = results.flat();
+        
+        allTasks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setTasks(allTasks);
+
+        // Fetching Wajib Lapor
+        const eligibleClientIds = Array.from(new Set(allTasks.filter(t => ['Approved', 'Selesai'].includes(t.status || '')).filter(t => t.id_klien).map(t => t.id_klien)));
+        
+        let wQuery = (supabase as any).from('wajib_lapor').select(`*, klien (id_klien, nama_klien, nik_klien, nomor_register_lapas, nomor_telepon)`).order('tanggal_lapor', { ascending: false });
+        
+        if (!isAdmin && pkId) {
+            if (eligibleClientIds.length > 0) {
+                wQuery = wQuery.in('id_klien', eligibleClientIds);
+            } else {
+                wQuery = wQuery.eq('id_klien', -1); 
+            }
+        }
         
         const { data: wData } = await wQuery;
-        
         if (wData) {
             const uniqueLapor = Array.from(new Map(wData.map((item:any) => [item.id, item])).values());
             setWajibLaporList(uniqueLapor);
@@ -145,7 +160,6 @@ export default function PKTest() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
 
-  // Camera Logic
   useEffect(() => {
     if (isCameraOpen) { startStream(); } else { stopStream(); }
     return () => stopStream();
@@ -214,12 +228,14 @@ export default function PKTest() {
       setLaporKeterangan("");
   }
 
-
-  const handleUpload = async (file: File, taskId: number, type: 'surat_tugas' | 'hasil_litmas') => {
-    setUploadingId(taskId);
+  const handleUpload = async (file: File, task: any, type: 'surat_tugas' | 'hasil_litmas') => {
+    const id = task.id_layanan;
+    const table = task.tabel_sumber || 'litmas';
+    
+    setUploadingId(id);
     try {
       const ext = file.name.split('.').pop();
-      const path = `${type}/${taskId}_${Date.now()}.${ext}`;
+      const path = `${type}/${table}_${id}_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, file);
       if (upErr) throw new Error(`Upload Gagal: ${upErr.message}`);
 
@@ -227,17 +243,31 @@ export default function PKTest() {
       if (type === 'surat_tugas') { updateData = { surat_tugas_signed_url: path, status: 'On Progress', waktu_upload_surat_tugas: new Date().toISOString() }; }
       else { updateData = { hasil_litmas_url: path, status: 'Review', anev_notes: null, waktu_upload_laporan: new Date().toISOString() }; }
 
-      await supabase.from('litmas').update(updateData).eq('id_litmas', taskId);
+      await supabase.from(table).update(updateData).eq(`id_${table}`, id);
+      
       toast({ title: "Berhasil", description: type === 'surat_tugas' ? "Surat Tugas diupload" : "File berhasil diupload" });
       fetchMyTasksAndLapor(); 
     } catch (e: any) { toast({ variant: "destructive", title: "Gagal Memproses", description: e.message }); } finally { setUploadingId(null); }
   };
 
-  const openRegisterDialog = (id: number) => { setSelectedLitmasId(id); setSelectedScheduleId(''); setIsRegisterOpen(true); };
+  const openRegisterDialog = (task: any) => { 
+      setSelectedTask(task);
+      setSelectedScheduleId(''); 
+      setIsRegisterOpen(true); 
+  };
 
   const confirmRegisterTPP = async () => {
-      if (!selectedScheduleId || !selectedLitmasId) return toast({ variant: "destructive", title: "Pilih jadwal dulu!" });
-      const { error } = await (supabase as any).from('litmas').update({ status: 'TPP Scheduled', tpp_schedule_id: selectedScheduleId, waktu_daftar_tpp: new Date().toISOString() }).eq('id_litmas', selectedLitmasId);
+      if (!selectedScheduleId || !selectedTask) return toast({ variant: "destructive", title: "Pilih jadwal dulu!" });
+      
+      const tableName = selectedTask.tabel_sumber || 'litmas';
+      const pkColumn = `id_${tableName}`;
+
+      const { error } = await (supabase as any).from(tableName).update({ 
+          status: 'TPP Scheduled', 
+          tpp_schedule_id: selectedScheduleId, 
+          waktu_daftar_tpp: new Date().toISOString() 
+      }).eq(pkColumn, selectedTask.id_layanan);
+      
       if (error) toast({ variant: "destructive", title: "Gagal", description: error.message });
       else { toast({ title: "Sukses", description: "Berhasil mendaftar ke jadwal sidang." }); setIsRegisterOpen(false); fetchMyTasksAndLapor(); }
   };
@@ -249,7 +279,6 @@ export default function PKTest() {
 
       setLaporSubmitting(true);
       try {
-          // 1. Update No Telepon Klien jika berubah
           const { error: phoneError } = await supabase
             .from('klien')
             .update({ nomor_telepon: laporTelepon })
@@ -257,7 +286,6 @@ export default function PKTest() {
           
           if (phoneError) throw phoneError;
 
-          // 2. Upload Foto
           const fileExt = laporPhoto.name.split('.').pop();
           const fileName = `wajib_lapor/${Date.now()}_${selectedLaporClient}.${fileExt}`;
           const { error: uploadError } = await supabase.storage.from('documents').upload(fileName, laporPhoto);
@@ -265,7 +293,6 @@ export default function PKTest() {
           
           const { data: publicUrlData } = supabase.storage.from('documents').getPublicUrl(fileName);
 
-          // 3. Insert Wajib Lapor
           const { error: dbError } = await (supabase as any).from('wajib_lapor').insert({
               id_klien: parseInt(selectedLaporClient),
               tanggal_lapor: new Date().toISOString(),
@@ -302,11 +329,28 @@ export default function PKTest() {
   };
 
   const tabFilteredTasks = tasks.filter(t => {
-      const category = t.kategori_layanan ? t.kategori_layanan.toLowerCase() : 'litmas';
+      const category = t.tabel_sumber ? t.tabel_sumber.toLowerCase() : 'litmas';
       return category === activeTab;
   });
 
-  const filteredTasks = tabFilteredTasks.filter(t => (t.klien?.nama_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) || (t.klien?.nomor_register_lapas || '').toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredTasks = tabFilteredTasks.filter(t => 
+      (t.klien?.nama_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (t.klien?.nomor_register_lapas || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.klien?.nik_klien || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredWajibLaporList = wajibLaporList.filter(wl => 
+      (wl.klien?.nama_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (wl.klien?.nik_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (wl.klien?.nomor_register_lapas || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredEligibleClients = eligibleLaporClients.filter((c: any) => 
+      (c.nama_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.nik_klien || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.nomor_register_lapas || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
 
   const stats = {
       new: tabFilteredTasks.filter(t => !t.status || t.status === 'New Task').length,
@@ -331,7 +375,7 @@ export default function PKTest() {
                 </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input placeholder="Cari nama atau register..." className="pl-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Input placeholder="Cari nama, reg, atau NIK..." className="pl-9 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
             </div>
           </CardHeader>
@@ -357,62 +401,135 @@ export default function PKTest() {
                 ) : (
                     <div className="p-4 space-y-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-2 bg-emerald-50/50 rounded-lg border border-emerald-100">
-                            <p className="text-sm text-emerald-800">Menampilkan daftar wajib lapor dari klien yang Anda dampingi secara aktif.</p>
+                            <p className="text-sm text-emerald-800">Menampilkan modul wajib lapor dari klien yang Anda dampingi secara aktif.</p>
                             <Button onClick={() => setOpenLaporDialog(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap">
                                 <Plus className="w-4 h-4"/> Buat Laporan Kehadiran
                             </Button>
                         </div>
-                        <div className="border rounded-md">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-slate-50">
-                                        <TableHead>Tgl Lapor</TableHead>
-                                        <TableHead>Klien / Reg</TableHead>
-                                        <TableHead>Keterangan & Status</TableHead>
-                                        <TableHead>Bukti</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {wajibLaporList.map((wl) => (
-                                        <TableRow key={wl.id}>
-                                            <TableCell className="font-medium whitespace-nowrap">
-                                                {new Date(wl.tanggal_lapor).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col min-w-[150px]">
-                                                    <span className="font-semibold text-slate-800">{wl.klien?.nama_klien}</span>
-                                                    <span className="text-[10px] text-slate-500">Reg: {wl.klien?.nomor_register_lapas}</span>
-                                                    <span className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1"><Phone className="w-2.5 h-2.5"/> {wl.klien?.nomor_telepon || '-'}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-1 items-start max-w-[200px]">
-                                                    <span className="text-sm italic text-slate-600 truncate w-full">{wl.keterangan || '-'}</span>
-                                                    <Badge className={cn("text-[10px]", 
-                                                        wl.status_validasi === 'Valid' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-amber-100 text-amber-700 hover:bg-amber-100"
-                                                    )}>
-                                                        {wl.status_validasi === 'Valid' ? <CheckCircle2 className="w-3 h-3 mr-1"/> : <AlertCircle className="w-3 h-3 mr-1"/>}
-                                                        {wl.status_validasi || 'Menunggu Validasi'}
-                                                    </Badge>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button variant="outline" size="sm" onClick={() => setPreviewImage(wl.foto_url)} className="gap-2 h-8 text-blue-600 border-blue-200 hover:bg-blue-50"><Eye className="w-3.5 h-3.5"/> Cek Foto</Button>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {wl.status_validasi !== 'Valid' ? (
-                                                    <Button size="sm" onClick={() => handleValidasiLapor(wl.id)} className="bg-emerald-600 hover:bg-emerald-700 h-8 gap-1"><CheckCircle2 className="w-4 h-4"/> Validasi</Button>
-                                                ) : (
-                                                    <Button size="sm" variant="ghost" disabled className="text-emerald-600 h-8 gap-1"><CheckCircle2 className="w-4 h-4"/> Disahkan</Button>
-                                                )}
-                                            </TableCell>
+                        
+                        <Tabs value={laporSubTab} onValueChange={setLaporSubTab} className="w-full">
+                            <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 p-1 rounded-xl mb-4">
+                                <TabsTrigger value="approvement">Approvement Wajib Lapor</TabsTrigger>
+                                <TabsTrigger value="daftar_klien">Daftar Klien</TabsTrigger>
+                            </TabsList>
+
+                            {/* TAMPILAN APPROVEMENT WAJIB LAPOR */}
+                            <TabsContent value="approvement" className="m-0 border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50">
+                                            <TableHead>Tgl Lapor</TableHead>
+                                            <TableHead>Klien / Reg</TableHead>
+                                            <TableHead>Keterangan & Status</TableHead>
+                                            <TableHead>Bukti</TableHead>
+                                            <TableHead className="text-right">Aksi</TableHead>
                                         </TableRow>
-                                    ))}
-                                    {wajibLaporList.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-slate-500">Belum ada wajib lapor dari klien yang Anda dampingi.</TableCell></TableRow>}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredWajibLaporList.map((wl) => (
+                                            <TableRow key={wl.id}>
+                                                <TableCell className="font-medium whitespace-nowrap">
+                                                    {new Date(wl.tanggal_lapor).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col min-w-[150px]">
+                                                        <span className="font-semibold text-slate-800">{wl.klien?.nama_klien}</span>
+                                                        <span className="text-[10px] text-slate-500">Reg: {wl.klien?.nomor_register_lapas} {wl.klien?.nik_klien ? `• NIK: ${wl.klien?.nik_klien}` : ''}</span>
+                                                        <span className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1"><Phone className="w-2.5 h-2.5"/> {wl.klien?.nomor_telepon || '-'}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-1 items-start max-w-[200px]">
+                                                        <span className="text-sm italic text-slate-600 truncate w-full">{wl.keterangan || '-'}</span>
+                                                        <Badge className={cn("text-[10px]", 
+                                                            wl.status_validasi === 'Valid' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-amber-100 text-amber-700 hover:bg-amber-100"
+                                                        )}>
+                                                            {wl.status_validasi === 'Valid' ? <CheckCircle2 className="w-3 h-3 mr-1"/> : <AlertCircle className="w-3 h-3 mr-1"/>}
+                                                            {wl.status_validasi || 'Menunggu Validasi'}
+                                                        </Badge>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button variant="outline" size="sm" onClick={() => setPreviewImage(wl.foto_url)} className="gap-2 h-8 text-blue-600 border-blue-200 hover:bg-blue-50"><Eye className="w-3.5 h-3.5"/> Cek Foto</Button>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {wl.status_validasi !== 'Valid' ? (
+                                                        <Button size="sm" onClick={() => handleValidasiLapor(wl.id)} className="bg-emerald-600 hover:bg-emerald-700 h-8 gap-1"><CheckCircle2 className="w-4 h-4"/> Validasi</Button>
+                                                    ) : (
+                                                        <Button size="sm" variant="ghost" disabled className="text-emerald-600 h-8 gap-1"><CheckCircle2 className="w-4 h-4"/> Disahkan</Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {filteredWajibLaporList.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-6 text-slate-500">Belum ada wajib lapor yang cocok dengan pencarian.</TableCell></TableRow>}
+                                    </TableBody>
+                                </Table>
+                            </TabsContent>
+
+                            {/* TAMPILAN DAFTAR KLIEN & HISTORY */}
+                            <TabsContent value="daftar_klien" className="m-0 border rounded-md">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50">
+                                            <TableHead>Klien / Reg</TableHead>
+                                            <TableHead>Kontak Klien</TableHead>
+                                            <TableHead>Total Lapor</TableHead>
+                                            {/* FITUR BARU: Kolom Terakhir Lapor */}
+                                            <TableHead>Terakhir Lapor</TableHead>
+                                            <TableHead className="text-right">Aksi</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredEligibleClients.map((c: any) => {
+                                            const clientReports = wajibLaporList.filter(wl => wl.id_klien === c.id_klien);
+                                            // Mengambil data teratas (terbaru) jika ada
+                                            const lastReport = clientReports.length > 0 ? clientReports[0] : null;
+
+                                            return (
+                                            <TableRow key={c.id_klien}>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-slate-800">{c.nama_klien}</span>
+                                                        <span className="text-[10px] text-slate-500">Reg: {c.nomor_register_lapas} {c.nik_klien ? `• NIK: ${c.nik_klien}` : ''}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-xs text-emerald-600 flex items-center gap-1"><Phone className="w-3 h-3"/> {c.nomor_telepon || '-'}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{clientReports.length} Kali Lapor</Badge>
+                                                </TableCell>
+                                                {/* FITUR BARU: Menampilkan tanggal laporan terakhir */}
+                                                <TableCell>
+                                                    {lastReport ? (
+                                                        <div className="flex flex-col gap-1 items-start">
+                                                            <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                                {new Date(lastReport.tanggal_lapor).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                            </span>
+                                                            <span className={cn("text-[10px]", lastReport.status_validasi === 'Valid' ? "text-emerald-600" : "text-amber-600")}>
+                                                                Status: {lastReport.status_validasi || 'Menunggu'}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400 italic">Belum pernah lapor</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button size="sm" variant="outline" onClick={() => setHistoryClient(c)} className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50">
+                                                        <History className="w-4 h-4"/> Riwayat Lapor
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )})}
+                                        {filteredEligibleClients.length === 0 && (
+                                            <TableRow><TableCell colSpan={5} className="text-center py-6 text-slate-500">Belum ada klien yang aktif wajib lapor atau cocok dengan pencarian.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TabsContent>
+                        </Tabs>
+
                     </div>
                 )}
             </Tabs>
@@ -459,20 +576,20 @@ export default function PKTest() {
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[400px] p-0" align="start">
                                             <Command>
-                                                <CommandInput placeholder="Cari nama klien Anda..." />
+                                                <CommandInput placeholder="Cari nama, NIK, atau register..." />
                                                 <CommandList>
                                                     <CommandEmpty>Tidak ditemukan klien aktif atas nama Anda.</CommandEmpty>
                                                     <CommandGroup className="max-h-64 overflow-y-auto">
                                                         {eligibleLaporClients.map((c: any) => (
-                                                            <CommandItem key={c.id_klien} value={`${c.nama_klien} ${c.nomor_register_lapas}`} onSelect={() => { 
+                                                            <CommandItem key={c.id_klien} value={`${c.nama_klien} ${c.nomor_register_lapas} ${c.nik_klien || ''}`} onSelect={() => { 
                                                                 setSelectedLaporClient(String(c.id_klien)); 
-                                                                setLaporTelepon(c.nomor_telepon || ""); // Load telepon otomatis
+                                                                setLaporTelepon(c.nomor_telepon || "");
                                                                 setOpenLaporCombo(false); 
                                                             }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", selectedLaporClient === String(c.id_klien) ? "opacity-100" : "opacity-0")} />
                                                                 <div className="flex flex-col">
                                                                     <span className="font-medium">{c.nama_klien}</span>
-                                                                    <span className="text-xs text-muted-foreground">Reg: {c.nomor_register_lapas}</span>
+                                                                    <span className="text-xs text-muted-foreground">Reg: {c.nomor_register_lapas} {c.nik_klien ? `• NIK: ${c.nik_klien}` : ''}</span>
                                                                 </div>
                                                             </CommandItem>
                                                         ))}
@@ -483,7 +600,6 @@ export default function PKTest() {
                                     </Popover>
                                 </div>
 
-                                {/* KOLOM TELEPON - MUNCUL HANYA DI FORM INI */}
                                 <div className={cn("grid gap-2 transition-opacity", !selectedLaporClient && "opacity-50 pointer-events-none")}>
                                     <Label className="text-slate-600 font-semibold flex items-center gap-2">
                                         <Phone className="w-4 h-4 text-emerald-600"/> Nomor Telepon Klien Aktif
@@ -580,6 +696,48 @@ export default function PKTest() {
                         </Button>
                     </div>
                 </form>
+            </DialogContent>
+        </Dialog>
+
+        {/* DIALOG HISTORY KLIEN SPESIFIK */}
+        <Dialog open={!!historyClient} onOpenChange={(open) => !open && setHistoryClient(null)}>
+            <DialogContent className="max-w-3xl bg-slate-50/50">
+                <DialogHeader className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <DialogTitle className="flex items-center gap-2">
+                        <History className="w-5 h-5 text-blue-600"/> Riwayat Wajib Lapor Klien
+                    </DialogTitle>
+                    <DialogDescription>
+                        Menampilkan riwayat pelaporan untuk <span className="font-bold text-slate-800">{historyClient?.nama_klien}</span>
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-2 mt-4 custom-scrollbar">
+                    {wajibLaporList.filter(wl => wl.id_klien === historyClient?.id_klien).map((lapor, idx) => (
+                        <div key={idx} className="flex items-start gap-4 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                            <div className="w-24 h-24 shrink-0 rounded bg-slate-100 overflow-hidden border border-slate-300">
+                                {lapor.foto_url ? (
+                                    <img src={lapor.foto_url} alt="Bukti" className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition" onClick={() => setPreviewImage(lapor.foto_url)} />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No Pic</div>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-slate-700">{new Date(lapor.tanggal_lapor).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</p>
+                                <Badge variant="outline" className={cn("text-[10px] mt-1.5 font-medium", lapor.status_validasi === 'Valid' ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-amber-600 bg-amber-50 border-amber-200")}>
+                                    {lapor.status_validasi || 'Menunggu'}
+                                </Badge>
+                                <div className="mt-2.5 p-2 bg-slate-50 rounded border border-slate-100">
+                                    <p className="text-xs text-slate-600 italic leading-relaxed">"{lapor.keterangan || 'Tidak ada keterangan'}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {wajibLaporList.filter(wl => wl.id_klien === historyClient?.id_klien).length === 0 && (
+                        <p className="text-center text-slate-500 py-8 text-sm italic">Belum ada riwayat wajib lapor untuk klien ini.</p>
+                    )}
+                </div>
+                <div className="flex justify-end pt-4 border-t mt-2">
+                    <Button variant="outline" onClick={() => setHistoryClient(null)}>Tutup</Button>
+                </div>
             </DialogContent>
         </Dialog>
 
