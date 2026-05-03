@@ -5,30 +5,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Shield, ClipboardList, LogOut, Sparkles, UserCheck } from 'lucide-react';
+import { 
+  CheckCircle2, Sparkles, Scale, Layout, GitMerge, PanelLeftClose, Moon 
+} from 'lucide-react';
 
 // Kunci unik untuk versi ini.
-// Ubah string ini (misal ke 'v1.1') jika Anda ingin memunculkan popup lagi di update berikutnya.
-const VERSION_KEY = "monalisa_whats_new_v1.0"; 
+const VERSION_KEY = "monalisa_whats_new_v1.1"; 
 
 export function WhatsNewDialog() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Cek apakah user sudah pernah melihat pesan versi ini di browser ini
+    // Cek apakah user sudah pernah melihat pesan versi ini di browser ini
     const hasSeen = localStorage.getItem(VERSION_KEY);
     
-    // 2. Jika BELUM pernah melihat (!hasSeen), baru tampilkan popup
+    // Jika BELUM pernah melihat, baru tampilkan popup
     if (!hasSeen) {
-        // Beri delay sedikit agar animasi loading halaman selesai dulu
         const timer = setTimeout(() => setIsOpen(true), 1000);
         return () => clearTimeout(timer);
     }
   }, []);
 
   const handleClose = () => {
-    // 3. Simpan tanda bahwa user sudah membaca pesan ini
-    // Sehingga saat refresh atau klik dashboard lagi, popup tidak muncul
     localStorage.setItem(VERSION_KEY, "true");
     setIsOpen(false);
   };
@@ -44,64 +42,80 @@ export function WhatsNewDialog() {
              <DialogTitle className="text-xl">Apa yang Baru?</DialogTitle>
           </div>
           <DialogDescription>
-            Selamat datang kembali! Berikut adalah fitur terbaru sistem MONALISA Versi 1.0.
+            Selamat datang kembali! Berikut adalah fitur terbaru sistem MONALISA Versi 1.1.
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-6 py-4">
             
-            {/* Fitur 1: Operator */}
+            {/* Fitur 1: Aturan 2026 */}
             <div className="flex gap-4">
                <div className="mt-1 bg-green-100 p-2 rounded-full h-fit">
-                 <ClipboardList className="w-5 h-5 text-green-600" />
+                 <Scale className="w-5 h-5 text-green-600" />
                </div>
                <div className="space-y-1">
                  <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-                    Registrasi Terintegrasi
+                    Aturan Registrasi 2026
                     <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700">Mayor</Badge>
                  </h4>
                  <p className="text-sm text-slate-500 text-justify">
-                    Operator kini dapat menginput data Klien, Penjamin, dan Litmas dalam satu halaman terpadu. Dilengkapi fitur <strong>Edit Data</strong>, auto-hitung usia, dan pemisahan akses otomatis (Anak/Dewasa).
+                    Sistem registrasi kini sepenuhnya mengikuti aturan terbaru tahun 2026. Alur data telah disesuaikan secara terstruktur melalui tahapan <strong>Pra-Adjudikasi, Adjudikasi, dan Post-Adjudikasi</strong>.
                  </p>
                </div>
             </div>
 
-            {/* Fitur 2: Integrasi PK (BARU DITAMBAHKAN) */}
+            {/* Fitur 2: Desain Ulang */}
             <div className="flex gap-4">
                <div className="mt-1 bg-blue-100 p-2 rounded-full h-fit">
-                 <UserCheck className="w-5 h-5 text-blue-600" />
+                 <Layout className="w-5 h-5 text-blue-600" />
                </div>
                <div className="space-y-1">
-                 <h4 className="font-semibold text-slate-900">Sinkronisasi Otomatis PK</h4>
+                 <h4 className="font-semibold text-slate-900">Desain Ulang Registrasi</h4>
                  <p className="text-sm text-slate-500 text-justify">
-                    Berkas Litmas yang sudah diinput di registrasi akan <strong>secara otomatis muncul</strong> di dashboard tugas Pembimbing Kemasyarakatan (PK) terkait.
+                    Tampilan antarmuka (UI) pada halaman registrasi telah dirombak total. Desain baru ini dirancang untuk memberikan pengalaman penginputan data yang lebih rapi, modern, dan intuitif.
                  </p>
                </div>
             </div>
 
-            {/* Fitur 3: Kasie */}
+            {/* Fitur 3: Penyesuaian Alur ke PK */}
             <div className="flex gap-4">
                <div className="mt-1 bg-indigo-100 p-2 rounded-full h-fit">
-                 <Shield className="w-5 h-5 text-indigo-600" />
+                 <GitMerge className="w-5 h-5 text-indigo-600" />
                </div>
                <div className="space-y-1">
-                 <h4 className="font-semibold text-slate-900">Dashboard Supervisi Kasie</h4>
+                 <h4 className="font-semibold text-slate-900">Penyesuaian Alur ke PK</h4>
                  <p className="text-sm text-slate-500 text-justify">
-                    Kepala Seksi kini memiliki akses penuh untuk memantau seluruh berkas Litmas di seksinya tanpa batasan PK.
+                    Optimalisasi sinkronisasi data dari tahap awal registrasi hingga dokumen diteruskan ke Pembimbing Kemasyarakatan (PK). Alur dipastikan berjalan lebih presisi dan terintegrasi penuh ke halaman PK.
                  </p>
                </div>
             </div>
 
-            {/* Fitur 4: UX/Security */}
+            {/* Fitur 4: Max/Min Side Menu */}
             <div className="flex gap-4">
-               <div className="mt-1 bg-red-100 p-2 rounded-full h-fit">
-                 <LogOut className="w-5 h-5 text-red-600" />
+               <div className="mt-1 bg-amber-100 p-2 rounded-full h-fit">
+                 <PanelLeftClose className="w-5 h-5 text-amber-600" />
                </div>
                <div className="space-y-1">
-                 <h4 className="font-semibold text-slate-900">Keamanan & Logout</h4>
+                 <h4 className="font-semibold text-slate-900">Navigasi Dinamis (Max/Min Menu)</h4>
                  <p className="text-sm text-slate-500 text-justify">
-                    Penambahan konfirmasi keamanan saat akan keluar aplikasi (Logout) untuk mencegah penutupan sesi yang tidak disengaja.
+                    Kini Anda dapat memperkecil (minimize) atau memperluas (maximize) <i>side menu</i> di sebelah kiri untuk memberikan ruang kerja layar yang lebih lega saat membaca atau menginput data.
+                 </p>
+               </div>
+            </div>
+
+            {/* Fitur 5: Dark/Light Mode */}
+            <div className="flex gap-4">
+               <div className="mt-1 bg-purple-100 p-2 rounded-full h-fit">
+                 <Moon className="w-5 h-5 text-purple-600" />
+               </div>
+               <div className="space-y-1">
+                 <h4 className="font-semibold text-slate-900 flex items-center gap-2">
+                    Mode Gelap/Terang
+                    <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700">Beta</Badge>
+                 </h4>
+                 <p className="text-sm text-slate-500 text-justify">
+                    Penambahan opsi tema visual <i>Dark Mode</i> dan <i>Light Mode</i>. Fitur ini masih dalam tahap pengembangan aktif untuk menyempurnakan kontras dan kenyamanan mata di seluruh halaman aplikasi.
                  </p>
                </div>
             </div>
@@ -110,7 +124,7 @@ export function WhatsNewDialog() {
         </ScrollArea>
 
         <DialogFooter>
-          <Button onClick={handleClose} className="w-full sm:w-auto">
+          <Button onClick={handleClose} className="w-full sm:w-auto mt-2 sm:mt-0">
             <CheckCircle2 className="w-4 h-4 mr-2" />
             Saya Mengerti
           </Button>
