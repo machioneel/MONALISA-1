@@ -31,7 +31,7 @@ const menuItems = [
   { path: '/test/kabapas', permission: 'access_kabapas', label: 'Kabapas', icon: Building2 },
   { path: '/test/kasie', permission: 'access_kasie', label: 'Kasie', icon: Shield },
   { path: '/test/kasubsie', permission: 'access_kasubsie', label: 'Kasubsie', icon: Users },
-  { path: '/test/operator-registrasi', permission: 'access_operator_registrasi', label: 'Registrasi', icon: ClipboardList },
+  { path: '/test/operator-registrasi', permission: 'access_operator_registrasi', label: 'Registrasi Klien', icon: ClipboardList },
   { path: '/test/anev', permission: 'access_anev', label: 'Anev', icon: BarChart3 },
   { path: '/test/pk', permission: 'access_pk', label: 'PK', icon: User },
   { path: '/test/persuratan', permission: 'access_persuratan', label: 'Persuratan', icon: Mail },

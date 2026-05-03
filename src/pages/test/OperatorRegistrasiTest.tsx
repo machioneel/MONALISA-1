@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ClipboardList, Gavel, Loader2, Check, ChevronsUpDown, Search, 
   UserCheck, History, XCircle, FileText, Plus, Trash2,
-  CloudUpload, Clock, ExternalLink, AlertOctagon, User, AlertCircle
+  CloudUpload, Clock, ExternalLink, AlertOctagon, User, AlertCircle, HeartHandshake, Layers, Save, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -905,6 +905,14 @@ export default function OperatorRegistrasiTest() {
 
   const initiateSaveKlien = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedAgama || !selectedPendidikan || !selectedPekerjaan || !selectedKelurahan) {
+    toast({ 
+      variant: 'destructive', 
+      title: 'Form Tidak Lengkap', 
+      description: 'Agama, Pendidikan, Pekerjaan, dan Kelurahan wajib diisi.' 
+    });
+    return;
+  }
     if (isCategoryMismatch) return toast({ variant: "destructive", title: "Blokir", description: "Usia tidak sesuai role." });
     const formData = new FormData(e.currentTarget);
     if (!editingKlien && matchesKlien.length > 0) {
@@ -917,6 +925,14 @@ export default function OperatorRegistrasiTest() {
 
   const initiateSavePenjamin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedHubungan || !selectedAgamaPenjamin || !selectedPendidikanPenjamin || !selectedPekerjaanPenjamin || !selectedKelurahanPenjamin) {
+      toast({
+        variant: 'destructive',
+        title: 'Form Tidak Lengkap',
+        description: 'Hubungan, Agama, Pendidikan, Pekerjaan, dan Kelurahan wajib diisi.'
+      });
+      return;
+    }
     if (!selectedClientId) return toast({ variant: "destructive", title: "Error", description: "Pilih Klien dulu." });
     const formData = new FormData(e.currentTarget);
     setConfirmDialog({ isOpen: true, type: 'penjamin', payload: formData, warningMessage: null });
@@ -1024,41 +1040,89 @@ export default function OperatorRegistrasiTest() {
 
           {/* TAB 3: LAYANAN */}
           <TabsContent value="layanan">
-            <Card className={cn("border-t-4 shadow-sm", editingLayananId ? "border-t-amber-500 bg-amber-50/30" : "border-t-blue-600")}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{editingLayananId ? 'Edit Layanan Terdaftar' : 'Registrasi Layanan & Dokumen'}</CardTitle>
-                    <CardDescription>
-                      {editingLayananId
-                        ? `Mengedit layanan ${editingLayananTable.toUpperCase()} — ID: ${editingLayananId}`
-                        : 'Pilih layanan, upload surat permintaan, dan input perkara.'}
-                    </CardDescription>
+            <Card className={cn(
+              'border-0 shadow-md overflow-hidden',
+              editingLayananId
+                ? 'ring-2 ring-amber-400 ring-offset-2'
+                : 'ring-1 ring-slate-200'
+            )}>
+
+              {/* ── Header ───────────────────────────────────────────── */}
+              <CardHeader className={cn(
+                'px-6 py-4 border-b',
+                editingLayananId
+                  ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
+                  : 'bg-gradient-to-r from-blue-700 to-blue-600'
+              )}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'flex items-center justify-center w-9 h-9 rounded-lg',
+                      editingLayananId ? 'bg-amber-100' : 'bg-white/10'
+                    )}>
+                      <ClipboardList className={cn('w-5 h-5', editingLayananId ? 'text-amber-600' : 'text-white')} />
+                    </div>
+                    <div>
+                      <p className={cn(
+                        'text-[10px] font-bold uppercase tracking-widest',
+                        editingLayananId ? 'text-amber-600' : 'text-blue-100'
+                      )}>
+                        {editingLayananId ? '✏️ Mode Edit Aktif' : 'Formulir Registrasi'}
+                      </p>
+                      <h2 className={cn(
+                        'text-base font-bold leading-tight',
+                        editingLayananId ? 'text-amber-900' : 'text-white'
+                      )}>
+                        {editingLayananId
+                          ? `Edit Layanan — ${editingLayananTable.toUpperCase()} #${editingLayananId}`
+                          : 'Registrasi Layanan & Dokumen'}
+                      </h2>
+                    </div>
                   </div>
                   {editingLayananId && (
-                    <Button variant="outline" size="sm" onClick={() => handleCancelButton(true)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelButton(true)}
+                      className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                    >
                       <XCircle className="w-4 h-4 mr-2" /> Batal Edit
                     </Button>
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="p-6 bg-slate-50/60">
                 <form
                   key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'}
                   onSubmit={initiateSaveLayanan}
-                  className="space-y-6 mx-auto"
+                  className="space-y-6"
                 >
-                  {/* Sub-tab jenis layanan */}
-                  <Tabs value={layananSubTab} onValueChange={setLayananSubTab} className="w-full mb-6">
-                    <TabsList className="grid w-full grid-cols-4 bg-blue-50/50 p-1 rounded-xl">
-                      <TabsTrigger value="litmas" className="py-2">Litmas</TabsTrigger>
-                      <TabsTrigger value="pendampingan" className="py-2">Pendampingan</TabsTrigger>
-                      <TabsTrigger value="pengawasan" className="py-2">Pengawasan</TabsTrigger>
-                      <TabsTrigger value="pembimbingan" className="py-2">Pembimbingan</TabsTrigger>
+
+                  {/* ── Sub-tab Jenis Layanan ─────────────────────────── */}
+                  <Tabs value={layananSubTab} onValueChange={setLayananSubTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 bg-blue-50 border border-blue-100 p-1 rounded-xl">
+                      {['litmas', 'pendampingan', 'pengawasan', 'pembimbingan'].map((tab) => (
+                        <TabsTrigger
+                          key={tab}
+                          value={tab}
+                          className="py-2 text-xs font-semibold uppercase tracking-wide data-[state=active]:bg-blue-700 data-[state=active]:text-white rounded-lg"
+                        >
+                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </TabsTrigger>
+                      ))}
                     </TabsList>
                   </Tabs>
 
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  {/* ── Selector Klien ───────────────────────────────── */}
+                  <div className={cn(
+                    'rounded-xl border bg-green-50/30 p-5 shadow-sm',
+                    !selectedClientId ? 'border-dashed border-green-200' : 'border-green-100'
+                  )}>
+                    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-green-600 text-green-700 bg-green-50 mb-4">
+                      <HeartHandshake className="w-4 h-4 shrink-0" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Klien yang Dilayani</span>
+                    </div>
                     <ClientSelector
                       listKlien={listKlien}
                       selectedClientId={selectedClientId}
@@ -1068,29 +1132,49 @@ export default function OperatorRegistrasiTest() {
                       loading={loading}
                       userRoleCategory={userRoleCategory}
                     />
+                    {!selectedClientId && (
+                      <p className="mt-2 text-[11px] text-green-600 italic flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        Pilih klien terlebih dahulu untuk mengaktifkan form layanan.
+                      </p>
+                    )}
                   </div>
-                  
+
+                  {/* ── Alert Penolakan Sebelumnya ────────────────────── */}
                   {selectedJenisLitmas && klienDitakPernahDitolak.some((l: any) => l.jenis_litmas === selectedJenisLitmas) && (
-                    <Alert className="bg-amber-50 border-amber-300 text-amber-900 shadow-sm">
+                    <Alert className="bg-amber-50 border-amber-300 text-amber-900 shadow-sm rounded-xl">
                       <AlertOctagon className="h-4 w-4 text-amber-600" />
                       <AlertTitle className="font-bold">Usulan Pernah Ditolak</AlertTitle>
                       <AlertDescription className="text-xs mt-1 leading-relaxed">
-                        Klien ini sebelumnya pernah mengajukan layanan <strong>{selectedJenisLitmas}</strong> dan ditolak pada sidang TPP.
-                        Anda dapat mengajukannya ulang, namun pastikan persyaratan kali ini sudah terpenuhi dengan baik.
+                        Klien ini sebelumnya pernah mengajukan layanan <strong>{selectedJenisLitmas}</strong> dan
+                        ditolak pada sidang TPP. Anda dapat mengajukannya ulang, namun pastikan persyaratan
+                        kali ini sudah terpenuhi dengan baik.
                       </AlertDescription>
                     </Alert>
                   )}
 
-                  <div className={cn("space-y-6", !selectedClientId && "opacity-50 pointer-events-none")}>
-                    {/* Tahapan & Jenis Layanan */}
-                    <div className="grid gap-2 p-4 bg-blue-50/30 border border-blue-100 rounded-xl mb-4">
+                  {/* ── Body Form ────────────────────────────────────── */}
+                  <div className={cn(
+                    'space-y-5 transition-opacity duration-200',
+                    !selectedClientId && 'opacity-40 pointer-events-none select-none'
+                  )}>
+
+                    {/* ══ Panel: Tahapan & Jenis Layanan ══ */}
+                    <div className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-blue-600 text-blue-700 bg-blue-50 mb-4">
+                        <Layers className="w-4 h-4 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest">Tahapan & Jenis Layanan</span>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="font-semibold text-blue-900">
-                            Tahapan {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)} <span className="text-red-500">*</span>
+                        <div className="grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            Tahapan {layananSubTab.charAt(0).toUpperCase() + layananSubTab.slice(1)}
+                            <span className="ml-1 text-red-500">*</span>
                           </Label>
                           <Select value={tahapanLayanan} onValueChange={(val: any) => setTahapanLayanan(val)} required>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Pilih Tahapan..." /></SelectTrigger>
+                            <SelectTrigger className="h-9 text-sm bg-white">
+                              <SelectValue placeholder="Pilih Tahapan..." />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Pra Adjudikasi">Pra Adjudikasi</SelectItem>
                               <SelectItem value="Adjudikasi">Adjudikasi</SelectItem>
@@ -1098,36 +1182,43 @@ export default function OperatorRegistrasiTest() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="font-semibold text-blue-900">
-                            Jenis Layanan Tertentu <span className="text-red-500">*</span>
+                        <div className="grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            Jenis Layanan Tertentu
+                            <span className="ml-1 text-red-500">*</span>
                           </Label>
-                          <SearchableSelect 
-                            options={currentJenisOptions} 
-                            value={selectedJenisLitmas} 
-                            onSelect={setSelectedJenisLitmas} 
-                            labelKey="jenis" 
-                            valueKey="jenis" 
-                            placeholder={tahapanLayanan ? "Pilih Jenis..." : "Pilih Tahapan Dulu..."} 
-                            searchPlaceholder="Cari jenis..." 
-                            name="jenis_litmas" 
+                          <SearchableSelect
+                            options={currentJenisOptions}
+                            value={selectedJenisLitmas}
+                            onSelect={setSelectedJenisLitmas}
+                            labelKey="jenis"
+                            valueKey="jenis"
+                            placeholder={tahapanLayanan ? 'Pilih Jenis...' : 'Pilih Tahapan Dulu...'}
+                            searchPlaceholder="Cari jenis..."
+                            name="jenis_litmas"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Upload Surat Permintaan */}
-                    <div className="space-y-4">
-                      <Label className="font-bold text-blue-800">
-                        Upload Surat Permintaan (Sesuai Layanan) {selectedUpt && <span className="text-red-500">*</span>}
-                      </Label>
-                      <div className="mt-2 flex justify-center rounded-lg border-2 border-dashed border-blue-300 px-6 py-6 hover:bg-blue-50 hover:border-blue-400 transition-all relative cursor-pointer group">
+                    {/* ══ Panel: Upload Surat Permintaan ══ */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-slate-500 text-slate-700 bg-slate-50 mb-4">
+                        <CloudUpload className="w-4 h-4 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest">
+                          Upload Surat Permintaan
+                          {selectedUpt && <span className="ml-1 text-red-500">*</span>}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex justify-center rounded-xl border-2 border-dashed border-blue-200 px-6 py-6 hover:bg-blue-50 hover:border-blue-400 transition-all relative cursor-pointer group">
                         <div className="text-center w-full">
                           {fileSuratPermintaan ? (
                             <div className="flex flex-col items-center text-green-600 animate-in fade-in zoom-in-95">
-                              <FileText className="mx-auto h-12 w-12" />
+                              <FileText className="mx-auto h-10 w-10" />
                               <span className="mt-2 block text-sm font-semibold">{fileSuratPermintaan.name}</span>
-                              <span className="text-xs text-slate-500 bg-green-50 px-2 py-1 rounded-full mt-1">Siap diupload (Klik Simpan)</span>
+                              <span className="text-xs text-slate-500 bg-green-50 px-2 py-1 rounded-full mt-1">
+                                Siap diupload (Klik Simpan)
+                              </span>
                             </div>
                           ) : (editingLitmas && editingLitmas.file_surat_permintaan_url) ? (
                             <div className="flex flex-col items-center justify-center p-2 rounded-md bg-blue-50/50 border border-blue-100">
@@ -1135,17 +1226,18 @@ export default function OperatorRegistrasiTest() {
                               <span className="text-sm font-bold text-slate-700">Surat Permintaan Tersimpan</span>
                               <div className="flex gap-2 mt-2 z-20 relative">
                                 <Button
-                                  type="button" size="sm" variant="outline" className="h-7 text-xs bg-white"
+                                  type="button" size="sm" variant="outline"
+                                  className="h-7 text-xs bg-white border-blue-200 text-blue-700 hover:bg-blue-50"
                                   onClick={(e) => { e.preventDefault(); window.open(editingLitmas.file_surat_permintaan_url, '_blank'); }}
                                 >
-                                  <ExternalLink className="w-3 h-3 mr-1"/> Lihat File
+                                  <ExternalLink className="w-3 h-3 mr-1" /> Lihat File
                                 </Button>
                               </div>
                               <span className="text-[10px] text-slate-400 mt-2 italic">Klik area ini untuk mengganti file</span>
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center text-slate-500 group-hover:text-blue-600 transition-colors">
-                              <CloudUpload className="mx-auto h-12 w-12 mb-2" />
+                            <div className="flex flex-col items-center text-slate-400 group-hover:text-blue-600 transition-colors">
+                              <CloudUpload className="mx-auto h-10 w-10 mb-2" />
                               <span className="block text-sm font-semibold">Pilih File Surat Permintaan</span>
                               <span className="text-xs mt-1">PDF, JPG, PNG (Maks 5MB)</span>
                             </div>
@@ -1158,29 +1250,29 @@ export default function OperatorRegistrasiTest() {
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
                               setFileSuratPermintaan(e.target.files[0]);
-                              toast({ title: "File Dipilih", description: e.target.files[0].name });
+                              toast({ title: 'File Dipilih', description: e.target.files[0].name });
                             }
                           }}
                         />
                       </div>
                     </div>
-                    
-                    <Separator />
 
-                    {/* Input Perkara */}
-                    <div className="space-y-4 bg-red-50 p-6 rounded-lg border border-red-100">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-lg text-red-700 flex items-center gap-2">
-                          <Gavel className="w-5 h-5" />Input Data Perkara
-                        </h3>
-                        <Badge variant="outline" className="bg-white text-red-600 border-red-200">
+                    {/* ══ Panel: Input Perkara ══ */}
+                    <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-rose-500 text-rose-700 bg-rose-50 flex-1 mr-3">
+                          <Gavel className="w-4 h-4 shrink-0" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Input Data Perkara</span>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-600 border-rose-200 font-semibold">
                           Total: {perkaraList.length} Kasus
                         </Badge>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded shadow-sm">
-                        <div className="md:col-span-3 grid gap-2">
-                          <Label>Pilih Pasal (Dari Referensi)</Label>
+
+                      {/* Input Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-slate-50 border border-slate-200 p-4 rounded-xl mb-4">
+                        <div className="md:col-span-3 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pilih Pasal</Label>
                           <SearchableSelect
                             options={refPerkara.map(p => ({
                               id: String(p.id_perkara),
@@ -1188,15 +1280,12 @@ export default function OperatorRegistrasiTest() {
                             }))}
                             value={(() => {
                               const found = refPerkara.find(p => p.pasal === tempPerkara.pasal && p.nama_perkara === tempPerkara.tindak_pidana);
-                              return found ? String(found.id_perkara) : "";
+                              return found ? String(found.id_perkara) : '';
                             })()}
                             onSelect={(val: string) => {
                               const sel = refPerkara.find(p => String(p.id_perkara) === val);
-                              if (sel) {
-                                setTempPerkara({ ...tempPerkara, pasal: sel.pasal || '', tindak_pidana: sel.nama_perkara || '' });
-                              } else {
-                                setTempPerkara({ ...tempPerkara, pasal: '', tindak_pidana: '' });
-                              }
+                              if (sel) setTempPerkara({ ...tempPerkara, pasal: sel.pasal || '', tindak_pidana: sel.nama_perkara || '' });
+                              else setTempPerkara({ ...tempPerkara, pasal: '', tindak_pidana: '' });
                             }}
                             labelKey="display"
                             valueKey="id"
@@ -1205,97 +1294,94 @@ export default function OperatorRegistrasiTest() {
                             name="ref_perkara_select"
                           />
                         </div>
-                        
-                        <div className="md:col-span-2 grid gap-2">
-                          <Label>Tindak Pidana</Label>
-                          <Input
-                            value={tempPerkara.tindak_pidana}
-                            onChange={(e) => setTempPerkara({ ...tempPerkara, tindak_pidana: e.target.value })}
-                            placeholder="Pencurian"
-                          />
+                        <div className="md:col-span-2 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tindak Pidana</Label>
+                          <Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({ ...tempPerkara, tindak_pidana: e.target.value })} placeholder="Pencurian" className="h-9 text-sm" />
                         </div>
-
-                        <div className="md:col-span-3 grid gap-2">
-                          <Label>Juncto (Jo.)</Label>
-                          <Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({ ...tempPerkara, juncto: e.target.value })} placeholder="Cth: Jo. Ps. 55" />
+                        <div className="md:col-span-3 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Juncto (Jo.)</Label>
+                          <Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({ ...tempPerkara, juncto: e.target.value })} placeholder="Cth: Jo. Ps. 55" className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-4 grid gap-2">
-                          <Label>No. Putusan</Label>
-                          <Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({ ...tempPerkara, nomor_putusan: e.target.value })} />
+                        <div className="md:col-span-4 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">No. Putusan</Label>
+                          <Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({ ...tempPerkara, nomor_putusan: e.target.value })} className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-4 grid gap-2">
-                          <Label>Vonis Pidana</Label>
+                        <div className="md:col-span-4 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vonis Pidana</Label>
                           <DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, vonis_pidana: val })} />
                         </div>
-                        <div className="md:col-span-3 grid gap-2">
-                          <Label>Denda (Rp)</Label>
-                          <Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({ ...tempPerkara, denda: e.target.value })} />
+                        <div className="md:col-span-3 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Denda (Rp)</Label>
+                          <Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({ ...tempPerkara, denda: e.target.value })} className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-4 grid gap-2">
-                          <Label>Subsider</Label>
+                        <div className="md:col-span-4 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Subsider</Label>
                           <DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, subsider_pidana: val })} />
                         </div>
-                        <div className="md:col-span-3 grid gap-2">
-                          <Label>Uang Pengganti (Rp)</Label>
-                          <Input type="number" value={tempPerkara.uang_pengganti} onChange={(e) => setTempPerkara({ ...tempPerkara, uang_pengganti: e.target.value })} placeholder="0" />
+                        <div className="md:col-span-3 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Uang Pengganti (Rp)</Label>
+                          <Input type="number" value={tempPerkara.uang_pengganti} onChange={(e) => setTempPerkara({ ...tempPerkara, uang_pengganti: e.target.value })} placeholder="0" className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-2 grid gap-2">
-                          <Label>Restitusi (Rp)</Label>
-                          <Input type="number" value={tempPerkara.restitusi} onChange={(e) => setTempPerkara({ ...tempPerkara, restitusi: e.target.value })} placeholder="0" />
+                        <div className="md:col-span-2 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Restitusi (Rp)</Label>
+                          <Input type="number" value={tempPerkara.restitusi} onChange={(e) => setTempPerkara({ ...tempPerkara, restitusi: e.target.value })} placeholder="0" className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-2 grid gap-2">
-                          <Label>Mulai Ditahan</Label>
-                          <Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_mulai_ditahan: e.target.value })} />
+                        <div className="md:col-span-2 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mulai Ditahan</Label>
+                          <Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_mulai_ditahan: e.target.value })} className="h-9 text-sm" />
                         </div>
-                        <div className="md:col-span-2 grid gap-2">
-                          <Label>Ekspirasi</Label>
-                          <Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_ekspirasi: e.target.value })} />
+                        <div className="md:col-span-2 grid gap-1.5">
+                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ekspirasi</Label>
+                          <Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_ekspirasi: e.target.value })} className="h-9 text-sm" />
                         </div>
-                        
-                        <div className="md:col-span-1">
+                        <div className="md:col-span-1 flex items-end">
                           <Button
                             type="button"
                             onClick={() => {
                               if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) {
-                                return toast({ variant: "destructive", title: "Gagal", description: "Pasal & Tindak Pidana wajib diisi." });
+                                return toast({ variant: 'destructive', title: 'Gagal', description: 'Pasal & Tindak Pidana wajib diisi.' });
                               }
                               setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]);
                               setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' });
                             }}
                             size="icon"
-                            className="bg-red-600 hover:bg-red-700 w-full"
+                            className="bg-rose-600 hover:bg-rose-700 w-full h-9"
                           >
                             <Plus className="w-5 h-5" />
                           </Button>
                         </div>
                       </div>
 
+                      {/* Perkara List */}
                       <div className="space-y-2">
                         {perkaraList.map((p, idx) => (
-                          <div key={p.id || idx} className="flex items-center justify-between bg-white p-3 rounded border border-red-200 text-sm">
+                          <div
+                            key={p.id || idx}
+                            className="flex items-center justify-between bg-white border border-rose-100 rounded-xl p-3 text-sm shadow-sm"
+                          >
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
                               <div>
-                                <span className="text-xs text-slate-500 block">Pasal</span>
-                                <span className="font-bold">{p.pasal}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pasal</span>
+                                <span className="font-bold text-slate-800">{p.pasal}</span>
                                 {p.juncto && <span className="text-xs text-slate-400 block">Jo. {p.juncto}</span>}
                               </div>
                               <div>
-                                <span className="text-xs text-slate-500 block">Pidana</span>
-                                <span>{p.tindak_pidana}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pidana</span>
+                                <span className="text-slate-700">{p.tindak_pidana}</span>
                               </div>
                               <div>
-                                <span className="text-xs text-slate-500 block">Vonis</span>
-                                <span>{p.vonis_pidana}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Vonis</span>
+                                <span className="text-slate-700">{p.vonis_pidana}</span>
                               </div>
                               <div>
-                                <span className="text-xs text-slate-500 block">Uang Pengganti</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Uang Pengganti</span>
                                 <span className="text-orange-600 font-medium">
-                                  {p.uang_pengganti ? `Rp ${Number(p.uang_pengganti).toLocaleString('id-ID')}` : '-'}
+                                  {p.uang_pengganti ? `Rp ${Number(p.uang_pengganti).toLocaleString('id-ID')}` : '—'}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-xs text-slate-500 block">Ekspirasi</span>
-                                <span className="text-red-600 font-medium">{p.tanggal_ekspirasi || '-'}</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Ekspirasi</span>
+                                <span className="text-rose-600 font-medium">{p.tanggal_ekspirasi || '—'}</span>
                               </div>
                             </div>
                             <Button
@@ -1305,24 +1391,25 @@ export default function OperatorRegistrasiTest() {
                                 newList.splice(idx, 1);
                                 setPerkaraList(newList);
                               }}
-                              className="text-red-500 hover:bg-red-50"
+                              className="ml-2 shrink-0 text-rose-400 hover:text-rose-600 hover:bg-rose-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         ))}
                         {perkaraList.length === 0 && (
-                          <p className="text-center text-sm text-red-400 italic">Belum ada data perkara ditambahkan.</p>
+                          <div className="flex items-center justify-center gap-2 py-4 text-sm text-slate-400 italic rounded-xl border border-dashed border-rose-100 bg-rose-50/30">
+                            <AlertCircle className="w-4 h-4 text-rose-300" />
+                            Belum ada data perkara ditambahkan.
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    <Separator />
-
-                    {/* Form spesifik per sub-layanan */}
-                    <div className="mt-6">
+                    {/* ══ Form Spesifik Per Sub-Layanan ══ */}
+                    <div>
                       {layananSubTab === 'litmas' && (
-                        <FormLitmas 
+                        <FormLitmas
                           editingLitmas={editingLitmas}
                           refJenisLitmas={refJenisLitmas}
                           refUpt={refUpt}
@@ -1339,7 +1426,7 @@ export default function OperatorRegistrasiTest() {
                         />
                       )}
                       {layananSubTab === 'pendampingan' && (
-                        <FormPendampingan 
+                        <FormPendampingan
                           editingLitmas={editingLitmas}
                           refUpt={refUpt}
                           selectedUpt={selectedUpt}
@@ -1350,14 +1437,14 @@ export default function OperatorRegistrasiTest() {
                         />
                       )}
                       {layananSubTab === 'pengawasan' && (
-                        <FormPengawasan 
+                        <FormPengawasan
                           editingLitmas={editingLitmas}
                           nomorUrutLayanan={nomorUrutLayanan}
                           setNomorUrutLayanan={setNomorUrutLayanan}
                         />
                       )}
                       {layananSubTab === 'pembimbingan' && (
-                        <FormPembimbingan 
+                        <FormPembimbingan
                           editingLitmas={editingLitmas}
                           nomorUrutLayanan={nomorUrutLayanan}
                           setNomorUrutLayanan={setNomorUrutLayanan}
@@ -1365,25 +1452,35 @@ export default function OperatorRegistrasiTest() {
                       )}
                     </div>
 
-                    {/* Tunjuk Petugas PK */}
-                    <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 space-y-4">
-                      <div className="grid gap-2">
-                        <Label className="text-blue-900 font-bold flex items-center gap-2">
-                          <UserCheck className="w-4 h-4" /> Tunjuk Petugas PK
+                    {/* ══ Panel: Tunjuk Petugas PK ══ */}
+                    <div className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-blue-600 text-blue-700 bg-blue-50 mb-4">
+                        <UserCheck className="w-4 h-4 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest">Tunjuk Petugas PK</span>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                          Petugas PK <span className="text-red-500">*</span>
                         </Label>
                         <Popover open={openPkCombo} onOpenChange={setOpenPkCombo}>
                           <PopoverTrigger asChild>
                             <Button
-                              variant="outline" role="combobox" aria-expanded={openPkCombo}
-                              className="w-full justify-between bg-white border-blue-200 hover:bg-blue-50 h-auto py-2 text-left"
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openPkCombo}
+                              className="w-full justify-between bg-white border-slate-200 hover:bg-blue-50 h-auto py-2.5 text-left"
                             >
                               {listPK.find((pk) => pk.id === selectedPkId) ? (
                                 <div className="flex flex-col items-start text-left leading-tight overflow-hidden">
-                                  <span className="font-semibold text-slate-900 truncate w-full">{listPK.find((pk) => pk.id === selectedPkId)?.nama}</span>
-                                  <span className="text-xs text-slate-500 truncate w-full">NIP: {listPK.find((pk) => pk.id === selectedPkId)?.nip}</span>
+                                  <span className="font-semibold text-slate-900 truncate w-full">
+                                    {listPK.find((pk) => pk.id === selectedPkId)?.nama}
+                                  </span>
+                                  <span className="text-xs text-slate-500 truncate w-full">
+                                    NIP: {listPK.find((pk) => pk.id === selectedPkId)?.nip}
+                                  </span>
                                 </div>
                               ) : (
-                                <span className="text-slate-500">Pilih Petugas PK...</span>
+                                <span className="text-slate-400 text-sm">Pilih Petugas PK...</span>
                               )}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -1400,7 +1497,7 @@ export default function OperatorRegistrasiTest() {
                                       value={`${pk.nama} ${pk.nip}`}
                                       onSelect={() => { setSelectedPkId(pk.id); setOpenPkCombo(false); }}
                                     >
-                                      <Check className={cn("mr-2 h-4 w-4", selectedPkId === pk.id ? "opacity-100" : "opacity-0")} />
+                                      <Check className={cn('mr-2 h-4 w-4', selectedPkId === pk.id ? 'opacity-100' : 'opacity-0')} />
                                       <div className="flex flex-col">
                                         <span className="font-medium">{pk.nama}</span>
                                         <span className="text-xs text-muted-foreground">NIP: {pk.nip}</span>
@@ -1415,17 +1512,39 @@ export default function OperatorRegistrasiTest() {
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isUploading || loading}>
+                    {/* ── Footer Submit ─────────────────────────────── */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                      <p className="text-[11px] text-slate-400">
+                        <span className="text-red-500">*</span> Field wajib diisi
+                      </p>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        disabled={isUploading || loading}
+                        className={cn(
+                          'h-10 gap-2 font-semibold shadow-sm',
+                          editingLayananId
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                            : 'bg-blue-700 hover:bg-blue-800 text-white'
+                        )}
+                      >
+                        {(isUploading || loading) ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
                         {isUploading
-                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengupload...</>
+                          ? 'Mengupload...'
                           : loading
-                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</>
-                          : "Simpan Layanan & Dokumen"
-                        }
+                          ? 'Menyimpan...'
+                          : editingLayananId
+                          ? 'Simpan Perubahan'
+                          : 'Simpan Layanan & Dokumen'}
+                        {!isUploading && !loading && <ChevronRight className="w-4 h-4" />}
                       </Button>
                     </div>
-                  </div>
+
+                  </div>{/* end body form */}
                 </form>
               </CardContent>
             </Card>
@@ -1443,7 +1562,7 @@ export default function OperatorRegistrasiTest() {
 
       {/* ===== MODALS & DIALOGS ===== */}
 
-      {/* 1. Dialog Detail Klien */}
+      {/* 1. Dialog Detail Klien — Lengkap dengan Sub-Tab Klien & Penjamin */}
       <Dialog open={openDetail} onOpenChange={setOpenDetail}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-slate-50/50">
           <DialogHeader className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
@@ -1457,74 +1576,291 @@ export default function OperatorRegistrasiTest() {
               </div>
             </div>
           </DialogHeader>
-          
+
           {detailData ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-              <div className="space-y-4">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                  <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-blue-500 pl-3 mb-4">Data Diri Utama</h4>
-                  <div className="grid grid-cols-3 gap-y-3 text-sm">
-                    <span className="text-slate-500">Nama Lengkap</span>
-                    <span className="col-span-2 font-semibold">: {detailData?.nama_klien || '-'}</span>
-                    <span className="text-slate-500">NIK</span>
-                    <span className="col-span-2 font-mono">: {detailData?.nik_klien || '-'}</span>
-                    <span className="text-slate-500">No. Register</span>
-                    <span className="col-span-2 font-mono text-blue-600 font-bold">: {detailData?.nomor_register_lapas || '-'}</span>
-                    <span className="text-slate-500">JK / Usia</span>
-                    <span className="col-span-2">: {detailData?.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'} / {detailData?.usia || '0'} Tahun</span>
-                    <span className="text-slate-500">Kategori</span>
-                    <span className="col-span-2 flex items-center gap-2">: <Badge variant="outline" className="bg-blue-50">{detailData?.kategori_usia || '-'}</Badge></span>
-                    <span className="text-slate-500">Pendidikan</span>
-                    <span className="col-span-2">: {detailData?.pendidikan || '-'}</span>
-                  </div>
-                </div>
+            <Tabs defaultValue="klien" className="mt-4">
+              {/* Sub-Tab Navigation */}
+              <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-slate-100/80 rounded-xl mb-4">
+                <TabsTrigger value="klien" className="py-2 text-sm">
+                  <User className="w-3.5 h-3.5 mr-1.5" />Data Klien
+                </TabsTrigger>
+                <TabsTrigger value="penjamin" className="py-2 text-sm">
+                  <UserCheck className="w-3.5 h-3.5 mr-1.5" />Penjamin
+                </TabsTrigger>
+                <TabsTrigger value="log" className="py-2 text-sm">
+                  <History className="w-3.5 h-3.5 mr-1.5" />Log Aktivitas
+                </TabsTrigger>
+              </TabsList>
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                  <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-green-500 pl-3 mb-4">Kontak & Domisili</h4>
-                  <div className="grid grid-cols-3 gap-y-3 text-sm">
-                    <span className="text-slate-500">No. Telepon</span>
-                    <span className="col-span-2 font-semibold text-green-700">: {detailData?.nomor_telepon || '-'}</span>
-                    <span className="text-slate-500">Kelurahan</span>
-                    <span className="col-span-2">: {detailData?.kelurahan || '-'}</span>
-                    <span className="text-slate-500">Kecamatan</span>
-                    <span className="col-span-2">: {detailData?.kecamatan || '-'}</span>
-                    <span className="text-slate-500 flex items-start">Alamat</span>
-                    <span className="col-span-2 text-xs leading-relaxed italic">: {detailData?.alamat || '-'}</span>
-                  </div>
-                </div>
+              {/* ─────────────────── SUB-TAB: DATA KLIEN ─────────────────── */}
+              <TabsContent value="klien">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                  <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-purple-500 pl-3 mb-4">Keluarga Penjamin</h4>
-                  {detailData?.penjamin && detailData.penjamin.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-100">
-                      <div className="flex flex-col md:flex-row md:justify-between border-b pb-2 gap-1">
-                        <span className="text-slate-500 w-1/3">Nama Penjamin</span>
-                        <span className="font-semibold text-slate-800 w-2/3">{detailData.penjamin[0].nama_penjamin}</span>
-                      </div>
-                      <div className="flex flex-col md:flex-row md:justify-between border-b pb-2 gap-1">
-                        <span className="text-slate-500 w-1/3">Hubungan</span>
-                        <span className="w-2/3">{detailData.penjamin[0].hubungan_klien}</span>
-                      </div>
-                      <div className="flex flex-col md:flex-row md:justify-between border-b pb-2 gap-1">
-                        <span className="text-slate-500 w-1/3">No. Telepon</span>
-                        <span className="text-green-700 font-bold w-2/3">{detailData.penjamin[0].nomor_telepon}</span>
-                      </div>
-                      <div className="flex flex-col md:flex-row md:justify-between pb-1 gap-1">
-                        <span className="text-slate-500 w-1/3">Pekerjaan</span>
-                        <span className="w-2/3">{detailData.penjamin[0].pekerjaan}</span>
+                  {/* Kolom Kiri */}
+                  <div className="space-y-4">
+
+                    {/* Identitas Utama */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-blue-500 pl-3 mb-4">
+                        Identitas Utama
+                      </h4>
+                      <div className="grid grid-cols-3 gap-y-3 text-sm">
+                        <span className="text-slate-500">Nama Lengkap</span>
+                        <span className="col-span-2 font-semibold">: {detailData?.nama_klien || '-'}</span>
+
+                        {/* Nama Alias */}
+                        <span className="text-slate-500">Nama Alias</span>
+                        <span className="col-span-2">
+                          : {detailData?.nama_alias && detailData.nama_alias.filter((n: string) => n.trim()).length > 0
+                              ? detailData.nama_alias.filter((n: string) => n.trim()).join(', ')
+                              : '-'}
+                        </span>
+
+                        <span className="text-slate-500">NIK</span>
+                        <span className="col-span-2 font-mono">: {detailData?.nik_klien || '-'}</span>
+
+                        <span className="text-slate-500">No. Register</span>
+                        <span className="col-span-2 font-mono text-blue-600 font-bold">: {detailData?.nomor_register_lapas || '-'}</span>
+
+                        <span className="text-slate-500">Jenis Kelamin</span>
+                        <span className="col-span-2">
+                          : {detailData?.jenis_kelamin === 'L' ? 'Laki-laki' : detailData?.jenis_kelamin === 'P' ? 'Perempuan' : '-'}
+                        </span>
+
+                        <span className="text-slate-500">Tempat Lahir</span>
+                        <span className="col-span-2">: {detailData?.tempat_lahir || '-'}</span>
+
+                        <span className="text-slate-500">Tanggal Lahir</span>
+                        <span className="col-span-2">: {detailData?.tanggal_lahir || '-'}</span>
+
+                        <span className="text-slate-500">Usia / Kategori</span>
+                        <span className="col-span-2 flex items-center gap-2">
+                          : {detailData?.usia || '-'} Tahun
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            {detailData?.kategori_usia || '-'}
+                          </Badge>
+                        </span>
+
+                        <span className="text-slate-500">Kewarganegaraan</span>
+                        <span className="col-span-2">: {detailData?.kewarganegaraan || '-'}</span>
+
+                        <span className="text-slate-500">Agama</span>
+                        <span className="col-span-2">: {detailData?.agama || '-'}</span>
+
+                        <span className="text-slate-500">Status Perkawinan</span>
+                        <span className="col-span-2">: {detailData?.status_perkawinan || '-'}</span>
+
+                        <span className="text-slate-500">Residivis</span>
+                        <span className="col-span-2">
+                          : {detailData?.residivis
+                              ? <Badge variant="outline" className={cn(
+                                  detailData.residivis === 'Ya'
+                                    ? "bg-red-50 text-red-700 border-red-200"
+                                    : "bg-green-50 text-green-700 border-green-200"
+                                )}>{detailData.residivis}</Badge>
+                              : '-'}
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center py-4 text-slate-400">
-                      <AlertCircle className="w-8 h-8 mb-2 opacity-20" />
-                      <p className="text-xs italic">Data penjamin belum tersedia untuk klien ini.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="space-y-4 h-full">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-full">
+                    {/* Pendidikan & Pekerjaan */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-amber-500 pl-3 mb-4">
+                        Pendidikan & Pekerjaan
+                      </h4>
+                      <div className="grid grid-cols-3 gap-y-3 text-sm">
+                        <span className="text-slate-500">Pendidikan</span>
+                        <span className="col-span-2">: {detailData?.pendidikan || '-'}</span>
+
+                        <span className="text-slate-500">Pekerjaan</span>
+                        <span className="col-span-2">: {detailData?.pekerjaan || '-'}</span>
+
+                        <span className="text-slate-500">Minat / Bakat</span>
+                        <span className="col-span-2">: {detailData?.minat_bakat || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Kolom Kanan */}
+                  <div className="space-y-4">
+
+                    {/* Kontak & Domisili */}
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-green-500 pl-3 mb-4">
+                        Kontak & Domisili
+                      </h4>
+                      <div className="grid grid-cols-3 gap-y-3 text-sm">
+                        <span className="text-slate-500">No. Telepon</span>
+                        <span className="col-span-2 font-semibold text-green-700">: {detailData?.nomor_telepon || '-'}</span>
+
+                        <span className="text-slate-500">Kelurahan</span>
+                        <span className="col-span-2">: {detailData?.kelurahan || '-'}</span>
+
+                        <span className="text-slate-500">Kecamatan</span>
+                        <span className="col-span-2">: {detailData?.kecamatan || '-'}</span>
+
+                        <span className="text-slate-500 flex items-start pt-0.5">Alamat Lengkap</span>
+                        <span className="col-span-2 text-xs leading-relaxed italic">: {detailData?.alamat || '-'}</span>
+                      </div>
+                    </div>
+
+                    {/* Data Perkara (ringkasan jika ada) */}
+                    {detailData?.litmas && detailData.litmas.length > 0 &&
+                    detailData.litmas[0]?.perkara && detailData.litmas[0].perkara.length > 0 && (
+                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-red-500 pl-3 mb-4">
+                          Ringkasan Perkara
+                        </h4>
+                        <div className="space-y-2">
+                          {detailData.litmas[0].perkara.map((p: any, idx: number) => (
+                            <div key={idx} className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Gavel className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                <span className="font-bold text-red-800">Pasal {p.pasal}</span>
+                                {p.juncto && <span className="text-red-500">Jo. {p.juncto}</span>}
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 pl-5 text-slate-600">
+                                <span>Pidana: <span className="font-medium text-slate-800">{p.tindak_pidana || '-'}</span></span>
+                                <span>Vonis: <span className="font-medium text-slate-800">{p.vonis_pidana || '-'}</span></span>
+                                <span>No. Putusan: <span className="font-medium text-slate-800">{p.nomor_putusan || '-'}</span></span>
+                                <span>Ekspirasi: <span className="font-medium text-red-700">{p.tanggal_ekspirasi || '-'}</span></span>
+                                {p.uang_pengganti && Number(p.uang_pengganti) > 0 && (
+                                  <span className="col-span-2">
+                                    Uang Pengganti: <span className="font-medium text-orange-700">
+                                      Rp {Number(p.uang_pengganti).toLocaleString('id-ID')}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ─────────────────── SUB-TAB: PENJAMIN ─────────────────── */}
+              <TabsContent value="penjamin">
+                {detailData?.penjamin && detailData.penjamin.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {/* Kolom Kiri: Identitas Penjamin */}
+                    <div className="space-y-4">
+                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-purple-500 pl-3 mb-4">
+                          Identitas Penjamin
+                        </h4>
+                        <div className="grid grid-cols-3 gap-y-3 text-sm">
+                          <span className="text-slate-500">Nama Penjamin</span>
+                          <span className="col-span-2 font-semibold">: {detailData.penjamin[0].nama_penjamin || '-'}</span>
+
+                          <span className="text-slate-500">NIK Penjamin</span>
+                          <span className="col-span-2 font-mono">: {detailData.penjamin[0].nik_penjamin || '-'}</span>
+
+                          <span className="text-slate-500">Hubungan</span>
+                          <span className="col-span-2">
+                            : {detailData.penjamin[0].hubungan_klien
+                                ? <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                    {detailData.penjamin[0].hubungan_klien}
+                                  </Badge>
+                                : '-'}
+                          </span>
+
+                          <span className="text-slate-500">Jenis Kelamin</span>
+                          <span className="col-span-2">
+                            : {detailData.penjamin[0].jenis_kelamin === 'L' ? 'Laki-laki'
+                                : detailData.penjamin[0].jenis_kelamin === 'P' ? 'Perempuan'
+                                : '-'}
+                          </span>
+
+                          <span className="text-slate-500">Tempat Lahir</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].tempat_lahir || '-'}</span>
+
+                          <span className="text-slate-500">Tanggal Lahir</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].tanggal_lahir || '-'}</span>
+
+                          <span className="text-slate-500">Usia</span>
+                          <span className="col-span-2">
+                            : {detailData.penjamin[0].usia ? `${detailData.penjamin[0].usia} Tahun` : '-'}
+                          </span>
+
+                          <span className="text-slate-500">Agama</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].agama || '-'}</span>
+                        </div>
+                      </div>
+
+                      {/* Pendidikan & Pekerjaan Penjamin */}
+                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-amber-500 pl-3 mb-4">
+                          Pendidikan & Pekerjaan
+                        </h4>
+                        <div className="grid grid-cols-3 gap-y-3 text-sm">
+                          <span className="text-slate-500">Pendidikan</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].pendidikan || '-'}</span>
+
+                          <span className="text-slate-500">Pekerjaan</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].pekerjaan || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Kolom Kanan: Kontak & Domisili Penjamin */}
+                    <div className="space-y-4">
+                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 className="font-bold text-slate-800 text-sm uppercase tracking-wider border-l-4 border-green-500 pl-3 mb-4">
+                          Kontak & Domisili
+                        </h4>
+                        <div className="grid grid-cols-3 gap-y-3 text-sm">
+                          <span className="text-slate-500">No. Telepon</span>
+                          <span className="col-span-2 font-semibold text-green-700">
+                            : {detailData.penjamin[0].nomor_telepon || '-'}
+                          </span>
+
+                          <span className="text-slate-500">Kelurahan</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].kelurahan || '-'}</span>
+
+                          <span className="text-slate-500">Kecamatan</span>
+                          <span className="col-span-2">: {detailData.penjamin[0].kecamatan || '-'}</span>
+
+                          <span className="text-slate-500 flex items-start pt-0.5">Alamat Lengkap</span>
+                          <span className="col-span-2 text-xs leading-relaxed italic">
+                            : {detailData.penjamin[0].alamat || '-'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Info Tambahan Penjamin */}
+                      <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <UserCheck className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-bold text-purple-900">Status Penjamin</p>
+                            <p className="text-xs text-purple-700 mt-1 leading-relaxed">
+                              Terdaftar sebagai penjamin untuk klien{' '}
+                              <span className="font-semibold">{detailData?.nama_klien}</span>.
+                              Data penjamin digunakan sebagai kontak darurat dan referensi dalam proses layanan.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                      <AlertCircle className="w-8 h-8 opacity-30" />
+                    </div>
+                    <p className="font-medium text-slate-500">Data Penjamin Belum Tersedia</p>
+                    <p className="text-xs mt-1 italic">Penjamin untuk klien ini belum didaftarkan ke dalam sistem.</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ─────────────────── SUB-TAB: LOG AKTIVITAS ─────────────────── */}
+              <TabsContent value="log">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                   <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg mb-6 flex gap-3 items-start">
                     <History className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
@@ -1532,6 +1868,7 @@ export default function OperatorRegistrasiTest() {
                       <p className="text-xs text-amber-700 mt-1">Menampilkan perubahan yang dilakukan oleh sistem.</p>
                     </div>
                   </div>
+
                   <div className="relative border-l-2 border-slate-200 ml-4 pl-8 space-y-8 pb-4">
                     <div className="relative">
                       <div className="absolute -left-[41px] top-0 bg-green-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></div>
@@ -1543,6 +1880,22 @@ export default function OperatorRegistrasiTest() {
                         <span>{formatDateTime(detailData?.created_at)}</span>
                       </div>
                     </div>
+
+                    {detailData?.penjamin && detailData.penjamin.length > 0 && (
+                      <div className="relative">
+                        <div className="absolute -left-[41px] top-0 bg-purple-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Penjamin</p>
+                        <p className="text-sm font-semibold text-slate-800">Data Penjamin Terdaftar</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {detailData.penjamin[0].nama_penjamin} ({detailData.penjamin[0].hubungan_klien || 'Hubungan tidak diketahui'})
+                        </p>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+                          <Clock className="w-3 h-3" />
+                          <span>{detailData.penjamin[0].created_at ? formatDateTime(detailData.penjamin[0].created_at) : 'Waktu tidak tercatat'}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="relative">
                       <div className="absolute -left-[41px] top-0 bg-blue-500 rounded-full w-5 h-5 border-4 border-white shadow-sm"></div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Pembaruan</p>
@@ -1555,8 +1908,8 @@ export default function OperatorRegistrasiTest() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
           ) : (
             <div className="py-20 flex flex-col items-center justify-center text-slate-400">
               <Loader2 className="w-10 h-10 animate-spin mb-4" />
