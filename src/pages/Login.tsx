@@ -6,10 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, Fingerprint, CheckCircle2 } from 'lucide-react'; // Tambah icon CheckCircle2
+import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, Fingerprint, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 
-// --- Logic & Schema (Tidak Diubah) ---
 const loginSchema = z.object({
   nip: z.string().min(1, 'NIP harus diisi').regex(/^\d+$/, 'NIP hanya boleh berisi angka'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
@@ -22,9 +21,10 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<{ nip?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
-  
-  // State baru untuk animasi selamat datang
   const [showWelcome, setShowWelcome] = useState(false);
+
+  // ✅ Tambahan CapsLock
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
@@ -32,9 +32,7 @@ export default function Login() {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // --- Modifikasi useEffect Navigasi ---
   useEffect(() => {
-    // Hanya redirect jika user ada, DAN animasi welcome TIDAK sedang berjalan
     if (user && !showWelcome && !isLoading) {
       navigate(from, { replace: true });
     }
@@ -64,21 +62,23 @@ export default function Login() {
       setError(signInError);
       setIsLoading(false);
     } else {
-      // --- Login Sukses: Jalankan Animasi ---
       setShowWelcome(true);
-      setIsLoading(false); // Stop loading button, start welcome animation
+      setIsLoading(false);
 
-      // Tunggu 2 detik untuk menampilkan animasi, baru redirect
       setTimeout(() => {
         navigate(from, { replace: true });
       }, 2000);
     }
   };
 
+  // ✅ Handler CapsLock
+  const handleCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(e.getModifierState('CapsLock'));
+  };
+
   return (
     <div className="min-h-screen w-full grid lg:grid-cols-2 relative">
       
-      {/* --- ANIMASI SELAMAT DATANG (OVERLAY) --- */}
       {showWelcome && (
         <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
           <div className="text-center space-y-4 animate-in zoom-in-50 slide-in-from-bottom-10 duration-500 fill-mode-forwards">
@@ -93,7 +93,6 @@ export default function Login() {
                 Selamat datang kembali di MONALISA...
               </p>
             </div>
-            {/* Loading bar kecil untuk visualisasi redirect */}
             <div className="w-48 h-1.5 bg-muted rounded-full mx-auto overflow-hidden mt-6">
                 <div className="h-full bg-primary animate-in slide-in-from-left duration-[2000ms] w-full" />
             </div>
@@ -101,11 +100,9 @@ export default function Login() {
         </div>
       )}
 
-      {/* Kolom Kiri: Form Area */}
       <div className="flex flex-col justify-center p-8 md:p-12 lg:p-24 bg-background animate-in fade-in slide-in-from-left-4 duration-700">
         <div className="w-full max-w-sm mx-auto space-y-8">
           
-          {/* Header Section */}
           <div className="flex flex-col space-y-2 text-center">
             <div className="mx-auto bg-primary/10 p-4 rounded-2xl mb-4 shadow-sm">
                <img 
@@ -133,7 +130,6 @@ export default function Login() {
             <CardContent className="pt-4">
               <form onSubmit={handleSubmit} className="space-y-4">
                 
-                {/* Global Error Alert */}
                 {error && (
                   <Alert variant="destructive" className="animate-in zoom-in-95 duration-200">
                     <AlertCircle className="h-4 w-4" />
@@ -141,7 +137,6 @@ export default function Login() {
                   </Alert>
                 )}
 
-                {/* Input NIP */}
                 <div className="space-y-2">
                   <Label htmlFor="nip" className={validationErrors.nip ? 'text-destructive' : ''}>
                     NIP
@@ -165,13 +160,11 @@ export default function Login() {
                   )}
                 </div>
 
-                {/* Input Password */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password" className={validationErrors.password ? 'text-destructive' : ''}>
                         Password
                     </Label>
-                    {/* Change this line: */}
                     <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">
                         Lupa password?
                     </Link>
@@ -185,6 +178,9 @@ export default function Login() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={handleCapsLock}
+                      onKeyUp={handleCapsLock}
+                      onBlur={() => setIsCapsLockOn(false)}
                       disabled={isLoading || showWelcome}
                       className={`pl-10 pr-10 transition-all ${validationErrors.password ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                     />
@@ -205,6 +201,14 @@ export default function Login() {
                       <span className="sr-only">Toggle visibility</span>
                     </Button>
                   </div>
+
+                  {/* ✅ CapsLock Warning (tambahan doang, gak ubah design) */}
+                  {isCapsLockOn && (
+                    <p className="text-[0.8rem] font-medium text-amber-600 animate-in slide-in-from-top-1">
+                      ⚠️ Caps Lock aktif
+                    </p>
+                  )}
+
                   {validationErrors.password && (
                     <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
                       {validationErrors.password}
@@ -212,7 +216,6 @@ export default function Login() {
                   )}
                 </div>
 
-                {/* Submit Button */}
                 <Button 
                     type="submit" 
                     className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 transition-all hover:scale-[1.01]" 
@@ -242,27 +245,32 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Kolom Kanan: Branding / Image */}
       <div className="hidden lg:flex relative flex-col bg-slate-900 text-white p-12 justify-between overflow-hidden">
         <div className="absolute inset-0 bg-slate-900/40 z-10" />
         <img 
-            src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2301&auto=format&fit=crop" 
+            src="https://kemenimipas.go.id/attachments/2025/gedung_baru_kemenimipas_tampak_muka.jpeg" 
             alt="Office Background" 
-            className="absolute inset-0 object-cover w-full h-full opacity-60 mix-blend-overlay animate-in fade-in duration-1000"
+            className="absolute inset-0 object-cover w-full h-full opacity-100 mix-blend-overlay animate-in fade-in duration-1000"
         />
         
-        {/* Top Branding */}
         <div className="relative z-20 flex items-center gap-3 animate-in slide-in-from-top-8 duration-700 delay-200">
-             <div className="h-10 w-10 bg-yellow-500/90 rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                <Fingerprint className="h-6 w-6 text-slate-900" />
-             </div>
-             <div>
-                <h3 className="text-lg font-bold leading-tight">Kementerian Imigrasi dan Pemasyarakatan RI</h3>
-                <p className="text-sm text-slate-300">Balai Pemasyarakatan Kelas I Jakarta Barat</p>
-             </div>
+          <div className="h-10 w-10 bg-yellow-500/90 rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/20 overflow-hidden">
+            <img 
+              src="https://kemenimipas.go.id/images/logo/Kementerian-Hukum-Dan-Ham-Kemenkumham-Logo-Vector.png" 
+              alt="Logo" 
+              className="h-9.5 w-9.5 object-contain"
+            />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold leading-tight">
+              Kementerian Imigrasi dan Pemasyarakatan RI
+            </h3>
+            <p className="text-sm text-slate-300">
+              Balai Pemasyarakatan Kelas I Jakarta Barat
+            </p>
+          </div>
         </div>
         
-        {/* Bottom Quote */}
         <div className="relative z-20 max-w-lg mb-8 animate-in slide-in-from-bottom-8 duration-700 delay-300">
             <blockquote className="space-y-4">
                 <p className="text-2xl font-medium leading-relaxed tracking-tight text-white/90">

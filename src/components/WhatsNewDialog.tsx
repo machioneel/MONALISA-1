@@ -60,7 +60,10 @@ export function WhatsNewDialog() {
                     <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700">Mayor</Badge>
                  </h4>
                  <p className="text-sm text-slate-500 text-justify">
-                    Sistem registrasi kini sepenuhnya mengikuti aturan terbaru tahun 2026. Alur data telah disesuaikan secara terstruktur melalui tahapan <strong>Pra-Adjudikasi, Adjudikasi, dan Post-Adjudikasi</strong>.
+                    1. Sistem registrasi kini sepenuhnya mengikuti aturan terbaru tahun 2026. Alur data telah disesuaikan secara terstruktur melalui tahapan <strong>Pra-Adjudikasi, Adjudikasi, dan Post-Adjudikasi</strong>.
+                 </p>
+                 <p className="text-sm text-slate-500 text-justify">
+                    2. Penambahan Session Login selama 60 meneit <strong>Untuk Keamanan</strong>.
                  </p>
                </div>
             </div>
