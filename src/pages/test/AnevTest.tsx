@@ -12,6 +12,7 @@ import { TestPageLayout } from "@/components/TestPageLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { HistoryCatatanDialog } from "@/components/anev/HistoryCatatanDialog";
 
 export default function AnevTest() {
   const [reviews, setReviews] = useState<any[]>([]);
@@ -23,6 +24,9 @@ export default function AnevTest() {
   // State untuk Modal Riwayat/Detail
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+
+  // State untuk HistoryCatatanDialog
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // State untuk Modal Catatan Revisi
   const [isRevisiOpen, setIsRevisiOpen] = useState(false);
@@ -80,7 +84,7 @@ export default function AnevTest() {
         `)
         .not('status', 'in', '("New Task","On Progress","Review")') 
         .eq('assigned_anev_id', user.id)
-        .order('waktu_verifikasi_anev', { ascending: false }); // Urutkan dari yg terbaru diverifikasi
+        .order('waktu_verifikasi_anev', { ascending: false });
 
       if (errHistory) throw errHistory;
       setHistory(dataHistory || []);
@@ -102,7 +106,7 @@ export default function AnevTest() {
       const updatePayload: any = { 
         status: 'Approved',
         waktu_verifikasi_anev: new Date().toISOString(),
-        anev_notes: 'Laporan disetujui tanpa catatan.' // Hapus catatan revisi sebelumnya jika ada
+        anev_notes: 'Laporan disetujui tanpa catatan.'
       };
 
       const { error } = await supabase
@@ -112,9 +116,6 @@ export default function AnevTest() {
 
       if (error) throw error;
       toast({ title: "Sukses", description: "Laporan disetujui." });
-      
-      // LOGIC: Kirim notifikasi WA ke PK bahwa laporan telah disetujui (Opsional)
-      
       fetchData();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -149,9 +150,6 @@ export default function AnevTest() {
       if (error) throw error;
       
       toast({ title: "Revisi Dikirim", description: "Laporan dikembalikan ke PK beserta catatan Anda." });
-      
-      // LOGIC: Kirim Notifikasi WA ke PK terkait Revisi
-      
       setIsRevisiOpen(false);
       setTaskToRevise(null);
       fetchData();
@@ -291,13 +289,21 @@ export default function AnevTest() {
                                 <span className="text-slate-400 italic text-xs">Belum upload</span>
                             )}
                         </TableCell>
-                        <TableCell className="text-right pr-6 space-x-2">
-                            <Button size="sm" variant="outline" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200" onClick={() => openRevisiModal(item.id_litmas)}>
-                                <XCircle className="h-4 w-4 mr-1" /> Revisi
-                            </Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700 shadow-sm" onClick={() => handleApprove(item.id_litmas)}>
-                                <CheckCircle2 className="h-4 w-4 mr-1" /> Setujui
-                            </Button>
+                        <TableCell className="text-right pr-6">
+                            <div className="flex items-center justify-end gap-2">
+                                <Button size="sm" variant="outline" onClick={() => {
+                                    setSelectedTask(item);
+                                    setIsHistoryOpen(true);
+                                }}>
+                                    Lihat Catatan
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200" onClick={() => openRevisiModal(item.id_litmas)}>
+                                    <XCircle className="h-4 w-4 mr-1" /> Revisi
+                                </Button>
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 shadow-sm" onClick={() => handleApprove(item.id_litmas)}>
+                                    <CheckCircle2 className="h-4 w-4 mr-1" /> Setujui
+                                </Button>
+                            </div>
                         </TableCell>
                     </TableRow>
                     ))
@@ -321,7 +327,9 @@ export default function AnevTest() {
                             <TableHead>Jenis Layanan</TableHead>
                             <TableHead>PK</TableHead>
                             <TableHead>Keputusan / Status Akhir</TableHead>
-                            <TableHead className="pr-6">Waktu Verifikasi</TableHead>
+                            <TableHead>Waktu Verifikasi</TableHead>
+                            {/* ✅ KOLOM BARU: Aksi */}
+                            <TableHead className="pr-6 text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -351,14 +359,27 @@ export default function AnevTest() {
                                         {item.status}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="pr-6 text-xs text-slate-500 font-mono">
+                                <TableCell className="text-xs text-slate-500 font-mono">
                                     {item.waktu_verifikasi_anev ? formatDateTime(item.waktu_verifikasi_anev) : '-'}
+                                </TableCell>
+                                {/* ✅ CELL BARU: Tombol Lihat Catatan */}
+                                <TableCell className="pr-6 text-right">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedTask(item);
+                                            setIsHistoryOpen(true);
+                                        }}
+                                    >
+                                        Lihat Catatan
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
                          {history.length === 0 && !loading && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-slate-400 italic">Belum ada riwayat verifikasi.</TableCell>
+                                <TableCell colSpan={6} className="text-center py-8 text-slate-400 italic">Belum ada riwayat verifikasi.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -398,7 +419,7 @@ export default function AnevTest() {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL DETAIL & RIWAYAT PROSES (Bisa digunakan untuk melihat log) --- */}
+      {/* --- MODAL DETAIL & RIWAYAT PROSES --- */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
             <DialogHeader>
@@ -511,6 +532,13 @@ export default function AnevTest() {
             )}
         </DialogContent>
       </Dialog>
+
+      {/* ✅ DIALOG BARU: HistoryCatatanDialog untuk Riwayat */}
+      <HistoryCatatanDialog 
+          isOpen={isHistoryOpen} 
+          onOpenChange={setIsHistoryOpen} 
+          task={selectedTask} 
+      />
 
     </TestPageLayout>
   );
