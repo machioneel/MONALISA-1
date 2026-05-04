@@ -27,8 +27,15 @@ export function LayananTerdaftarDialog({ open, onOpenChange, selectedLitmasDetai
   
   const handleOpenDoc = (url: string) => {
     if (!url) return;
-    const { data } = supabase.storage.from('documents').getPublicUrl(url);
-    window.open(data.publicUrl, '_blank');
+    
+    // Cek apakah url sudah merupakan full URL (http/https)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank');
+    } else {
+      // Jika hanya path/nama file, ambil dari bucket 'documents'
+      const { data } = supabase.storage.from('documents').getPublicUrl(url);
+      window.open(data.publicUrl, '_blank');
+    }
   };
 
   return (

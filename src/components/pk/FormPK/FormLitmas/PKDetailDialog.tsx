@@ -116,12 +116,9 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
 
   const openDoc = (path: string) => {
     if(!path) return;
-    
-    // 1. Cek apakah path sudah berupa URL lengkap (http/https)
     if (path.startsWith('http://') || path.startsWith('https://')) {
         window.open(path, '_blank'); // Langsung buka jika sudah berupa URL lengkap
     } else {
-        // 2. Jika hanya nama file, baru tambahkan alamat URL public dari Supabase
         const { data } = supabase.storage.from('documents').getPublicUrl(path);
         window.open(data.publicUrl, '_blank');
     }

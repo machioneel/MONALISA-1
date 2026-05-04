@@ -619,6 +619,7 @@ export default function OperatorRegistrasiTest() {
       setSelectedBapas(layananItem.asal_bapas || "");
       setNomorUrutLayanan(layananItem.nomor_urut ? String(layananItem.nomor_urut).padStart(4, '0') : "");
 
+      // Mengambil histori data perkara saat di-edit
       if (table === 'litmas') {
         const { data: perkaraData } = await supabase.from('perkara').select('*').eq('id_litmas', id);
         setPerkaraList(perkaraData || []);
@@ -711,15 +712,13 @@ export default function OperatorRegistrasiTest() {
     if (!tahapanLayanan) return toast({ variant: "destructive", title: "Error", description: "Tahapan Layanan wajib dipilih." });
     if (!selectedJenisLitmas) return toast({ variant: "destructive", title: "Error", description: "Jenis Layanan wajib dipilih." });
     
-    // --- TAMBAHAN VALIDASI WAJIB: SURAT PERMINTAAN & PERKARA ---
     if (!fileSuratPermintaan && !editingLitmas?.file_surat_permintaan_url) {
        return toast({ variant: "destructive", title: "Validasi Gagal", description: "Dokumen Surat Permintaan wajib diunggah." });
     }
 
-    if (perkaraList.length === 0) {
-       return toast({ variant: "destructive", title: "Validasi Gagal", description: "Minimal satu Data Perkara wajib ditambahkan." });
+    if (layananSubTab === 'litmas' && perkaraList.length === 0) {
+       return toast({ variant: "destructive", title: "Validasi Gagal", description: "Minimal satu Data Perkara wajib ditambahkan untuk Layanan Litmas." });
     }
-    // -------------------------------------------------------------
 
     const formData = new FormData(e.currentTarget);
     const asalUpt = formData.get('id_upt') as string;
@@ -738,6 +737,22 @@ export default function OperatorRegistrasiTest() {
     setLoading(true);
     const { type, payload } = confirmDialog;
     const formData = payload as FormData;
+
+    // --- FUNGSI MAPPING EKSPLISIT UNTUK PERKARA ---
+    const mapPerkaraForInsert = (p: any, litmasId: number) => ({
+      id_litmas: litmasId,
+      pasal: p.pasal || '',
+      tindak_pidana: p.tindak_pidana || '',
+      juncto: p.juncto || null,
+      nomor_putusan: p.nomor_putusan || null,
+      vonis_pidana: p.vonis_pidana || null,
+      denda: Number(p.denda) || 0,
+      subsider_pidana: p.subsider_pidana || null,
+      uang_pengganti: p.uang_pengganti || null,
+      restitusi: p.restitusi || null,
+      tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null,
+      tanggal_ekspirasi: p.tanggal_ekspirasi || null
+    });
 
     try {
       if (type === 'klien') {
@@ -837,13 +852,16 @@ export default function OperatorRegistrasiTest() {
         if (editingLayananId && editingLayananTable !== targetTable) {
           const { error: delErr } = await (supabase.from(editingLayananTable as any) as any).delete().eq(PK_COLUMN_MAP[editingLayananTable], editingLayananId);
           if (delErr) throw delErr;
+          
           const { data: newData, error: insErr } = await (supabase.from(targetTable as any) as any).insert(dataLayanan).select(PK_COLUMN_MAP[targetTable]).single();
           if (insErr) throw insErr;
           
           affectedLayananId = newData[PK_COLUMN_MAP[targetTable]]; 
 
           if (targetTable === 'litmas' && perkaraList.length > 0) {
-            await supabase.from('perkara').insert(perkaraList.map(p => ({ id_litmas: affectedLayananId, pasal: p.pasal, tindak_pidana: p.tindak_pidana, juncto: p.juncto || null, nomor_putusan: p.nomor_putusan, vonis_pidana: p.vonis_pidana, denda: Number(p.denda) || 0, subsider_pidana: p.subsider_pidana, uang_pengganti: p.uang_pengganti || null, restitusi: p.restitusi || null, tanggal_mulai_ditahan: p.tanggal_mulai_ditahan || null, tanggal_ekspirasi: p.tanggal_ekspirasi || null })));
+            const mappedPerkara = perkaraList.map(p => mapPerkaraForInsert(p, affectedLayananId as number));
+            const { error: pErr } = await supabase.from('perkara').insert(mappedPerkara);
+            if (pErr) throw pErr;
           }
         
         } else if (editingLayananId) {
@@ -853,8 +871,14 @@ export default function OperatorRegistrasiTest() {
           affectedLayananId = editingLayananId; 
 
           if (targetTable === 'litmas') {
-            await supabase.from('perkara').delete().eq('id_litmas', editingLayananId);
-            if (perkaraList.length > 0) await supabase.from('perkara').insert(perkaraList.map(({ id: _id, ...rest }) => ({ ...rest, id_litmas: editingLayananId })));
+            const existingPerkaraIds = perkaraList.filter(p => typeof p.id === 'number' && p.id < Date.now() - 100000).map(p => p.id);
+            const newPerkaras = perkaraList.filter(p => !existingPerkaraIds.includes(p.id));
+
+            if (newPerkaras.length > 0) {
+              const mappedPerkara = newPerkaras.map(p => mapPerkaraForInsert(p, editingLayananId));
+              const { error: pErr } = await supabase.from('perkara').insert(mappedPerkara);
+              if (pErr) throw pErr;
+            }
           }
         
         } else {
@@ -863,7 +887,11 @@ export default function OperatorRegistrasiTest() {
           
           affectedLayananId = newData[PK_COLUMN_MAP[targetTable]]; 
 
-          if (targetTable === 'litmas' && perkaraList.length > 0) await supabase.from('perkara').insert(perkaraList.map(({ id: _id, ...rest }) => ({ ...rest, id_litmas: affectedLayananId })));
+          if (targetTable === 'litmas' && perkaraList.length > 0) {
+            const mappedPerkara = perkaraList.map(p => mapPerkaraForInsert(p, affectedLayananId as number));
+            const { error: pErr } = await supabase.from('perkara').insert(mappedPerkara);
+            if (pErr) throw pErr;
+          }
         }
 
         if (selectedPkId && selectedPkId !== originalPkId && affectedLayananId) {
@@ -1117,49 +1145,53 @@ export default function OperatorRegistrasiTest() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-rose-500 text-rose-700 bg-rose-50 flex-1 mr-3">
-                          <Gavel className="w-4 h-4 shrink-0" />
-                          <span className="text-xs font-bold uppercase tracking-widest">Input Data Perkara <span className="ml-1 text-red-500">*</span></span>
-                        </div>
-                        <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-600 border-rose-200 font-semibold">Total: {perkaraList.length} Kasus</Badge>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-slate-50 border border-slate-200 p-4 rounded-xl mb-4">
-                        <div className="md:col-span-3 grid gap-1.5">
-                          <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pilih Pasal</Label>
-                          <SearchableSelect options={refPerkara.map(p => ({ id: String(p.id_perkara), display: `Ps. ${p.pasal} ${p.aturan_uu || ''} - ${p.nama_perkara}` }))} value={(() => { const found = refPerkara.find(p => p.pasal === tempPerkara.pasal && p.nama_perkara === tempPerkara.tindak_pidana); return found ? String(found.id_perkara) : ''; })()} onSelect={(val: string) => { const sel = refPerkara.find(p => String(p.id_perkara) === val); if (sel) setTempPerkara({ ...tempPerkara, pasal: sel.pasal || '', tindak_pidana: sel.nama_perkara || '' }); else setTempPerkara({ ...tempPerkara, pasal: '', tindak_pidana: '' }); }} labelKey="display" valueKey="id" placeholder="Cari Pasal..." searchPlaceholder="Ketik nomor pasal..." name="ref_perkara_select" />
-                        </div>
-                        <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({ ...tempPerkara, tindak_pidana: e.target.value })} placeholder="Pencurian" className="h-9 text-sm" /></div>
-                        <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Juncto (Jo.)</Label><Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({ ...tempPerkara, juncto: e.target.value })} placeholder="Cth: Jo. Ps. 55" className="h-9 text-sm" /></div>
-                        <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({ ...tempPerkara, nomor_putusan: e.target.value })} className="h-9 text-sm" /></div>
-                        <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, vonis_pidana: val })} /></div>
-                        <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Denda (Rp)</Label><Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({ ...tempPerkara, denda: e.target.value })} className="h-9 text-sm" /></div>
-                        <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Subsider</Label><DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, subsider_pidana: val })} /></div>
-                        <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Uang Pengganti (Rp)</Label><Input type="number" value={tempPerkara.uang_pengganti} onChange={(e) => setTempPerkara({ ...tempPerkara, uang_pengganti: e.target.value })} placeholder="0" className="h-9 text-sm" /></div>
-                        <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Restitusi (Rp)</Label><Input type="number" value={tempPerkara.restitusi} onChange={(e) => setTempPerkara({ ...tempPerkara, restitusi: e.target.value })} placeholder="0" className="h-9 text-sm" /></div>
-                        <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mulai Ditahan</Label><Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_mulai_ditahan: e.target.value })} className="h-9 text-sm" /></div>
-                        <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ekspirasi</Label><Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_ekspirasi: e.target.value })} className="h-9 text-sm" /></div>
-                        <div className="md:col-span-1 flex items-end">
-                          <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: 'destructive', title: 'Gagal', description: 'Pasal & Tindak Pidana wajib diisi.' }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-rose-600 hover:bg-rose-700 w-full h-9"><Plus className="w-5 h-5" /></Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {perkaraList.map((p, idx) => (
-                          <div key={p.id || idx} className="flex items-center justify-between bg-white border border-rose-100 rounded-xl p-3 text-sm shadow-sm">
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
-                              <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pasal</span><span className="font-bold text-slate-800">{p.pasal}</span>{p.juncto && <span className="text-xs text-slate-400 block">Jo. {p.juncto}</span>}</div>
-                              <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pidana</span><span className="text-slate-700">{p.tindak_pidana}</span></div>
-                              <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Vonis</span><span className="text-slate-700">{p.vonis_pidana}</span></div>
-                              <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Uang Pengganti</span><span className="text-orange-600 font-medium">{p.uang_pengganti ? `Rp ${Number(p.uang_pengganti).toLocaleString('id-ID')}` : '—'}</span></div>
-                              <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Ekspirasi</span><span className="text-rose-600 font-medium">{p.tanggal_ekspirasi || '—'}</span></div>
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { const newList = [...perkaraList]; newList.splice(idx, 1); setPerkaraList(newList); }} className="ml-2 shrink-0 text-rose-400 hover:text-rose-600 hover:bg-rose-50"><Trash2 className="w-4 h-4" /></Button>
+                    {/* HANYA MUNCUL DI LAYANAN LITMAS */}
+                    {layananSubTab === 'litmas' && (
+                      <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-l-4 border-rose-500 text-rose-700 bg-rose-50 flex-1 mr-3">
+                            <Gavel className="w-4 h-4 shrink-0" />
+                            <span className="text-xs font-bold uppercase tracking-widest">Input Data Perkara <span className="ml-1 text-red-500">*</span></span>
                           </div>
-                        ))}
-                        {perkaraList.length === 0 && <div className="flex items-center justify-center gap-2 py-4 text-sm text-slate-400 italic rounded-xl border border-dashed border-rose-100 bg-rose-50/30"><AlertCircle className="w-4 h-4 text-rose-300" />Belum ada data perkara ditambahkan.</div>}
+                          <Badge variant="outline" className="shrink-0 bg-rose-50 text-rose-600 border-rose-200 font-semibold">Total: {perkaraList.length} Kasus</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-slate-50 border border-slate-200 p-4 rounded-xl mb-4">
+                          <div className="md:col-span-3 grid gap-1.5">
+                            <Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pilih Pasal</Label>
+                            <SearchableSelect options={refPerkara.map(p => ({ id: String(p.id_perkara), display: `Ps. ${p.pasal} ${p.aturan_uu || ''} - ${p.nama_perkara}` }))} value={(() => { const found = refPerkara.find(p => p.pasal === tempPerkara.pasal && p.nama_perkara === tempPerkara.tindak_pidana); return found ? String(found.id_perkara) : ''; })()} onSelect={(val: string) => { const sel = refPerkara.find(p => String(p.id_perkara) === val); if (sel) setTempPerkara({ ...tempPerkara, pasal: sel.pasal || '', tindak_pidana: sel.nama_perkara || '' }); else setTempPerkara({ ...tempPerkara, pasal: '', tindak_pidana: '' }); }} labelKey="display" valueKey="id" placeholder="Cari Pasal..." searchPlaceholder="Ketik nomor pasal..." name="ref_perkara_select" />
+                          </div>
+                          <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tindak Pidana</Label><Input value={tempPerkara.tindak_pidana} onChange={(e) => setTempPerkara({ ...tempPerkara, tindak_pidana: e.target.value })} placeholder="Pencurian" className="h-9 text-sm" /></div>
+                          <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Juncto (Jo.)</Label><Input value={tempPerkara.juncto} onChange={(e) => setTempPerkara({ ...tempPerkara, juncto: e.target.value })} placeholder="Cth: Jo. Ps. 55" className="h-9 text-sm" /></div>
+                          <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">No. Putusan</Label><Input value={tempPerkara.nomor_putusan} onChange={(e) => setTempPerkara({ ...tempPerkara, nomor_putusan: e.target.value })} className="h-9 text-sm" /></div>
+                          <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Vonis Pidana</Label><DurationInput label="Durasi Vonis" value={tempPerkara.vonis_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, vonis_pidana: val })} /></div>
+                          <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Denda (Rp)</Label><Input type="number" value={tempPerkara.denda} onChange={(e) => setTempPerkara({ ...tempPerkara, denda: e.target.value })} className="h-9 text-sm" /></div>
+                          <div className="md:col-span-4 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Subsider</Label><DurationInput label="Durasi Subsider" value={tempPerkara.subsider_pidana} onChange={(val) => setTempPerkara({ ...tempPerkara, subsider_pidana: val })} /></div>
+                          <div className="md:col-span-3 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Uang Pengganti (Rp)</Label><Input type="number" value={tempPerkara.uang_pengganti} onChange={(e) => setTempPerkara({ ...tempPerkara, uang_pengganti: e.target.value })} placeholder="0" className="h-9 text-sm" /></div>
+                          <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Restitusi (Rp)</Label><Input type="number" value={tempPerkara.restitusi} onChange={(e) => setTempPerkara({ ...tempPerkara, restitusi: e.target.value })} placeholder="0" className="h-9 text-sm" /></div>
+                          <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mulai Ditahan</Label><Input type="date" value={tempPerkara.tanggal_mulai_ditahan} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_mulai_ditahan: e.target.value })} className="h-9 text-sm" /></div>
+                          <div className="md:col-span-2 grid gap-1.5"><Label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ekspirasi</Label><Input type="date" value={tempPerkara.tanggal_ekspirasi} onChange={(e) => setTempPerkara({ ...tempPerkara, tanggal_ekspirasi: e.target.value })} className="h-9 text-sm" /></div>
+                          <div className="md:col-span-1 flex items-end">
+                            <Button type="button" onClick={() => { if (!tempPerkara.pasal || !tempPerkara.tindak_pidana) return toast({ variant: 'destructive', title: 'Gagal', description: 'Pasal & Tindak Pidana wajib diisi.' }); setPerkaraList([...perkaraList, { ...tempPerkara, id: Date.now() }]); setTempPerkara({ pasal: '', tindak_pidana: '', juncto: '', nomor_putusan: '', vonis_pidana: '', denda: '', subsider_pidana: '', uang_pengganti: '', restitusi: '', tanggal_mulai_ditahan: '', tanggal_ekspirasi: '' }); }} size="icon" className="bg-rose-600 hover:bg-rose-700 w-full h-9"><Plus className="w-5 h-5" /></Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {perkaraList.map((p, idx) => {
+                            return (
+                              <div key={p.id || idx} className="flex items-center justify-between bg-white border border-rose-100 rounded-xl p-3 text-sm shadow-sm">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
+                                  <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pasal</span><span className="font-bold text-slate-800">{p.pasal}</span>{p.juncto && <span className="text-xs text-slate-400 block">Jo. {p.juncto}</span>}</div>
+                                  <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Pidana</span><span className="text-slate-700">{p.tindak_pidana}</span></div>
+                                  <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Vonis</span><span className="text-slate-700">{p.vonis_pidana}</span></div>
+                                  <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Uang Pengganti</span><span className="text-orange-600 font-medium">{p.uang_pengganti ? `Rp ${Number(p.uang_pengganti).toLocaleString('id-ID')}` : '—'}</span></div>
+                                  <div><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Ekspirasi</span><span className="text-rose-600 font-medium">{p.tanggal_ekspirasi || '—'}</span></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {perkaraList.length === 0 && <div className="flex items-center justify-center gap-2 py-4 text-sm text-slate-400 italic rounded-xl border border-dashed border-rose-100 bg-rose-50/30"><AlertCircle className="w-4 h-4 text-rose-300" />Belum ada data perkara ditambahkan.</div>}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div>
                       {layananSubTab === 'litmas' && <FormLitmas editingLitmas={editingLitmas} refJenisLitmas={refJenisLitmas} refUpt={refUpt} refBapas={refBapas} selectedJenisLitmas={selectedJenisLitmas} setSelectedJenisLitmas={setSelectedJenisLitmas} selectedUpt={selectedUpt} setSelectedUpt={setSelectedUpt} selectedBapas={selectedBapas} setSelectedBapas={setSelectedBapas} nomorUrutLayanan={nomorUrutLayanan} setNomorUrutLayanan={setNomorUrutLayanan} SearchableSelect={SearchableSelect} />}

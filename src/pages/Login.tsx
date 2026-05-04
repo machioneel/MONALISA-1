@@ -1,29 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, Fingerprint, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, CheckCircle2, KeyRound } from 'lucide-react';
 import { z } from 'zod';
 
+// Skema validasi untuk NIP dan Password
 const loginSchema = z.object({
   nip: z.string().min(1, 'NIP harus diisi').regex(/^\d+$/, 'NIP hanya boleh berisi angka'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
 });
 
+// Skema validasi untuk OTP
+const otpSchema = z.object({
+  otp: z.string().length(6, 'Kode OTP harus 6 digit').regex(/^\d+$/, 'OTP hanya berisi angka'),
+});
+
 export default function Login() {
+  // State kredensial
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  
+  // State untuk alur UI
+  const [step, setStep] = useState<'login' | 'otp'>('login');
+  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<{ nip?: string; password?: string }>({});
+  const [validationErrors, setValidationErrors] = useState<{ nip?: string; password?: string; otp?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-
-  // ✅ Tambahan CapsLock
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
 
   const { signIn, user } = useAuth();
@@ -32,13 +44,23 @@ export default function Login() {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
+  // PERBAIKAN LOGIKA REDIRECT: Jangan redirect instan jika animasi (showWelcome) sedang berjalan
   useEffect(() => {
-    if (user && !showWelcome && !isLoading) {
+    const isOtpVerified = sessionStorage.getItem('otp_verified') === 'true';
+    
+    // Auto-redirect jika user iseng buka URL /login saat sudah diverifikasi penuh
+    if (user && isOtpVerified && !showWelcome) {
       navigate(from, { replace: true });
     }
-  }, [user, navigate, from, showWelcome, isLoading]);
+    
+    // Bersihkan sesi OTP jika user dalam status logout (untuk keamanan)
+    if (!user) {
+      sessionStorage.removeItem('otp_verified');
+    }
+  }, [user, showWelcome, navigate, from]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // TAHAP 1: Submit NIP & Password
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setValidationErrors({});
@@ -56,22 +78,69 @@ export default function Login() {
 
     setIsLoading(true);
 
+    // Memvalidasi kredensial pengguna ke Supabase
     const { error: signInError } = await signIn(nip, password);
 
     if (signInError) {
       setError(signInError);
       setIsLoading(false);
     } else {
-      setShowWelcome(true);
-      setIsLoading(false);
-
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 2000);
+      // Jika berhasil, buat kode OTP acak
+      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(newOtp);
+      
+      try {
+        // Memanggil Edge Function untuk mengirim OTP via WhatsApp
+        await supabase.functions.invoke('send-wa-otp', {
+            body: { nip, otp: newOtp }
+        });
+        
+        // Ubah tampilan ke form OTP
+        setStep('otp');
+      } catch (funcError) {
+        setError('Berhasil login, namun gagal mengirimkan kode OTP ke WhatsApp Anda.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  // ✅ Handler CapsLock
+  // TAHAP 2: Verifikasi OTP
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setValidationErrors({});
+
+    const result = otpSchema.safeParse({ otp: otpCode });
+    if (!result.success) {
+      setValidationErrors({ otp: result.error.errors[0].message });
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Simulasi jeda singkat agar UX terasa natural (proses verifikasi)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Membandingkan OTP yang dimasukkan dengan OTP yang dikirim
+    if (otpCode === generatedOtp) {
+      // SET FLAG OTP TERVERIFIKASI
+      sessionStorage.setItem('otp_verified', 'true');
+      
+      // Memicu animasi "Selamat Datang"
+      setShowWelcome(true);
+      setIsLoading(false);
+
+      // Pindah ke dashboard setelah animasi selesai (2 detik)
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 2000);
+    } else {
+      setError('Kode OTP salah. Silakan periksa pesan WhatsApp Anda.');
+      setIsLoading(false);
+    }
+  };
+
   const handleCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setIsCapsLockOn(e.getModifierState('CapsLock'));
   };
@@ -79,6 +148,29 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full grid lg:grid-cols-2 relative">
       
+      {/* ANIMASI SAAT PROSES VERIFIKASI OTP */}
+      {isLoading && step === 'otp' && !showWelcome && (
+        <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300">
+          <div className="text-center space-y-6 animate-in zoom-in-95 duration-300">
+            <div className="relative flex items-center justify-center mx-auto w-32 h-32">
+              <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
+              <div className="absolute inset-4 bg-blue-500/40 rounded-full animate-pulse" />
+              <div className="relative z-10 bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/40">
+                <KeyRound className="h-8 w-8 text-white animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold tracking-tight text-foreground">Memverifikasi OTP</h3>
+              <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                Mencocokkan kode keamanan...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ANIMASI SAAT LOGIN SUKSES SEPENUHNYA */}
       {showWelcome && (
         <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
           <div className="text-center space-y-4 animate-in zoom-in-50 slide-in-from-bottom-10 duration-500 fill-mode-forwards">
@@ -121,120 +213,175 @@ export default function Login() {
 
           <Card className="border-0 shadow-none sm:border sm:shadow-lg">
              <CardHeader className="space-y-1 pb-2">
-                <CardTitle className="text-xl text-center">Login Pegawai</CardTitle>
+                <CardTitle className="text-xl text-center">
+                    {step === 'login' ? 'Login Pegawai' : 'Verifikasi 2 Langkah'}
+                </CardTitle>
                 <CardDescription className="text-center">
-                   Masuk menggunakan NIP dan Password
+                   {step === 'login' ? 'Masuk menggunakan NIP dan Password' : 'Masukkan kode OTP yang dikirim ke WhatsApp Anda'}
                 </CardDescription>
              </CardHeader>
 
             <CardContent className="pt-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                
-                {error && (
-                  <Alert variant="destructive" className="animate-in zoom-in-95 duration-200">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+              
+              {error && (
+                <Alert variant="destructive" className="mb-4 animate-in zoom-in-95 duration-200">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="nip" className={validationErrors.nip ? 'text-destructive' : ''}>
-                    NIP
-                  </Label>
-                  <div className="relative group">
-                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input
-                      id="nip"
-                      type="text"
-                      placeholder="Nomor Induk Pegawai"
-                      value={nip}
-                      onChange={(e) => setNip(e.target.value)}
-                      disabled={isLoading || showWelcome}
-                      className={`pl-10 transition-all ${validationErrors.nip ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
-                    />
-                  </div>
-                  {validationErrors.nip && (
-                    <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
-                      {validationErrors.nip}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className={validationErrors.password ? 'text-destructive' : ''}>
-                        Password
-                    </Label>
-                    <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">
-                        Lupa password?
-                    </Link>
-                  </div>
-                  
-                  <div className="relative group">
-                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onKeyDown={handleCapsLock}
-                      onKeyUp={handleCapsLock}
-                      onBlur={() => setIsCapsLockOn(false)}
-                      disabled={isLoading || showWelcome}
-                      className={`pl-10 pr-10 transition-all ${validationErrors.password ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading || showWelcome}
-                      tabIndex={-1} 
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
+              {/* TAMPILAN FORM LOGIN KREDENSIAL */}
+              {step === 'login' && (
+                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nip" className={validationErrors.nip ? 'text-destructive' : ''}>
+                        NIP
+                      </Label>
+                      <div className="relative group">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Input
+                          id="nip"
+                          type="text"
+                          placeholder="Nomor Induk Pegawai"
+                          value={nip}
+                          onChange={(e) => setNip(e.target.value)}
+                          disabled={isLoading || showWelcome}
+                          className={`pl-10 transition-all ${validationErrors.nip ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
+                        />
+                      </div>
+                      {validationErrors.nip && (
+                        <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
+                          {validationErrors.nip}
+                        </p>
                       )}
-                      <span className="sr-only">Toggle visibility</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password" className={validationErrors.password ? 'text-destructive' : ''}>
+                            Password
+                        </Label>
+                        <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">
+                            Lupa password?
+                        </Link>
+                      </div>
+                      
+                      <div className="relative group">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onKeyDown={handleCapsLock}
+                          onKeyUp={handleCapsLock}
+                          onBlur={() => setIsCapsLockOn(false)}
+                          disabled={isLoading || showWelcome}
+                          className={`pl-10 pr-10 transition-all ${validationErrors.password ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading || showWelcome}
+                          tabIndex={-1} 
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <span className="sr-only">Toggle visibility</span>
+                        </Button>
+                      </div>
+
+                      {isCapsLockOn && (
+                        <p className="text-[0.8rem] font-medium text-amber-600 animate-in slide-in-from-top-1">
+                          ⚠️ Caps Lock aktif
+                        </p>
+                      )}
+
+                      {validationErrors.password && (
+                        <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
+                          {validationErrors.password}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 transition-all hover:scale-[1.01]" 
+                        disabled={isLoading || showWelcome}
+                    >
+                      {isLoading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memeriksa Data...</>
+                      ) : (
+                        'Masuk Aplikasi'
+                      )}
                     </Button>
-                  </div>
+                  </form>
+              )}
 
-                  {/* ✅ CapsLock Warning (tambahan doang, gak ubah design) */}
-                  {isCapsLockOn && (
-                    <p className="text-[0.8rem] font-medium text-amber-600 animate-in slide-in-from-top-1">
-                      ⚠️ Caps Lock aktif
-                    </p>
-                  )}
+              {/* TAMPILAN FORM OTP */}
+              {step === 'otp' && (
+                  <form onSubmit={handleVerifyOTP} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="space-y-2">
+                      <Label htmlFor="otp" className={validationErrors.otp ? 'text-destructive' : ''}>
+                        Kode OTP (6 Digit)
+                      </Label>
+                      <div className="relative group">
+                        <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Input
+                          id="otp"
+                          type="text"
+                          maxLength={6}
+                          placeholder="••••••"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                          disabled={isLoading || showWelcome}
+                          className={`pl-10 font-mono tracking-widest text-center text-lg transition-all ${validationErrors.otp ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
+                        />
+                      </div>
+                      {validationErrors.otp && (
+                        <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
+                          {validationErrors.otp}
+                        </p>
+                      )}
+                      <p className="text-xs text-center text-muted-foreground mt-2">
+                        Belum menerima kode? <button type="button" className="text-primary hover:underline" onClick={handleLoginSubmit}>Kirim ulang</button>
+                      </p>
+                    </div>
 
-                  {validationErrors.password && (
-                    <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
-                      {validationErrors.password}
-                    </p>
-                  )}
-                </div>
+                    <Button 
+                        type="submit" 
+                        className="w-full h-11 text-base font-medium bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all hover:scale-[1.01]" 
+                        disabled={isLoading || showWelcome || otpCode.length !== 6}
+                    >
+                      {isLoading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memverifikasi...</>
+                      ) : showWelcome ? (
+                        'Berhasil Masuk'
+                      ) : (
+                        'Verifikasi & Lanjutkan'
+                      )}
+                    </Button>
+                    
+                    <div className="text-center pt-2">
+                      <button 
+                        type="button" 
+                        onClick={async () => { 
+                            setStep('login'); 
+                            setOtpCode(''); 
+                            setError(null); 
+                            await supabase.auth.signOut(); 
+                        }}
+                        className="text-sm text-muted-foreground underline hover:text-primary transition-colors"
+                      >
+                        Kembali ke Login
+                      </button>
+                    </div>
+                  </form>
+              )}
 
-                <Button 
-                    type="submit" 
-                    className="w-full h-11 text-base font-medium shadow-lg shadow-primary/20 transition-all hover:scale-[1.01]" 
-                    disabled={isLoading || showWelcome}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Memverifikasi...
-                    </>
-                  ) : showWelcome ? (
-                    'Berhasil Masuk'
-                  ) : (
-                    <>
-                       Masuk Aplikasi
-                    </>
-                  )}
-                </Button>
-              </form>
             </CardContent>
           </Card>
           
