@@ -157,16 +157,16 @@ export const HIERARKI_LAYANAN_ANAK = {
 // --- HIERARKI LAYANAN DEWASA ---
 export const HIERARKI_LAYANAN_DEWASA = {
   pendampingan: {
-    "Pra Ajudikasi": [
+    "Pra Adjudikasi": [
       "Pendampingan Tingkat Penyidikan (BAP)",
       "Pendampingan Tingkat Penuntutan (P21)",
       "Pendampingan Layanan Tahanan"
     ],
-    "Ajudikasi": [
+    "Adjudikasi": [
       "Pendampingan Tingkat Pemeriksaan Perkara di Pengadilan",
       "Pendampingan Layanan Tahanan dalam Tahap Persidangan"
     ],
-    "Pasca Ajudikasi": [
+    "Pasca Adjudikasi": [
       "Pendampingan Putusan Penjara",
       "Pendampingan Putusan Non Pemenjaraan",
       "Pendampingan Klien Menjalani Program Integrasi"
