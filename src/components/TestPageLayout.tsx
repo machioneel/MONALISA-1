@@ -26,22 +26,24 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+
 const menuItems = [
   { path: '/admin', permission: 'access_admin', label: 'Admin Panel', icon: Settings },
   { path: '/test/kabapas', permission: 'access_kabapas', label: 'Kabapas', icon: Building2 },
   { path: '/test/kasie', permission: 'access_kasie', label: 'Kasie', icon: Shield },
   { path: '/test/kasubsie', permission: 'access_kasubsie', label: 'Kasubsie', icon: Users },
   { path: '/test/operator-registrasi', permission: 'access_operator_registrasi', label: 'Registrasi Klien', icon: ClipboardList },
-  { path: '/test/anev', permission: 'access_anev', label: 'Anev', icon: BarChart3 },
-  { path: '/test/pk', permission: 'access_pk', label: 'PK', icon: User },
-  { path: '/test/persuratan', permission: 'access_persuratan', label: 'Persuratan', icon: Mail },
-  { path: '/test/bimker', permission: 'access_bimker', label: 'Bimker', icon: Briefcase },
-  { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimkemas', icon: Users },
-  { path: '/test/tpp', permission: 'access_tpp', label: 'TPP', icon: TrendingUp },
+  { path: '/test/anev', permission: 'access_anev', label: 'Analisis & Evaluasi', icon: BarChart3 },
+  { path: '/test/pk', permission: 'access_pk', label: 'Pembimbing Kemasyarakatan', icon: User },
+  { path: '/test/persuratan', permission: 'access_persuratan', label: 'Administrasi', icon: Mail },
+  { path: '/test/bimker', permission: 'access_bimker', label: 'Bimbingan Kerja', icon: Briefcase },
+  { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimbingan Kemasyarakatan', icon: Users },
+  { path: '/test/tpp', permission: 'access_tpp', label: 'Sidang TPP', icon: TrendingUp },
   { path: '/test/laporan', permission: 'access_laporan', label: 'Laporan', icon: FileText },
-  { path: '/wajib-lapor', permission: 'access_admin', label: 'Wajib Lapor', icon: CheckCircle },
-  { path: '/about', permission:'access_admin', label: 'About', icon: Info},
+  { path: '/wajib-lapor', permission: '', label: 'Wajib Lapor', icon: CheckCircle },
+  { path: '/about', permission:'', label: 'About', icon: Info},
 ];
+
 
 interface TestPageLayoutProps {
   title: string;
@@ -68,8 +70,8 @@ export function TestPageLayout({ title, description, permissionCode, icon, child
     localStorage.setItem('sidebarMinimized', String(isSidebarMinimized));
   }, [isSidebarMinimized]);
 
-  const hasAccess = hasPermission(permissionCode);
-  const accessibleMenus = menuItems.filter(item => hasPermission(item.permission));
+  const hasAccess = !permissionCode || hasPermission(permissionCode);
+  const accessibleMenus = menuItems.filter(item => !item.permission || hasPermission(item.permission));
   
   // @ts-ignore
   const fotoUrl = user?.employee?.foto_url;
@@ -87,10 +89,10 @@ export function TestPageLayout({ title, description, permissionCode, icon, child
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 border-r dark:border-slate-800 relative">
       <div className={cn("h-16 flex items-center border-b dark:border-slate-800 shrink-0 relative", isSidebarMinimized ? "justify-center px-0" : "px-6")}>
-        <div className={cn("w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0", !isSidebarMinimized && "mr-3")}>
-          <img src="/favicon.ico" alt="Logo" className="w-5 h-5 object-contain" />
+        <div className={cn("w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none shrink-0", !isSidebarMinimized && "mr-3")}>
+          <img src="/favicon.ico" alt="Logo" className="w-6 h-6 object-contain" style={{filter: 'brightness(0) invert(1)'}} />
         </div>
-        {!isSidebarMinimized && <span className="text-lg font-bold text-slate-800 dark:text-white">MONALISA</span>}
+        {!isSidebarMinimized && <span className="block text-lg font-black text-slate-800 dark:text-white tracking-tight leading-none">MONALISA</span>}
         
         <Button 
             variant="outline" 
@@ -197,7 +199,7 @@ export function TestPageLayout({ title, description, permissionCode, icon, child
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 dark:bg-slate-950/50">
-      <aside className={cn("hidden md:block fixed inset-y-0 z-30 shadow-sm transition-all duration-300 ease-in-out", isSidebarMinimized ? "w-20" : "w-64")}>
+      <aside className={cn("hidden md:block fixed inset-y-0 z-30 shadow-sm transition-all duration-300 ease-in-out", isSidebarMinimized ? "w-20" : "w-72")}>
           <SidebarContent />
       </aside>
       
@@ -213,11 +215,11 @@ export function TestPageLayout({ title, description, permissionCode, icon, child
         </div>
       )}
       
-      <main className={cn("flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out", isSidebarMinimized ? "md:pl-20" : "md:pl-64")}>
+      <main className={cn("flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out", isSidebarMinimized ? "md:pl-20" : "md:pl-72")}>
         <header className="md:hidden bg-white dark:bg-slate-900 border-b dark:border-slate-800 h-16 flex items-center justify-between px-4 sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-3">
              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-5 h-5 text-slate-700 dark:text-slate-300" /></Button>
-             <span className="font-semibold text-lg tracking-tight text-slate-800 dark:text-white">MONALISA</span>
+             <span className="block text-lg font-black text-slate-800 dark:text-white tracking-tight leading-none">MONALISA</span>
           </div>
           <ModeToggle />
         </header>

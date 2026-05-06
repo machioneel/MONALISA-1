@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { CalendarDays, Plus, Users, Calendar, Loader2, Pencil, Trash2, Eye, RefreshCw } from 'lucide-react';
+import { CalendarDays, Plus, Users, Calendar, Loader2, Pencil, Trash2, Eye, RefreshCw, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function BimkemasTest() {
@@ -55,14 +55,16 @@ export default function BimkemasTest() {
   };
   const [formData, setFormData] = useState(initialFormState);
 
-  // 1. FUNGSI MENGAMBIL DATA JADWAL
+  // 1. FUNGSI MENGAMBIL DATA JADWAL (DIPERBARUI DENGAN COUNT PENDAFTAR)
   const fetchJadwal = async () => {
     setLoading(true);
     try {
       const db: any = supabase;
       const { data, error } = await db
         .from('jadwal_bimbingan')
-        .select('*')
+        // Menarik data beserta jumlah relasi dari tabel peserta_bimbingan
+        .select('*, peserta_bimbingan(count)')
+        .in('jenis_kegiatan', ['Perintis', 'Bimbingan Kepribadian'])
         .order('tanggal_mulai', { ascending: false });
 
       if (error) throw error;
@@ -79,13 +81,11 @@ export default function BimkemasTest() {
     fetchJadwal();
   }, []);
 
-  // 2. FUNGSI MENANGANI PERUBAHAN INPUT FORMULIR
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 3. FUNGSI MENGAMBIL DATA PESERTA UNTUK JADWAL TERTENTU
   const handleLihatPeserta = async (jadwal: any) => {
     setSelectedJadwalNama(jadwal.nama_kegiatan);
     setIsPesertaDialogOpen(true);
@@ -108,7 +108,6 @@ export default function BimkemasTest() {
     }
   };
 
-  // 4. FUNGSI MEMBUKA FORM EDIT
   const handleEditClick = (jadwal: any) => {
     setFormData({
       nama_kegiatan: jadwal.nama_kegiatan,
@@ -123,7 +122,6 @@ export default function BimkemasTest() {
     setIsDialogOpen(true);
   };
 
-  // 5. FUNGSI MENYIMPAN JADWAL BARU & EDIT
   const handleSimpanJadwal = async () => {
     if (!formData.nama_kegiatan || !formData.tanggal_mulai || !formData.tanggal_selesai) {
       toast({ variant: "destructive", title: "Validasi Gagal", description: "Nama Kegiatan dan Rentang Tanggal wajib diisi." });
@@ -182,7 +180,6 @@ export default function BimkemasTest() {
     }
   };
 
-  // 6. FUNGSI MENGHAPUS JADWAL
   const executeDelete = async () => {
     if (!deletingId) return;
     try {
@@ -200,11 +197,9 @@ export default function BimkemasTest() {
     }
   };
 
-  // 7. FUNGSI SINKRONISASI PESERTA MANUAL (REFRESH)
   const handleSyncPeserta = async (jadwal: any) => {
     setSyncingId(jadwal.id);
     try {
-      // Memanggil fungsi dari bimbinganUtils
       const { syncPesertaPerintisBatch } = await import('@/lib/bimbinganUtils');
       await syncPesertaPerintisBatch(jadwal.id, jadwal.tanggal_mulai);
       
@@ -212,6 +207,8 @@ export default function BimkemasTest() {
         title: "Sinkronisasi Berhasil", 
         description: "Klien baru yang memenuhi syarat telah ditambahkan ke jadwal ini." 
       });
+      // Refresh jadwal agar angka pendaftar langsung ter-update
+      fetchJadwal();
     } catch (error: any) {
       console.error("Gagal sinkronisasi manual:", error);
       toast({ variant: "destructive", title: "Gagal Sinkronisasi", description: "Terjadi kesalahan saat memproses data." });
@@ -236,17 +233,19 @@ export default function BimkemasTest() {
       title="Manajemen Jadwal Bimkemas"
       description="Kelola jadwal kegiatan Bimbingan dan Perintis untuk klien."
       permissionCode="access_bimkemas"
-      icon={<CalendarDays className="w-6 h-6" />}
+      icon={<CalendarDays className="w-6 h-6 text-primary" />}
     >
-      <Card className="border-0 shadow-md ring-1 ring-slate-200">
+      <Card className="border-0 shadow-md ring-1 ring-slate-200 mt-6">
         <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between py-4">
           <div>
-            <CardTitle className="text-lg font-bold text-slate-800">Daftar Jadwal Kegiatan</CardTitle>
+            <CardTitle className="text-lg font-bold text-slate-800">Daftar Jadwal Bimkemas</CardTitle>
             <p className="text-xs text-slate-500 mt-1">Jadwal yang dibuat di sini akan muncul pada halaman Petugas PK saat mendaftarkan klien.</p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" /> Buat Jadwal Baru
-          </Button>
+          {isBimkemas && (
+            <Button onClick={() => setIsDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> Buat Jadwal Baru
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -256,6 +255,8 @@ export default function BimkemasTest() {
                 <TableHead className="font-bold">Jenis Program</TableHead>
                 <TableHead className="font-bold">Pelaksanaan</TableHead>
                 <TableHead className="font-bold text-center">Kuota</TableHead>
+                {/* KOLOM BARU PENDAFTAR */}
+                <TableHead className="font-bold text-center">Pendaftar</TableHead>
                 <TableHead className="font-bold text-center">Status</TableHead>
                 <TableHead className="font-bold text-right pr-6">Aksi</TableHead>
               </TableRow>
@@ -263,88 +264,105 @@ export default function BimkemasTest() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
+                  <TableCell colSpan={7} className="text-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400 mb-2" />
                     <p className="text-sm text-slate-500">Memuat jadwal...</p>
                   </TableCell>
                 </TableRow>
               ) : jadwalList.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-slate-500 italic border-b-0">
-                    Belum ada jadwal kegiatan yang dibuat. Klik "Buat Jadwal Baru" untuk memulai.
+                  <TableCell colSpan={7} className="text-center py-12 text-slate-500 italic border-b-0">
+                    Belum ada jadwal kegiatan Bimkemas yang dibuat. Klik "Buat Jadwal Baru" untuk memulai.
                   </TableCell>
                 </TableRow>
               ) : (
-                jadwalList.map((jadwal) => (
-                  <TableRow key={jadwal.id} className="hover:bg-slate-50 transition-colors">
-                    <TableCell className="py-4">
-                      <p className="font-semibold text-slate-800">{jadwal.nama_kegiatan}</p>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">{jadwal.keterangan || '-'}</p>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
-                        {jadwal.jenis_kegiatan}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex flex-col text-xs text-slate-600 gap-1.5">
-                        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {formatDateIndo(jadwal.tanggal_mulai)}</span>
-                        <span className="text-slate-400 flex items-center gap-1.5">s.d {formatDateIndo(jadwal.tanggal_selesai)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-700">
-                        <Users className="w-4 h-4 text-slate-400" /> {jadwal.kuota}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      <Badge className={
-                        jadwal.status === 'Open' ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-200" :
-                        jadwal.status === 'Completed' ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200" :
-                        "bg-rose-100 text-rose-700 hover:bg-rose-200 border-rose-200"
-                      }>
-                        {jadwal.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right pr-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        {/* TOMBOL SYNC (HANYA UNTUK PERINTIS) */}
-                        {jadwal.jenis_kegiatan === 'Perintis' && (
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            className="h-8 w-8 text-amber-600 border-amber-200 hover:bg-amber-50" 
-                            onClick={() => handleSyncPeserta(jadwal)}
-                            disabled={syncingId === jadwal.id}
-                            title="Tarik peserta baru secara otomatis"
-                          >
-                            <RefreshCw className={cn("w-3.5 h-3.5", syncingId === jadwal.id && "animate-spin")} />
+                jadwalList.map((jadwal) => {
+                  // MENGAMBIL ANGKA TOTAL PENDAFTAR DARI HASIL QUERY COUNT
+                  const totalPendaftar = jadwal.peserta_bimbingan?.[0]?.count || 0;
+                  
+                  return (
+                    <TableRow key={jadwal.id} className="hover:bg-slate-50 transition-colors">
+                      <TableCell className="py-4">
+                        <p className="font-semibold text-slate-800">{jadwal.nama_kegiatan}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">{jadwal.keterangan || '-'}</p>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                          {jadwal.jenis_kegiatan}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex flex-col text-xs text-slate-600 gap-1.5">
+                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-slate-400" /> {formatDateIndo(jadwal.tanggal_mulai)}</span>
+                          <span className="text-slate-400 flex items-center gap-1.5">s.d {formatDateIndo(jadwal.tanggal_selesai)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center py-4">
+                        <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-700">
+                          <Users className="w-4 h-4 text-slate-400" /> {jadwal.kuota}
+                        </div>
+                      </TableCell>
+                      
+                      {/* TAMPILAN KOLOM PENDAFTAR */}
+                      <TableCell className="text-center py-4">
+                        <div className="flex items-center justify-center gap-1.5 text-sm">
+                          <UserCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="font-bold text-emerald-700">{totalPendaftar}</span>
+                          <span className="text-xs text-slate-500">Orang</span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-center py-4">
+                        <Badge className={
+                          jadwal.status === 'Open' ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-200" :
+                          jadwal.status === 'Completed' ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200" :
+                          "bg-rose-100 text-rose-700 hover:bg-rose-200 border-rose-200"
+                        }>
+                          {jadwal.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          {jadwal.jenis_kegiatan === 'Perintis' && (
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8 text-amber-600 border-amber-200 hover:bg-amber-50" 
+                              onClick={() => handleSyncPeserta(jadwal)}
+                              disabled={syncingId === jadwal.id}
+                              title="Tarik peserta baru secara otomatis"
+                            >
+                              <RefreshCw className={cn("w-3.5 h-3.5", syncingId === jadwal.id && "animate-spin")} />
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" className="h-8 text-xs font-medium text-emerald-700 border-emerald-200 hover:bg-emerald-50 bg-emerald-50/30" onClick={() => handleLihatPeserta(jadwal)}>
+                            <Eye className="w-3.5 h-3.5 mr-1.5" /> Peserta
                           </Button>
-                        )}
-                        <Button variant="outline" size="sm" className="h-8 text-xs font-medium text-emerald-700 border-emerald-200 hover:bg-emerald-50 bg-emerald-50/30" onClick={() => handleLihatPeserta(jadwal)}>
-                          <Eye className="w-3.5 h-3.5 mr-1.5" /> Peserta
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => handleEditClick(jadwal)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => { setDeletingId(jadwal.id); setIsDeleteDialogOpen(true); }}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {isBimkemas && (
+                            <>
+                              <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => handleEditClick(jadwal)}>
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button variant="outline" size="icon" className="h-8 w-8 text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => { setDeletingId(jadwal.id); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* DIALOG FORMULIR JADWAL */}
       <Dialog open={isDialogOpen} onOpenChange={handleTutupDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Jadwal Kegiatan" : "Buat Jadwal Kegiatan Baru"}</DialogTitle>
+            <DialogTitle>{editingId ? "Edit Jadwal Bimkemas" : "Buat Jadwal Bimkemas Baru"}</DialogTitle>
             <DialogDescription>
               {editingId ? "Sesuaikan kembali rincian kegiatan di bawah ini." : "Tentukan nama, waktu, jenis, dan kapasitas kegiatan."}
             </DialogDescription>
@@ -374,8 +392,7 @@ export default function BimkemasTest() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Perintis">Perintis</SelectItem>
-                  <SelectItem value="Pembimbingan Kepribadian">Pembimbingan Kepribadian</SelectItem>
-                  <SelectItem value="Pembimbingan Kemandirian">Pembimbingan Kemandirian</SelectItem>
+                  <SelectItem value="Bimbingan Kepribadian">Bimbingan Kepribadian</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -445,7 +462,6 @@ export default function BimkemasTest() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG DAFTAR PESERTA */}
       <Dialog open={isPesertaDialogOpen} onOpenChange={setIsPesertaDialogOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -514,7 +530,6 @@ export default function BimkemasTest() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG KONFIRMASI HAPUS */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="border-l-4 border-rose-600">
           <AlertDialogHeader>

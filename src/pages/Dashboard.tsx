@@ -67,16 +67,16 @@ const menuItems = [
   { path: '/test/kabapas', permission: 'access_kabapas', label: 'Kabapas', icon: Building2 },
   { path: '/test/kasie', permission: 'access_kasie', label: 'Kasie', icon: Shield }, 
   { path: '/test/kasubsie', permission: 'access_kasubsie', label: 'Kasubsie', icon: Users },
-  { path: '/test/operator-registrasi', permission: 'access_operator_registrasi', label: 'Registrasi', icon: ClipboardList },
-  { path: '/test/anev', permission: 'access_anev', label: 'Anev', icon: BarChart3 },
-  { path: '/test/pk', permission: 'access_pk', label: 'PK', icon: User },
-  { path: '/test/persuratan', permission: 'access_persuratan', label: 'Persuratan', icon: Mail },
-  { path: '/test/bimker', permission: 'access_bimker', label: 'Bimker', icon: Briefcase },
-  { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimkemas', icon: Users },
-  { path: '/test/tpp', permission: 'access_tpp', label: 'TPP', icon: TrendingUp },
+  { path: '/test/operator-registrasi', permission: 'access_operator_registrasi', label: 'Registrasi Klien', icon: ClipboardList },
+  { path: '/test/anev', permission: 'access_anev', label: 'Analisis & Evaluasi', icon: BarChart3 },
+  { path: '/test/pk', permission: 'access_pk', label: 'Pembimbing Kemasyarakatan', icon: User },
+  { path: '/test/persuratan', permission: 'access_persuratan', label: 'Administrasi', icon: Mail },
+  { path: '/test/bimker', permission: 'access_bimker', label: 'Bimbingan Kerja', icon: Briefcase },
+  { path: '/test/bimkemas', permission: 'access_bimkemas', label: 'Bimbingan Kemasyarakatan', icon: Users },
+  { path: '/test/tpp', permission: 'access_tpp', label: 'Sidang TPP', icon: TrendingUp },
   { path: '/test/laporan', permission: 'access_laporan', label: 'Laporan', icon: FileText },
-  { path: '/wajib-lapor', permission: 'access_admin', label: 'Wajib Lapor', icon: CheckCircle },
-  { path: '/about', permission:'access_admin', label: 'About', icon: Info},
+  { path: '/wajib-lapor', permission: '', label: 'Wajib Lapor', icon: CheckCircle },
+  { path: '/about', permission:'', label: 'About', icon: Info},
 ];
 
 const StatCard = ({ title, value, icon: Icon, description, colorClass = "text-slate-600", bgClass = "bg-slate-100", gradient }: any) => (
@@ -408,7 +408,7 @@ export default function Dashboard() {
   };
 
   const handleConfirmSignOut = async () => { await signOut(); navigate('/login'); };
-  const accessibleMenus = menuItems.filter(item => hasPermission(item.permission));
+  const accessibleMenus = menuItems.filter(item => !item.permission || hasPermission(item.permission));
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r dark:border-slate-800 shadow-sm relative">
@@ -419,7 +419,7 @@ export default function Dashboard() {
         {!isSidebarMinimized && (
             <div className="overflow-hidden">
                 <span className="block text-lg font-black text-slate-800 dark:text-white tracking-tight leading-none">MONALISA</span>
-                <span className="block text-[10px] text-slate-500 font-medium tracking-widest uppercase mt-1 truncate">Dashboard Sistem</span>
+                
             </div>
         )}
         

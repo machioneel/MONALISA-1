@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Camera, CheckCircle2, Focus, XCircle, Phone, ChevronsUpDown, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Badge } from "@/components/ui/badge"; // Menambahkan import Badge
+import { Camera, CheckCircle2, Focus, XCircle, Phone, ChevronsUpDown, Check, Image as ImageIcon, Loader2, MapPin } from 'lucide-react'; // Menambahkan MapPin
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,10 @@ export function PKWajibLaporDialog({
   const [openCombo, setOpenCombo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- STATE LOKASI ---
+  const [lokasi, setLokasi] = useState<{ lat: number; lng: number } | null>(null);
+  const [loadingLokasi, setLoadingLokasi] = useState(false);
+
   // Camera & Photo States
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -45,7 +50,6 @@ export function PKWajibLaporDialog({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Sinkronisasi state saat dibuka dari tabel
   useEffect(() => {
     if (isOpen) {
       setSelectedClient(initialClientId);
@@ -107,6 +111,36 @@ export function PKWajibLaporDialog({
     }
   };
 
+  // --- FUNGSI MENDAPATKAN LOKASI ---
+  const dapatkanLokasi = () => {
+    setLoadingLokasi(true);
+
+    if (!navigator.geolocation) {
+        toast({ variant: "destructive", title: "Error", description: "Browser Anda tidak mendukung fitur lokasi." });
+        setLoadingLokasi(false);
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            setLokasi({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+            });
+            toast({ title: "Berhasil", description: "Lokasi berhasil didapatkan." });
+            setLoadingLokasi(false);
+        },
+        (error) => {
+            let pesanError = "Gagal mendapatkan lokasi.";
+            if (error.code === error.PERMISSION_DENIED) pesanError = "Izin lokasi ditolak. Mohon izinkan akses lokasi di pengaturan peramban.";
+            
+            toast({ variant: "destructive", title: "Gagal", description: pesanError });
+            setLoadingLokasi(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   const resetData = () => {
     setSelectedClient("");
     setTelepon("");
@@ -114,6 +148,7 @@ export function PKWajibLaporDialog({
     setPhoto(null);
     setPhotoPreview(null);
     setIsCameraOpen(false);
+    setLokasi(null); // Reset lokasi saat ditutup
   };
 
   const handleClose = () => {
@@ -125,9 +160,34 @@ export function PKWajibLaporDialog({
     e.preventDefault();
     if (!selectedClient) return toast({ variant: "destructive", title: "Error", description: "Pilih klien terlebih dahulu." });
     if (!photo) return toast({ variant: "destructive", title: "Error", description: "Foto wajib dilampirkan." });
+    if (!lokasi) return toast({ variant: "destructive", title: "Error", description: "Lokasi (GPS) wajib diaktifkan." });
 
     setIsSubmitting(true);
     try {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      const { data: existingReport, error: checkError } = await (supabase as any)
+        .from('wajib_lapor')
+        .select('id')
+        .eq('id_klien', parseInt(selectedClient))
+        .gte('tanggal_lapor', startOfMonth)
+        .lte('tanggal_lapor', endOfMonth)
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (existingReport && existingReport.length > 0) {
+        toast({ 
+          variant: "destructive", 
+          title: "Ditolak: Sudah Lapor", 
+          description: "Klien ini sudah melakukan wajib lapor pada bulan ini. Wajib lapor hanya diperbolehkan maksimal 1 kali per bulan." 
+        });
+        setIsSubmitting(false);
+        return; 
+      }
+
       const { error: phoneError } = await supabase
         .from('klien')
         .update({ nomor_telepon: telepon })
@@ -147,12 +207,15 @@ export function PKWajibLaporDialog({
         tanggal_lapor: new Date().toISOString(),
         foto_url: publicUrlData.publicUrl,
         keterangan: keterangan,
-        status_validasi: 'Valid' 
+        status_validasi: 'Valid',
+        // Mengirimkan lokasi ke tabel
+        latitude: lokasi.lat,
+        longitude: lokasi.lng
       });
 
       if (dbError) throw dbError;
 
-      toast({ title: "Berhasil", description: "Wajib Lapor disimpan dan nomor telepon diperbarui." });
+      toast({ title: "Berhasil", description: "Wajib Lapor berhasil disimpan!" });
       handleClose();
       onSuccess();
 
@@ -171,7 +234,7 @@ export function PKWajibLaporDialog({
             <Camera className="w-6 h-6 text-emerald-600" /> Form Input Wajib Lapor Klien
           </DialogTitle>
           <DialogDescription>
-            Lakukan verifikasi kehadiran klien dan perbarui informasi kontak jika diperlukan.
+            Lakukan verifikasi kehadiran klien dan perbarui informasi kontak jika diperlukan. Klien maksimal lapor 1x sebulan.
           </DialogDescription>
         </DialogHeader>
 
@@ -239,9 +302,48 @@ export function PKWajibLaporDialog({
                   <Label className="text-slate-600 font-semibold">Keterangan Aktivitas / Laporan</Label>
                   <Textarea 
                     value={keterangan} onChange={(e) => setKeterangan(e.target.value)} 
-                    placeholder="Tuliskan aktivitas atau kondisi terkini klien..." rows={4} className="bg-slate-50 border-slate-200"
+                    placeholder="Tuliskan aktivitas atau kondisi terkini klien..." rows={3} className="bg-slate-50 border-slate-200"
                   />
                 </div>
+
+                {/* --- BAGIAN LOKASI & MINIMAP --- */}
+                <div className={cn("grid gap-2 p-4 bg-slate-50 border border-slate-200 rounded-xl transition-opacity", !selectedClient && "opacity-50 pointer-events-none")}>
+                  <Label className="flex justify-between items-center text-slate-600 font-semibold">
+                      <span>Izin Lokasi Perangkat <span className="text-red-500">*</span></span>
+                      {lokasi && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Terekam</Badge>}
+                  </Label>
+                  
+                  <Button 
+                      type="button" 
+                      variant={lokasi ? "secondary" : "outline"} 
+                      onClick={dapatkanLokasi}
+                      disabled={loadingLokasi}
+                      className={cn("w-full transition-all border-slate-300", lokasi ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300" : "bg-white")}
+                  >
+                      {loadingLokasi ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MapPin className="w-4 h-4 mr-2" />}
+                      {lokasi ? (
+                          <span className="font-mono text-xs sm:text-sm font-semibold tracking-tight">
+                              Lat: {lokasi.lat.toFixed(5)} | Lng: {lokasi.lng.toFixed(5)}
+                          </span>
+                      ) : "Deteksi Lokasi Saat Ini"}
+                  </Button>
+                  
+                  {lokasi && (
+                      <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                          <iframe
+                              width="100%"
+                              height="180"
+                              frameBorder="0"
+                              scrolling="no"
+                              marginHeight={0}
+                              marginWidth={0}
+                              src={`https://www.openstreetmap.org/export/embed.html?bbox=${lokasi.lng - 0.005},${lokasi.lat - 0.005},${lokasi.lng + 0.005},${lokasi.lat + 0.005}&layer=mapnik&marker=${lokasi.lat},${lokasi.lng}`}
+                              className="w-full bg-slate-200"
+                          ></iframe>
+                      </div>
+                  )}
+                </div>
+                {/* --- AKHIR BAGIAN LOKASI --- */}
               </div>
             </div>
           </div>
@@ -281,7 +383,7 @@ export function PKWajibLaporDialog({
                       <Camera className="w-8 h-8" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-700">Mulai Verifikasi Wajah/Lokasi</p>
+                      <p className="text-sm font-bold text-slate-700">Mulai Verifikasi Wajah</p>
                       <p className="text-xs text-slate-500 px-4">Gunakan kamera perangkat untuk bukti kehadiran yang valid.</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 mt-2 w-full max-w-sm">
@@ -304,8 +406,8 @@ export function PKWajibLaporDialog({
 
           <div className="lg:col-span-2 flex justify-end gap-3 pt-4 border-t mt-2">
             <Button type="button" variant="outline" onClick={handleClose}>Batalkan</Button>
-            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8" disabled={isSubmitting || !photo || isCameraOpen || !selectedClient}>
-              {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin"/> Menyimpan...</> : <><CheckCircle2 className="w-4 h-4 mr-2"/> Simpan Laporan</>}
+            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8" disabled={isSubmitting || !photo || isCameraOpen || !selectedClient || !lokasi}>
+              {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin"/> Mencek & Menyimpan...</> : <><CheckCircle2 className="w-4 h-4 mr-2"/> Simpan Laporan</>}
             </Button>
           </div>
         </form>

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Plus, Clock, FileText, ListCollapse, UserX, Loader2, Camera } from 'lucide-react';
+import { Plus, FileText, ListCollapse, UserX, Loader2, Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -16,18 +16,25 @@ interface PKPembimbinganTableProps {
   tasks: any[];
   loading: boolean;
   onRefresh?: () => void;
-  openLaporDialog: (task: any) => void; // Prop baru untuk membuka dialog Wajib Lapor
+  openLaporDialog: (task: any) => void; 
 }
 
 export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog }: PKPembimbinganTableProps) {
   const { toast } = useToast();
   
+  // State Dialog Pendaftaran Kegiatan
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [jadwalTersedia, setJadwalTersedia] = useState<any[]>([]);
   const [selectedJadwal, setSelectedJadwal] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State untuk menyimpan riwayat kegiatan klien
+  const [registeredJadwalIds, setRegisteredJadwalIds] = useState<string[]>([]);
+  const [hasTakenPerintis, setHasTakenPerintis] = useState<boolean>(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
 
+  // State Dialog Detail & Pengakhiran
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailTask, setDetailTask] = useState<any>(null);
 
@@ -38,13 +45,16 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
   const [suratPencabutan, setSuratPencabutan] = useState<File | null>(null);
   const [isEnding, setIsEnding] = useState(false);
 
+  // Fungsi ini otomatis menarik SEMUA jadwal Bimkemas & Bimker yang aktif
   const fetchJadwalBimbingan = async () => {
     try {
       const { data, error } = await (supabase as any)
         .from('jadwal_bimbingan')
         .select('*')
         .eq('status', 'Open')
-        .gte('tanggal_selesai', new Date().toISOString().split('T')[0]); 
+        .gte('tanggal_selesai', new Date().toISOString().split('T')[0])
+        .order('tanggal_mulai', { ascending: true }); // Mengurutkan jadwal terdekat
+        
       if (error) throw error;
       setJadwalTersedia(data || []);
     } catch (err: any) {
@@ -56,10 +66,48 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
     fetchJadwalBimbingan();
   }, []);
 
-  const openRegisterDialog = (task: any) => {
+  const openRegisterDialog = async (task: any) => {
     setSelectedTask(task);
     setSelectedJadwal("");
-    setIsRegisterOpen(true);
+    setIsFetchingHistory(true);
+    setIsRegisterOpen(true); 
+
+    try {
+      // 1. Menarik data id_jadwal DAN nama_kegiatan dari jadwal_bimbingan yang berelasi
+      const { data, error } = await (supabase as any)
+        .from('peserta_bimbingan')
+        .select(`
+          id_jadwal,
+          jadwal_bimbingan (
+            nama_kegiatan
+          )
+        `)
+        .eq('id_klien', task.id_klien);
+
+      if (!error && data) {
+        // Simpan ID jadwal
+        const historyIds = data.map((item: any) => item.id_jadwal);
+        setRegisteredJadwalIds(historyIds);
+
+        // 2. Mengecek apakah di riwayat klien ini sudah ada kegiatan yang mengandung nama "PERINTIS"
+        const perintisExists = data.some((item: any) => {
+          const namaKegiatan = item.jadwal_bimbingan?.nama_kegiatan || "";
+          return namaKegiatan.toLowerCase().includes('perintis');
+        });
+        
+        setHasTakenPerintis(perintisExists);
+
+      } else {
+        setRegisteredJadwalIds([]);
+        setHasTakenPerintis(false);
+      }
+    } catch (err) {
+      setRegisteredJadwalIds([]);
+      setHasTakenPerintis(false);
+      console.error("Gagal mengecek riwayat jadwal:", err);
+    } finally {
+      setIsFetchingHistory(false);
+    }
   };
 
   const handleRegisterKegiatan = async () => {
@@ -67,14 +115,17 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
       toast({ variant: "destructive", title: "Pilih jadwal terlebih dahulu" });
       return;
     }
+    
     setIsSubmitting(true);
+    
     try {
       const { error } = await (supabase as any)
         .from('peserta_bimbingan')
         .insert({
-          id_jadwal: selectedJadwal,
+          // PERBAIKAN: Hapus Number() karena id_jadwal menggunakan format UUID (Teks)
+          id_jadwal: selectedJadwal, 
           id_klien: selectedTask.id_klien,
-          didaftarkan_oleh: selectedTask.nama_pk,
+          didaftarkan_oleh: selectedTask.petugas_pk?.nama || 'Petugas PK',
           is_auto: false,
           absensi: []
         });
@@ -83,8 +134,12 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
         if (error.code === '23505') throw new Error("Klien ini sudah terdaftar di kegiatan tersebut.");
         throw error;
       }
+      
       toast({ title: "Berhasil", description: "Klien berhasil didaftarkan ke kegiatan bimbingan." });
       setIsRegisterOpen(false);
+      
+      if (onRefresh) onRefresh();
+      
     } catch (err: any) {
       toast({ variant: "destructive", title: "Gagal Mendaftar", description: err.message });
     } finally {
@@ -156,18 +211,33 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
     return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
+  // 3. FILTER LOGIC: Menerapkan filter riwayat dan aturan PERINTIS
+  const filteredJadwalTersedia = jadwalTersedia.filter((jdwl) => {
+    // Aturan 1: Jangan tampilkan kegiatan yang ID-nya sama persis dengan yang sudah diikuti
+    if (registeredJadwalIds.includes(jdwl.id)) {
+      return false; 
+    }
+
+    // Aturan 2: Jika klien sudah pernah ikut PERINTIS, hilangkan SEMUA opsi jadwal yang mengandung kata "PERINTIS"
+    if (hasTakenPerintis && jdwl.nama_kegiatan?.toLowerCase().includes('perintis')) {
+      return false;
+    }
+
+    return true; // Tampilkan sisanya
+  });
+
   return (
     <>
       <div className="rounded-md border border-slate-200 overflow-hidden bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50 hover:bg-slate-50 divide-x divide-slate-200">
-              <TableHead className="w-[30%] font-bold text-slate-700 px-4">Klien Bimbingan</TableHead>
+              <TableHead className="w-[25%] font-bold text-slate-700 px-4">Klien Bimbingan</TableHead>
               <TableHead className="w-[12%] font-bold text-slate-700 px-4">Dokumen SK</TableHead>
               <TableHead className="w-[15%] font-bold text-slate-700 px-4">Program</TableHead>
-              <TableHead className="w-[12%] font-bold text-slate-700 px-4">Masa Bimbingan</TableHead>
+              <TableHead className="w-[18%] font-bold text-slate-700 px-4">Masa Bimbingan</TableHead>
               <TableHead className="w-[12%] font-bold text-slate-700 text-center px-4">Detail & Riwayat</TableHead>
-              <TableHead className="w-[12%] font-bold text-slate-700 text-center px-4">Aksi & Manajemen</TableHead>
+              <TableHead className="w-[18%] font-bold text-slate-700 text-center px-4">Aksi & Manajemen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -216,7 +286,7 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
 
                   <TableCell className="align-middle py-4 px-4 text-center">
                     <Button size="sm" variant="outline" onClick={() => openDetailDialog(task)} className="w-full justify-center text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-700 h-8 text-xs font-medium transition-all px-2">
-                      <ListCollapse className="w-3.5 h-3.5 mr-1" /> Detail & Riwayat
+                      <ListCollapse className="w-3.5 h-3.5 mr-1" /> Detail
                     </Button>
                   </TableCell>
 
@@ -240,43 +310,65 @@ export function PKPembimbinganTable({ tasks, loading, onRefresh, openLaporDialog
         </Table>
       </div>
 
+      {/* DIALOG DAFTAR KEGIATAN */}
       <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Daftarkan Klien ke Kegiatan</DialogTitle>
             <DialogDescription>
-              Pilih jadwal kegiatan yang tersedia untuk klien <b>{selectedTask?.klien?.nama_klien}</b>.
+              Pilih jadwal kegiatan baru yang tersedia untuk klien <b>{selectedTask?.klien?.nama_klien}</b>.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label className="mb-2 block text-sm font-semibold text-slate-700">Pilih Jadwal Kegiatan Bimkemas</Label>
-            <Select value={selectedJadwal} onValueChange={setSelectedJadwal}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Pilih jadwal..." />
-              </SelectTrigger>
-              <SelectContent>
-                {jadwalTersedia.length === 0 ? (
-                  <SelectItem value="empty" disabled>Tidak ada jadwal tersedia</SelectItem>
-                ) : (
-                  jadwalTersedia.map((jdwl) => (
-                    <SelectItem key={jdwl.id} value={jdwl.id}>
-                      {jdwl.nama_kegiatan}
+            <Label className="mb-2 block text-sm font-semibold text-slate-700">Pilih Jadwal Kegiatan Bimkemas / Bimker</Label>
+            
+            {isFetchingHistory ? (
+              <div className="h-10 flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-3 rounded-md border border-slate-200">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> Memeriksa riwayat klien...
+              </div>
+            ) : (
+              <Select value={selectedJadwal} onValueChange={setSelectedJadwal}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Pilih jadwal..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredJadwalTersedia.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      {jadwalTersedia.length === 0 ? "Tidak ada jadwal tersedia." : "Klien sudah mengikuti semua kegiatan aktif."}
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-slate-500 mt-2 italic">*Jadwal ini diinisiasi dan dibuat oleh pihak Bimkemas (Kasubsie).</p>
+                  ) : (
+                    filteredJadwalTersedia.map((jdwl) => (
+                      <SelectItem key={jdwl.id} value={jdwl.id}>
+                        {/* PENAMBAHAN KETERANGAN JENIS KEGIATAN AGAR PK TIDAK BINGUNG */}
+                        {jdwl.nama_kegiatan} {jdwl.jenis_kegiatan ? `(${jdwl.jenis_kegiatan})` : ''}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+            
+            <div className="mt-2 space-y-1">
+              <p className="text-[10px] text-slate-500 italic">
+                *Hanya menampilkan kegiatan yang belum pernah didaftarkan untuk klien ini.
+              </p>
+              {hasTakenPerintis && (
+                <p className="text-[10px] text-amber-600 font-medium">
+                  • Klien ini telah menyelesaikan/terdaftar di program PERINTIS.
+                </p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRegisterOpen(false)}>Batal</Button>
-            <Button onClick={handleRegisterKegiatan} disabled={!selectedJadwal || isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={handleRegisterKegiatan} disabled={!selectedJadwal || isSubmitting || isFetchingHistory} className="bg-blue-600 hover:bg-blue-700 text-white">
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Daftarkan"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* DIALOG PENGAKHIRAN PEMBIMBINGAN */}
       {taskToEnd && (
         <Dialog open={isEndDialogOpen} onOpenChange={setIsEndDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">

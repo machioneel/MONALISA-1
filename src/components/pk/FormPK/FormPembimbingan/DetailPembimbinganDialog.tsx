@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { User, Shield, FileText, CalendarDays, Clock, BookOpen, Activity, Loader2, MapPin, Phone, CheckSquare, Plus, Image as ImageIcon, X } from 'lucide-react';
+// 1. Menambahkan AlertTriangle untuk icon warning
+import { User, Shield, FileText, CalendarDays, Clock, BookOpen, Activity, Loader2, MapPin, Phone, CheckSquare, Image as ImageIcon, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface DetailPembimbinganDialogProps {
@@ -23,7 +24,6 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
   const [bukuBimbinganData, setBukuBimbinganData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
-  // --- STATE UNTUK FITUR ABSENSI ---
   const [isAbsensiOpen, setIsAbsensiOpen] = useState(false);
   const [selectedPeserta, setSelectedPeserta] = useState<any>(null);
   const [isSubmittingAbsen, setIsSubmittingAbsen] = useState(false);
@@ -33,7 +33,6 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
     catatan: ''
   });
 
-  // --- STATE UNTUK PREVIEW FOTO ---
   const [isPhotoViewOpen, setIsPhotoViewOpen] = useState(false);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState('');
 
@@ -46,8 +45,7 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
   const fetchRiwayatKlien = async () => {
     setLoadingData(true);
     try {
-      const db: any = supabase;
-      const { data: wlData, error: wlError } = await db
+      const { data: wlData, error: wlError } = await (supabase as any)
         .from('wajib_lapor')
         .select('*')
         .eq('id_klien', task.id_klien)
@@ -55,7 +53,7 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
       
       if (!wlError && wlData) setWajibLaporData(wlData);
 
-      const { data: bbData, error: bbError } = await db
+      const { data: bbData, error: bbError } = await (supabase as any)
         .from('peserta_bimbingan')
         .select('*, jadwal_bimbingan(*)')
         .eq('id_klien', task.id_klien)
@@ -72,8 +70,10 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
 
   const handleOpenAbsensi = (pesertaItem: any) => {
     setSelectedPeserta(pesertaItem);
+    const tglMulai = pesertaItem.jadwal_bimbingan?.tanggal_mulai?.split('T')[0] || new Date().toISOString().split('T')[0];
+
     setAbsenForm({
-      tanggal: new Date().toISOString().split('T')[0],
+      tanggal: tglMulai, 
       status: 'Hadir',
       catatan: ''
     });
@@ -86,9 +86,32 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
       return;
     }
 
+    const currentAbsensi = Array.isArray(selectedPeserta.absensi) ? selectedPeserta.absensi : [];
+    
+    const isAlreadyAttended = currentAbsensi.some((a: any) => a.tanggal === absenForm.tanggal);
+    if (isAlreadyAttended) {
+      toast({ 
+        variant: "destructive", 
+        title: "Duplikasi Absen", 
+        description: `Klien sudah di-absen pada tanggal ${formatDateIndo(absenForm.tanggal)}. Tidak dapat melakukan absen ganda.` 
+      });
+      return;
+    }
+
+    const tglMulai = selectedPeserta?.jadwal_bimbingan?.tanggal_mulai?.split('T')[0];
+    const tglSelesai = selectedPeserta?.jadwal_bimbingan?.tanggal_selesai?.split('T')[0] || tglMulai;
+
+    if (tglMulai && (absenForm.tanggal < tglMulai || absenForm.tanggal > tglSelesai)) {
+      toast({ 
+        variant: "destructive", 
+        title: "Akses Ditolak", 
+        description: "Absensi tidak dapat disimpan karena tanggal di luar rentang jadwal kegiatan yang telah ditetapkan." 
+      });
+      return;
+    }
+
     setIsSubmittingAbsen(true);
     try {
-      const currentAbsensi = Array.isArray(selectedPeserta.absensi) ? selectedPeserta.absensi : [];
       const newEntry = {
         id: Date.now().toString(),
         tanggal: absenForm.tanggal,
@@ -98,23 +121,50 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
       };
 
       const updatedAbsensi = [...currentAbsensi, newEntry];
-      const db: any = supabase;
-      const { error } = await db
+      
+      let isSelesai = false;
+      if (tglMulai && tglSelesai) {
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const dateMulai = new Date(tglMulai);
+        const dateSelesai = new Date(tglSelesai);
+        
+        const totalDaysRequired = Math.floor((dateSelesai.getTime() - dateMulai.getTime()) / msPerDay) + 1;
+        const uniqueAttendedDays = new Set(updatedAbsensi.map(a => a.tanggal)).size;
+        
+        if (uniqueAttendedDays >= totalDaysRequired) {
+          isSelesai = true;
+        }
+      }
+
+      const updatePayload: any = { absensi: updatedAbsensi };
+      if (isSelesai) {
+        updatePayload.status = 'Selesai';
+      }
+
+      const { error: absenError } = await (supabase as any)
         .from('peserta_bimbingan')
-        .update({ absensi: updatedAbsensi })
+        .update(updatePayload)
         .eq('id', selectedPeserta.id);
 
-      if (error) throw error;
+      if (absenError) throw absenError;
 
-      toast({ title: "Berhasil", description: "Absensi berhasil disimpan." });
+      if (isSelesai) {
+        toast({ title: "Kegiatan Selesai!", description: "Target kehadiran terpenuhi. Status kepesertaan klien ini menjadi Selesai." });
+      } else {
+        toast({ title: "Berhasil", description: "Absensi berhasil disimpan." });
+      }
       
-      const updatedPeserta = { ...selectedPeserta, absensi: updatedAbsensi };
+      const updatedPeserta = { ...selectedPeserta, absensi: updatedAbsensi, status: isSelesai ? 'Selesai' : selectedPeserta.status };
       setSelectedPeserta(updatedPeserta);
       setBukuBimbinganData(prev => prev.map(p => p.id === selectedPeserta.id ? updatedPeserta : p));
       setAbsenForm(prev => ({ ...prev, catatan: '' }));
 
+      if (isSelesai) {
+        setIsAbsensiOpen(false);
+      }
+
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "Error Menyimpan Absensi", description: error.message });
     } finally {
       setIsSubmittingAbsen(false);
     }
@@ -130,7 +180,6 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
     return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  // --- FUNGSI MEMBUAT PROYEKSI JADWAL WAJIB LAPOR BULANAN ---
   const generateJadwalWajibLapor = () => {
     if (!task?.tanggal_registrasi || !task?.tanggal_pengakhiran) return [];
     
@@ -175,6 +224,9 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
   const klien = task.klien || {};
   const penjamin = klien.penjamin?.[0] || {};
   const jadwalWajibLapor = generateJadwalWajibLapor();
+
+  const activeTglMulai = selectedPeserta?.jadwal_bimbingan?.tanggal_mulai?.split('T')[0] || '';
+  const activeTglSelesai = selectedPeserta?.jadwal_bimbingan?.tanggal_selesai?.split('T')[0] || activeTglMulai;
 
   return (
     <>
@@ -254,8 +306,8 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                     <div>
                       <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">Masa Bimbingan</p>
                       <div className="flex flex-col gap-1.5 text-sm bg-blue-50/50 p-3 rounded-md border border-blue-100">
-                        <div className="flex justify-between items-center"><span className="text-slate-600 flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5"/> Mulai :</span> <span className="font-bold text-slate-800">{formatDateIndo(task.tanggal_registrasi)}</span></div>
-                        <div className="flex justify-between items-center"><span className="text-slate-600 flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> Pengakhiran :</span> <span className="font-bold text-rose-600">{formatDateIndo(task.tanggal_pengakhiran)}</span></div>
+                        <div className="flex justify-between items-center"><span className="text-slate-600 flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5"/>Tgl. Mulai :</span> <span className="font-bold text-slate-800">{formatDateIndo(task.tanggal_registrasi)}</span></div>
+                        <div className="flex justify-between items-center"><span className="text-slate-600 flex items-center gap-1"><Clock className="w-3.5 h-3.5"/>Tgl. Pengakhiran :</span> <span className="font-bold text-rose-600">{formatDateIndo(task.tanggal_pengakhiran)}</span></div>
                       </div>
                     </div>
                   </div>
@@ -274,12 +326,10 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
               </div>
             </TabsContent>
 
-            {/* TAB WAJIB LAPOR DENGAN GARIS VERTIKAL (DIVIDE-X) & PADDING (PX-4) */}
             <TabsContent value="wajib_lapor" className="outline-none">
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <Table>
                   <TableHeader>
-                    {/* Pembatas kolom Header */}
                     <TableRow className="bg-slate-50 divide-x divide-slate-200">
                       <TableHead className="w-[150px] px-4">Periode Bulan</TableHead>
                       <TableHead className="w-[150px] px-4">Tgl Lapor Aktual</TableHead>
@@ -297,8 +347,7 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                     ) : (
                       jadwalWajibLapor.map((jadwal) => {
                         const wl = jadwal.laporanAsli;
-                        
-                        {/* Pembatas kolom Body */}
+
                         return (
                           <TableRow key={jadwal.idPeriode} className="divide-x divide-slate-200 hover:bg-slate-50 transition-colors">
                             <TableCell className="font-bold text-slate-700 text-xs bg-slate-50/30 px-4">
@@ -343,11 +392,16 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                               )}
                             </TableCell>
 
+                            {/* 2. BAGIAN PERBAIKAN TAMPILAN STATUS TERLEWAT */}
                             <TableCell className="text-right px-4">
                               {jadwal.statusHitung === 'Sudah' ? (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Sudah</Badge>
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] inline-flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Sudah Wajib Lapor
+                                </Badge>
                               ) : jadwal.statusHitung === 'Terlewat' ? (
-                                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[10px]">Terlewat</Badge>
+                                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] inline-flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> Tidak Wajib Lapor
+                                </Badge>
                               ) : (
                                 <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px]">Belum</Badge>
                               )}
@@ -361,7 +415,6 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
               </div>
             </TabsContent>
 
-            {/* TAB BUKU BIMBINGAN JUGA DIBERI GARIS VERTIKAL AGAR KONSISTEN */}
             <TabsContent value="buku_bimbingan" className="outline-none">
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <Table>
@@ -382,12 +435,29 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                       bukuBimbinganData.map((item) => {
                         const jadwal = item.jadwal_bimbingan || {};
                         const totalHadir = Array.isArray(item.absensi) ? item.absensi.filter((a: any) => a.status === 'Hadir').length : 0;
+                        const isSelesai = item.status === 'Selesai';
+
                         return (
                           <TableRow key={item.id} className="hover:bg-slate-50 divide-x divide-slate-200">
-                            <TableCell className="px-4"><p className="font-bold text-slate-800 text-sm">{jadwal.nama_kegiatan || '?'}</p><Badge variant="secondary" className="text-[10px] mt-1">{jadwal.jenis_kegiatan}</Badge></TableCell>
-                            <TableCell className="text-xs text-slate-600 px-4">{formatDateIndo(jadwal.tanggal_mulai)}</TableCell>
+                            <TableCell className="px-4">
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-slate-800 text-sm">{jadwal.nama_kegiatan || '?'}</p>
+                                {isSelesai && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[9px] h-4 py-0 px-1 border-none"><CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />Selesai</Badge>}
+                              </div>
+                              <Badge variant="secondary" className="text-[10px] mt-1">{jadwal.jenis_kegiatan}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-slate-600 px-4">
+                              {formatDateIndo(jadwal.tanggal_mulai)} 
+                              {jadwal.tanggal_selesai && jadwal.tanggal_selesai !== jadwal.tanggal_mulai && ` s/d ${formatDateIndo(jadwal.tanggal_selesai)}`}
+                            </TableCell>
                             <TableCell className="text-center px-4"><Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100">{totalHadir}x</Badge></TableCell>
-                            <TableCell className="text-right px-4"><Button size="sm" onClick={() => handleOpenAbsensi(item)} className="bg-blue-600 h-8 text-xs w-[100px]"><CheckSquare className="w-3.5 h-3.5 mr-1.5" /> Absen</Button></TableCell>
+                            <TableCell className="text-right px-4">
+                              {isSelesai ? (
+                                <Button size="sm" variant="outline" className="h-8 text-xs w-[100px] border-emerald-200 text-emerald-700 bg-emerald-50 cursor-default">Tuntas</Button>
+                              ) : (
+                                <Button size="sm" onClick={() => handleOpenAbsensi(item)} className="bg-blue-600 h-8 text-xs w-[100px]"><CheckSquare className="w-3.5 h-3.5 mr-1.5" /> Absen</Button>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })
@@ -400,9 +470,10 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
         </DialogContent>
       </Dialog>
 
-      {/* --- DIALOG PREVIEW FOTO --- */}
       <Dialog open={isPhotoViewOpen} onOpenChange={setIsPhotoViewOpen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden bg-black/90 border-none">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden bg-black/90 border-none z-[100]">
+          <DialogTitle className="sr-only">Pratinjau Foto</DialogTitle>
+          <DialogDescription className="sr-only">Menampilkan pratinjau foto bukti Wajib Lapor klien.</DialogDescription>
           <div className="relative w-full h-full min-h-[300px] flex items-center justify-center p-2">
             <Button 
               variant="ghost" 
@@ -428,14 +499,34 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
         </DialogContent>
       </Dialog>
 
-      {/* --- DIALOG ABSENSI (JUGA DIBERI GARIS VERTIKAL PADA RIWAYAT) --- */}
       {selectedPeserta && (
         <Dialog open={isAbsensiOpen} onOpenChange={setIsAbsensiOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-slate-50">
-            <DialogHeader><DialogTitle className="text-sm font-bold">Absensi: {selectedPeserta.jadwal_bimbingan?.nama_kegiatan}</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-[500px] bg-slate-50 z-[100]">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold flex flex-col">
+                Absensi: {selectedPeserta.jadwal_bimbingan?.nama_kegiatan}
+                <span className="text-xs font-normal text-slate-500 mt-1">Rentang: {formatDateIndo(activeTglMulai)} - {formatDateIndo(activeTglSelesai)}</span>
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Formulir untuk mengisi data absensi kehadiran klien.
+              </DialogDescription>
+            </DialogHeader>
             <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-1.5"><Label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</Label><Input type="date" value={absenForm.tanggal} onChange={e => setAbsenForm(prev => ({ ...prev, tanggal: e.target.value }))} className="h-8 text-xs" /></div>
+                
+                <div className="grid gap-1.5">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</Label>
+                  <Input 
+                    type="date" 
+                    min={activeTglMulai}
+                    max={activeTglSelesai}
+                    value={absenForm.tanggal} 
+                    onChange={e => setAbsenForm(prev => ({ ...prev, tanggal: e.target.value }))} 
+                    className="h-8 text-xs border-blue-300" 
+                  />
+                  <p className="text-[9px] text-slate-400 italic mt-0.5">Dibatasi pada rentang jadwal</p>
+                </div>
+
                 <div className="grid gap-1.5"><Label className="text-[10px] font-bold text-slate-500 uppercase">Status</Label>
                   <Select value={absenForm.status} onValueChange={v => setAbsenForm(prev => ({ ...prev, status: v }))}>
                     <SelectTrigger className="bg-white h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -443,8 +534,8 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-1.5"><Label className="text-[10px] font-bold text-slate-500 uppercase">Catatan</Label><Input placeholder="Catatan PK..." value={absenForm.catatan} onChange={e => setAbsenForm(prev => ({ ...prev, catatan: e.target.value }))} className="h-8 text-xs" /></div>
-              <Button onClick={handleSimpanAbsensi} disabled={isSubmittingAbsen} className="w-full bg-emerald-600 hover:bg-emerald-700 h-9 text-xs font-bold">
+              <div className="grid gap-1.5"><Label className="text-[10px] font-bold text-slate-500 uppercase">Catatan</Label><Input placeholder="Catatan PK..." value={absenForm.catatan} onChange={e => setAbsenForm(prev => ({ ...prev, catatan: e.target.value }))} className="h-8 text-xs bg-white" /></div>
+              <Button onClick={handleSimpanAbsensi} disabled={isSubmittingAbsen} className="w-full bg-emerald-600 hover:bg-emerald-700 h-9 text-xs font-bold shadow-sm transition-all">
                 {isSubmittingAbsen ? "Menyimpan..." : "Simpan Absensi"}
               </Button>
             </div>
@@ -458,13 +549,13 @@ export function DetailPembimbinganDialog({ isOpen, onOpenChange, task }: DetailP
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {selectedPeserta.absensi?.map((absen: any, i: number) => (
-                  <TableRow key={i} className="hover:bg-slate-50 divide-x divide-slate-200">
+                {Array.isArray(selectedPeserta.absensi) && [...selectedPeserta.absensi].reverse().map((absen: any, i: number) => (
+                  <TableRow key={absen.id || i} className="hover:bg-slate-50 divide-x divide-slate-200">
                     <TableCell className="text-[10px] py-2 px-4">{formatDateIndo(absen.tanggal)}</TableCell>
                     <TableCell className="py-2 px-4"><Badge variant="outline" className="text-[9px] uppercase font-bold">{absen.status}</Badge></TableCell>
                     <TableCell className="text-[9px] text-slate-500 italic py-2 px-4">{absen.catatan || '-'}</TableCell>
                   </TableRow>
-                )).reverse()}
+                ))}
               </TableBody></Table>
             </div>
           </DialogContent>

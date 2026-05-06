@@ -154,7 +154,7 @@ export const FormPembimbingan: React.FC<FormPembimbinganProps> = ({
                       className="h-9 text-sm"
                     />
                   </Field>
-                  <Field label="Tgl Pengakhiran (Ekspirasi)" required>
+                  <Field label="Tgl. Pengakhiran" required>
                     <div className="relative">
                       <Clock className="absolute left-2.5 top-2.5 w-4 h-4 text-rose-400 pointer-events-none" />
                       <Input

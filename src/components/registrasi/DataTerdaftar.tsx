@@ -44,6 +44,32 @@ const Panel = ({ children, className }: { children: React.ReactNode; className?:
 
 /* ─── Komponen Utama ──────────────────────────────────────────── */
 export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers }) => {
+  
+  // PENYARING 1: Saring data untuk tab "Data Klien"
+  const filteredDataKlien = state.dataKlienFull.filter((klien: any) => {
+    if (state.userRoleCategory === 'Anak') {
+      return klien.kategori_usia === 'Anak';
+    }
+    if (state.userRoleCategory === 'Dewasa') {
+      return klien.kategori_usia === 'Dewasa';
+    }
+    return true; 
+  });
+
+  // PENYARING 2: Saring data untuk tab "Layanan Terdaftar"
+  const filteredDataLitmas = state.dataLitmas.filter((l: any) => {
+    // Kita pastikan klien-nya ada sebelum mengecek usianya
+    const kategoriUsia = l.klien?.kategori_usia;
+    
+    if (state.userRoleCategory === 'Anak') {
+      return kategoriUsia === 'Anak';
+    }
+    if (state.userRoleCategory === 'Dewasa') {
+      return kategoriUsia === 'Dewasa';
+    }
+    return true; 
+  });
+
   return (
     <Tabs defaultValue="list_klien" className="w-full">
 
@@ -82,7 +108,6 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
       ══════════════════════════════════════════════════════ */}
       <TabsContent value="list_klien">
         <Card className="border-0 shadow-md overflow-hidden ring-1 ring-slate-200">
-          {/* Header */}
           <CardHeader className="px-6 py-4 border-b bg-gradient-to-r from-purple-700 to-purple-600">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -98,7 +123,6 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                   </h2>
                 </div>
               </div>
-              {/* Search */}
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/50 pointer-events-none" />
@@ -134,8 +158,8 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {state.dataKlienFull.length > 0 ? (
-                  state.dataKlienFull.map((k: any) => (
+                {filteredDataKlien.length > 0 ? (
+                  filteredDataKlien.map((k: any) => (
                     <TableRow key={k.id_klien} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
                       <TableCell className="pl-6 py-3">
                         <div className="flex flex-col">
@@ -207,7 +231,6 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
       ══════════════════════════════════════════════════════ */}
       <TabsContent value="list_litmas">
         <Card className="border-0 shadow-md overflow-hidden ring-1 ring-slate-200">
-          {/* Header */}
           <CardHeader className="px-6 py-4 border-b bg-gradient-to-r from-orange-600 to-amber-600">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -223,7 +246,6 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                   </h2>
                 </div>
               </div>
-              {/* Search */}
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/50 pointer-events-none" />
@@ -259,8 +281,9 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {state.dataLitmas.length > 0 ? (
-                  state.dataLitmas.map((l: any) => (
+                {/* MENGGUNAKAN filteredDataLitmas DI SINI */}
+                {filteredDataLitmas.length > 0 ? (
+                  filteredDataLitmas.map((l: any) => (
                     <TableRow key={l.id_litmas || l._id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
                       <TableCell className="pl-6 py-3">
                         <div className="flex flex-col">
@@ -335,7 +358,7 @@ export const DataTerdaftar: React.FC<DataTerdaftarProps> = ({ state, handlers })
                     <TableCell colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2 text-slate-400">
                         <AlertCircle className="w-8 h-8 text-slate-300" />
-                        <span className="text-sm font-medium">Data tidak ditemukan.</span>
+                        <span className="text-sm font-medium">Data tidak ditemukan atau tidak ada akses.</span>
                       </div>
                     </TableCell>
                   </TableRow>
