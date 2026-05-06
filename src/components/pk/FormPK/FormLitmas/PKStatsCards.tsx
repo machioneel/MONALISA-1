@@ -1,57 +1,88 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { FileText, FileClock, Clock, CheckCircle } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { FileText, Users, Clock, CheckCircle, Activity, BookOpen, Shield } from 'lucide-react';
 
 interface PKStatsCardsProps {
+  activeTab: string;
   stats: {
-    new: number;
-    process: number;
-    review: number;
-    done: number;
+    litmasBaru?: number;
+    litmasSelesai?: number;
+    litmasProses?: number;
+    pendampinganAktif?: number;
+    pendampinganSelesai?: number;
+    jadwalSidang?: number;
+    pembimbinganAktif?: number;
+    wajibLaporHariIni?: number;
+    pembimbinganSelesai?: number;
+    totalKlien?: number;
+    tugasAktif?: number;
   };
 }
 
-export function PKStatsCards({ stats }: PKStatsCardsProps) {
+// Komponen kartu individual
+function StatCard({ title, value, icon, bgColor }: { title: string, value: number, icon: React.ReactNode, bgColor: string }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Card className="bg-white border-l-4 border-l-slate-500 shadow-sm">
-        <CardContent className="p-4 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Tugas Baru</p>
-            <h3 className="text-2xl font-bold text-slate-700">{stats.new}</h3>
-          </div>
-          <div className="bg-slate-100 p-2 rounded-full"><FileText className="w-5 h-5 text-slate-500"/></div>
-        </CardContent>
-      </Card>
-      
-      <Card className="bg-white border-l-4 border-l-blue-500 shadow-sm">
-        <CardContent className="p-4 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Sedang Proses</p>
-            <h3 className="text-2xl font-bold text-blue-700">{stats.process}</h3>
-          </div>
-          <div className="bg-blue-50 p-2 rounded-full"><FileClock className="w-5 h-5 text-blue-600"/></div>
-        </CardContent>
-      </Card>
+    <Card className="border border-slate-200 shadow-sm">
+      <CardContent className="p-5 flex items-center gap-4">
+        <div className={`p-3 rounded-full ${bgColor}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <h4 className="text-2xl font-bold text-slate-800">{value}</h4>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-      <Card className="bg-white border-l-4 border-l-yellow-500 shadow-sm">
-        <CardContent className="p-4 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Menunggu Review</p>
-            <h3 className="text-2xl font-bold text-yellow-700">{stats.review}</h3>
-          </div>
-          <div className="bg-yellow-50 p-2 rounded-full"><Clock className="w-5 h-5 text-yellow-600"/></div>
-        </CardContent>
-      </Card>
+// Sesuaikan nama fungsi di bawah ini dengan import yang kamu gunakan (PKStatCards atau PKStatsCards)
+export function PKStatsCards({ activeTab = '', stats }: PKStatsCardsProps) {
+  
+  // Fungsi penentu kartu berdasarkan tab layanan yang aktif
+  const renderCards = () => {
+    // 1. UBAH KE HURUF KECIL: Memastikan pencocokan selalu berhasil terlepas dari huruf besar/kecil
+    const currentTab = String(activeTab).toLowerCase();
 
-      <Card className="bg-white border-l-4 border-l-green-500 shadow-sm">
-        <CardContent className="p-4 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Selesai / TPP</p>
-            <h3 className="text-2xl font-bold text-green-700">{stats.done}</h3>
-          </div>
-          <div className="bg-green-50 p-2 rounded-full"><CheckCircle className="w-5 h-5 text-green-600"/></div>
-        </CardContent>
-      </Card>
+    switch (currentTab) {
+      case 'litmas':
+        return (
+          <>
+            <StatCard title="Permintaan Litmas Baru" value={stats.litmasBaru || 0} icon={<FileText className="w-6 h-6 text-blue-600" />} bgColor="bg-blue-100" />
+            <StatCard title="Proses Pengumpulan Data" value={stats.litmasProses || 0} icon={<Clock className="w-6 h-6 text-amber-600" />} bgColor="bg-amber-100" />
+            <StatCard title="Litmas Selesai" value={stats.litmasSelesai || 0} icon={<CheckCircle className="w-6 h-6 text-emerald-600" />} bgColor="bg-emerald-100" />
+          </>
+        );
+      case 'pendampingan':
+        return (
+          <>
+            <StatCard title="Anak Didampingi Aktif" value={stats.pendampinganAktif || 0} icon={<Shield className="w-6 h-6 text-indigo-600" />} bgColor="bg-indigo-100" />
+            <StatCard title="Jadwal Sidang / Diversi" value={stats.jadwalSidang || 0} icon={<Activity className="w-6 h-6 text-rose-600" />} bgColor="bg-rose-100" />
+            <StatCard title="Pendampingan Selesai" value={stats.pendampinganSelesai || 0} icon={<CheckCircle className="w-6 h-6 text-emerald-600" />} bgColor="bg-emerald-100" />
+          </>
+        );
+      case 'pembimbingan':
+        return (
+          <>
+            <StatCard title="Klien Bimbingan Aktif" value={stats.pembimbinganAktif || 0} icon={<Users className="w-6 h-6 text-blue-600" />} bgColor="bg-blue-100" />
+            <StatCard title="Wajib Lapor Hari Ini" value={stats.wajibLaporHariIni || 0} icon={<BookOpen className="w-6 h-6 text-amber-600" />} bgColor="bg-amber-100" />
+            <StatCard title="Bimbingan Selesai" value={stats.pembimbinganSelesai || 0} icon={<CheckCircle className="w-6 h-6 text-emerald-600" />} bgColor="bg-emerald-100" />
+          </>
+        );
+      default:
+        // Jika teks tab tidak dikenali (bukan dari 3 di atas), tampilkan default
+        return (
+          <>
+            <StatCard title="Total Klien" value={stats.totalKlien || 0} icon={<Users className="w-6 h-6 text-slate-600" />} bgColor="bg-slate-100" />
+            <StatCard title="Tugas Aktif Keseluruhan" value={stats.tugasAktif || 0} icon={<Activity className="w-6 h-6 text-blue-600" />} bgColor="bg-blue-100" />
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {renderCards()}
     </div>
   );
 }

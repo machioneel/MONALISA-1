@@ -1,4 +1,3 @@
-// src/components/registrasi/FormPembimbingan.tsx
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   GraduationCap, Hash, CalendarDays, FileText,
-  BookOpen, ShieldCheck,
+  BookOpen, ShieldCheck, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -136,6 +135,17 @@ export const FormPembimbingan: React.FC<FormPembimbinganProps> = ({
                       />
                     </div>
                   </Field>
+                  <Field label="Nomor Register Pembimbingan">
+                    <Input
+                      name="nomor_register_litmas"
+                      defaultValue={editingLitmas?.nomor_register_litmas || ''}
+                      placeholder="Reg. Pembimbingan..."
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
                   <Field label="Tgl Mulai Bimbingan" required>
                     <Input
                       name="tanggal_registrasi"
@@ -144,24 +154,27 @@ export const FormPembimbingan: React.FC<FormPembimbinganProps> = ({
                       className="h-9 text-sm"
                     />
                   </Field>
+                  <Field label="Tgl Pengakhiran (Ekspirasi)" required>
+                    <div className="relative">
+                      <Clock className="absolute left-2.5 top-2.5 w-4 h-4 text-rose-400 pointer-events-none" />
+                      <Input
+                        name="tanggal_pengakhiran"
+                        type="date"
+                        defaultValue={editingLitmas?.tanggal_pengakhiran || ''}
+                        className="h-9 text-sm pl-8 border-rose-200 focus-visible:ring-rose-500"
+                      />
+                    </div>
+                  </Field>
                 </div>
-                <Field label="Nomor Register Pembimbingan">
-                  <Input
-                    name="nomor_register_litmas"
-                    defaultValue={editingLitmas?.nomor_register_litmas || ''}
-                    placeholder="Reg. Pembimbingan..."
-                    className="h-9 text-sm"
-                  />
-                </Field>
               </div>
             </Panel>
           </div>
 
           {/* ══ Baris 2: Surat Keputusan & Info ══ */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <Panel className="lg:col-span-10">
+            <Panel className="lg:col-span-12">
               <SectionHeading icon={FileText} label="Surat Keputusan (SK)" accent="amber" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Field label="No. Surat Keputusan (SK)" required>
                   <Input
                     name="nomor_surat_permintaan"
@@ -181,17 +194,30 @@ export const FormPembimbingan: React.FC<FormPembimbinganProps> = ({
                     />
                   </div>
                 </Field>
+                <Field label="Upload File SK" required={!editingLitmas?.file_surat_keputusan_url}>
+                  <Input
+                    name="file_surat_keputusan"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="h-9 text-sm cursor-pointer"
+                  />
+                  {editingLitmas?.file_surat_keputusan_url && (
+                    <a href={editingLitmas.file_surat_keputusan_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 underline mt-1 block">
+                      Lihat SK Tersimpan
+                    </a>
+                  )}
+                </Field>
               </div>
             </Panel>
 
-            <div className="lg:col-span-2 flex items-stretch">
+            <div className="lg:col-span-12 flex items-stretch">
               <div className="w-full rounded-xl border border-teal-100 bg-teal-50/50 p-4 flex flex-col justify-center gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
                   <span className="text-xs font-bold text-teal-800">Catatan</span>
                 </div>
                 <p className="text-[11px] text-teal-700 leading-relaxed">
-                  SK wajib dikeluarkan oleh pejabat berwenang sebelum bimbingan dimulai.
+                  Surat Keputusan (SK) dan Surat Permintaan (Surat Lepas Lapas) adalah dua dokumen yang berbeda. SK wajib dikeluarkan oleh pejabat berwenang sebelum bimbingan dimulai.
                 </p>
               </div>
             </div>

@@ -140,7 +140,7 @@ export function LayananTerdaftarDialog({ open, onOpenChange, selectedLitmasDetai
                   {[
                     { date: selectedLitmasDetail?.waktu_registrasi, label: "Registrasi & Penunjukan PK", color: "bg-green-500", text: "text-slate-800" },
                     { date: selectedLitmasDetail?.waktu_upload_surat_tugas, label: "PK: Upload Surat Tugas", color: "bg-green-500", text: "text-slate-800" },
-                    { date: selectedLitmasDetail?.waktu_upload_laporan, label: "PK: Upload Laporan", color: "bg-green-500", text: "text-slate-800" },
+                    { date: selectedLitmasDetail?.waktu_upload_laporan, label: "PK: Upload Draft Litmas", color: "bg-green-500", text: "text-slate-800" },
                     { date: selectedLitmasDetail?.waktu_verifikasi_anev, label: "Anev: Verifikasi & Approval", color: "bg-green-500", text: "text-slate-800" },
                     { date: selectedLitmasDetail?.waktu_sidang_tpp || selectedLitmasDetail?.tanggal_sidang_tpp, label: "TPP: Sidang Dilaksanakan", color: "bg-purple-600", text: "text-slate-800" },
                     { date: selectedLitmasDetail?.waktu_selesai, label: "Selesai", color: "bg-blue-600", text: "text-blue-700" },

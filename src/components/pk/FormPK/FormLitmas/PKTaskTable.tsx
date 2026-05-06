@@ -1,17 +1,100 @@
+import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar, Upload, Clock, CheckCircle, CheckSquare, Eye, FileText, Phone } from 'lucide-react';
 import { SuratTugasGenerator } from '@/components/litmas/SuratTugasGenerator';
+import { UploadLaporanLitmasDialog } from '@/components/litmas/UploadLaporanLitmasDialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface PKTaskTableProps {
   tasks: any[];
   loading: boolean;
   onViewDetail: (task: any) => void;
-  // FIX: Ubah taskId menjadi task object agar bisa membaca tabel sumber
-  onUpload: (file: File, task: any, type: 'surat_tugas' | 'hasil_litmas') => void;
+  // Parameter customDate ditambahkan untuk menangkap tanggal pelaksanaan
+  onUpload: (file: File, task: any, type: 'surat_tugas' | 'hasil_litmas', customDate?: string) => void;
   onOpenRegister: (task: any) => void;
+}
+
+// KOMPONEN: Dialog khusus untuk Upload TTD beserta Tanggal Kustom
+function UploadTTDDialog({ task, onUpload }: { task: any, onUpload: (file: File, task: any, type: 'surat_tugas', date: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [tanggalPelaksanaan, setTanggalPelaksanaan] = useState<string>("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleSave = () => {
+    if (!file || !tanggalPelaksanaan) {
+      alert("Harap isi tanggal pelaksanaan dan pilih dokumen TTD.");
+      return;
+    }
+    // Kirim data ke fungsi induk (termasuk customDate)
+    onUpload(file, task, 'surat_tugas', tanggalPelaksanaan);
+    setIsOpen(false);
+    setFile(null);
+    setTanggalPelaksanaan("");
+  };
+
+  // Mendapatkan tanggal hari ini untuk tampilan "Tanggal Upload"
+  const todayFormatted = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="secondary" className="w-full text-xs h-9 border shadow-sm font-medium">
+          <Upload className="w-3 h-3 mr-2"/> Upload TTD
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Upload Surat Tugas</DialogTitle>
+          <DialogDescription>
+            Unggah dokumen TTD. Tanggal upload akan tersimpan otomatis. Silakan tentukan tanggal pelaksanaannya.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Tanggal Upload (Otomatis)</Label>
+            <Input
+              type="text"
+              value={todayFormatted}
+              disabled
+              className="bg-slate-100 text-slate-500 cursor-not-allowed"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="tanggal_pelaksanaan">Tanggal Pelaksanaan Tugas (Kustom)</Label>
+            <Input
+              id="tanggal_pelaksanaan"
+              type="date"
+              value={tanggalPelaksanaan}
+              onChange={(e) => setTanggalPelaksanaan(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="file_ttd">Dokumen Surat Tugas (PDF)</Label>
+            <Input
+              id="file_ttd"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileChange}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>Batal</Button>
+          <Button onClick={handleSave}>Simpan & Upload</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegister }: PKTaskTableProps) {
@@ -45,10 +128,11 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
             </TableRow>
         ) : (
             tasks.map((task) => {
-                const status = getStatus(task.status);
+                // LOGIKA STATUS: Jika waktu_selesai ada, paksa UI menjadi 'Selesai'
+                const status = task.waktu_selesai ? 'Selesai' : getStatus(task.status);
+                
                 const schedule = task.jadwal ? formatSidangDate(task.jadwal.tanggal_sidang) : null;
                 const hasPenjamin = task.klien?.penjamin && task.klien.penjamin.length > 0;
-                // FIX: Menangani backward compatibility ID
                 const currentId = task.id_layanan || task.id_litmas; 
 
                 return (
@@ -71,7 +155,6 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                 <TableCell className="align-top py-4 pr-4">
                     {hasPenjamin ? (
                         <div className="mt-1 p-2 bg-emerald-50 rounded-md border border-emerald-100 w-fit pr-4">
-                            {/*<p className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider mb-1 opacity-80">Penjamin</p>*/}
                             <p className="text-[15px] font-semibold text-slate-800">{task.klien.penjamin[0].nama_penjamin}</p>
                             <p className="text-[15px] text-emerald-700 flex items-center gap-1 mt-0.5 font-medium">
                                 <Phone className="w-2.5 h-2.5"/> {task.klien.penjamin[0].nomor_telepon || 'Tidak ada telepon'}
@@ -90,10 +173,11 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                             status === 'Revision' ? 'bg-orange-500 hover:bg-orange-600' :
                             status === 'On Progress' ? 'bg-blue-600 hover:bg-blue-700' : 
                             status === 'TPP Scheduled' ? 'bg-purple-600 hover:bg-purple-700' :
+                            status === 'TPP Disetujui' ? 'bg-indigo-600 hover:bg-indigo-700' :
                             status === 'Selesai' ? 'bg-slate-600 hover:bg-slate-700' :
                             'bg-slate-500 hover:bg-slate-600'
                         }>
-                            {status === 'TPP Scheduled' ? 'Sidang Dijadwalkan' : status}
+                            {status === 'TPP Scheduled' ? 'Menunggu Sidang TPP' : status}
                         </Badge>
                         
                         {schedule ? (
@@ -135,16 +219,12 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                         <div className="space-y-2">
                             <div className="w-full"><SuratTugasGenerator litmasId={currentId} /></div>
                             <div className="relative w-full">
-                                <Button size="sm" variant="secondary" className="w-full text-xs h-9 border shadow-sm font-medium">
-                                    <Upload className="w-3 h-3 mr-2"/> Upload TTD
-                                </Button>
-                                {/* FIX: Parsing full task object di onUpload */}
-                                <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0], task, 'surat_tugas')} />
+                                <UploadTTDDialog task={task} onUpload={onUpload} />
                             </div>
                         </div>
                     )}
 
-                    {/* LAPORAN */}
+                    {/* LAPORAN DRAFT (Sebelum disetujui Kasubsie) */}
                     {(status === 'On Progress' || status === 'Revision') && (
                         <div className="relative w-full">
                             <Button 
@@ -157,24 +237,48 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
                         </div>
                     )}
 
+                    {/* STATUS REVIEW */}
                     {status === 'Review' && (
                         <div className="w-full h-9 flex items-center justify-center gap-2 text-xs font-medium text-yellow-700 bg-yellow-50 rounded border border-yellow-100 select-none cursor-default">
                             <Clock className="w-3.5 h-3.5"/> Sedang Diverifikasi
                         </div>
                     )}
 
+                    {/* DAFTAR SIDANG TPP */}
                     {status === 'Approved' && (
                         <Button size="sm" variant="outline" className="border-green-600 text-green-700 bg-green-50/50 w-full hover:bg-green-100 h-9 text-xs font-medium shadow-sm" onClick={() => onOpenRegister(task)}>
                             <Calendar className="w-3.5 h-3.5 mr-2"/> Daftar Sidang TPP
                         </Button>
                     )}
 
+                    {/* MENUNGGU SIDANG TPP (Belum Disetujui) */}
                     {status === 'TPP Scheduled' && (
-                        <div className="w-full h-9 flex items-center justify-center gap-2 text-xs font-medium text-purple-700 bg-purple-50 rounded border border-purple-100 select-none cursor-default">
-                            <CheckSquare className="w-3.5 h-3.5"/> Menunggu Sidang
+                        <div className="w-full h-9 flex items-center justify-center gap-2 text-xs font-medium text-purple-700 bg-purple-50 rounded border border-purple-100 select-none cursor-default mb-2 text-center leading-tight">
+                            <CheckSquare className="w-3.5 h-3.5 shrink-0"/> 
+                            <span>Menunggu Sidang TPP</span>
                         </div>
                     )}
 
+                    {/* TPP DISETUJUI -> MUNCUL UPLOAD LAPORAN AKHIR */}
+                    {status === 'TPP Disetujui' && (
+                        <div className="space-y-2">
+                            <div className="w-full h-9 flex items-center justify-center gap-2 text-xs font-medium text-indigo-700 bg-indigo-50 rounded border border-indigo-200 select-none cursor-default mb-2 text-center leading-tight">
+                                <CheckSquare className="w-3.5 h-3.5 shrink-0"/> 
+                                <span>TPP Telah Disetujui</span>
+                            </div>
+                            <div className="w-full">
+                                <UploadLaporanLitmasDialog 
+                                    litmasId={currentId} 
+                                    klienName={task.klien?.nama_klien || 'Klien'} 
+                                    onSuccess={() => {
+                                        window.location.reload(); 
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PROSES SELESAI */}
                     {status === 'Selesai' && (
                         <div className="w-full h-9 flex items-center justify-center gap-2 text-xs font-medium text-slate-500 bg-slate-100 rounded border border-slate-200 select-none cursor-default">
                             <CheckCircle className="w-3.5 h-3.5"/> Proses Selesai

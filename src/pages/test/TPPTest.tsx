@@ -11,13 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
-  Gavel, Calendar, User, FileText, Plus, AlertCircle, Clock, 
-  CheckCircle, XCircle, RefreshCw, Layers, History, List, 
-  MoreHorizontal, Pencil, Trash2, Users, ChevronRight
+  Gavel, Calendar, Users, FileText, Plus, Clock, 
+  CheckCircle, XCircle, RefreshCw, Layers, History, 
+  MoreHorizontal, Pencil, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -55,18 +55,16 @@ const formatDateIndo = (dateStr: string) => {
     } catch { return dateStr; }
 };
 
-// --- INTERFACES (DIPERBAIKI) ---
+// --- INTERFACES ---
 interface TPPSchedule {
     id: string;
     tanggal_sidang: string;
     waktu_sidang: string | null;
     jenis_sidang: string;
     tempat: string | null;
-    // UPDATE: Menambahkan 'Dibatalkan' dan 'Selesai' ke dalam tipe union
     status: 'Open' | 'Closed' | 'Cancelled' | 'Dibatalkan' | 'Selesai';
     keterangan: string | null;
     kuota?: number;
-    // Helper untuk UI
     litmas_list?: any[];
 }
 
@@ -89,7 +87,8 @@ export default function TPPTest() {
   // State Dialog Putusan Sidang
   const [isDecisionOpen, setIsDecisionOpen] = useState(false);
   const [selectedLitmas, setSelectedLitmas] = useState<any>(null);
-  const [decision, setDecision] = useState<'Disetujui' | 'Ditolak' | 'Hold'>('Disetujui');
+  // MODIFIKASI: Mengganti 'Disetujui' menjadi 'TPP Disetujui'
+  const [decision, setDecision] = useState<'TPP Disetujui' | 'Ditolak' | 'Hold'>('TPP Disetujui');
   const [decisionNote, setDecisionNote] = useState('');
 
   // State Dialog Sidang Ulang
@@ -97,7 +96,7 @@ export default function TPPTest() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleItem, setRescheduleItem] = useState<any>(null);
 
-  // State Detail Riwayat Sidang (New Feature)
+  // State Detail Riwayat Sidang
   const [selectedHistorySchedule, setSelectedHistorySchedule] = useState<TPPSchedule | null>(null);
   const [isHistoryDetailOpen, setIsHistoryDetailOpen] = useState(false);
 
@@ -108,7 +107,7 @@ export default function TPPTest() {
     const { data } = await (supabase as any)
       .from('tpp_schedules')
       .select('*')
-      .order('tanggal_sidang', { ascending: false }); // Descending agar history paling atas
+      .order('tanggal_sidang', { ascending: false });
     setSchedules((data as TPPSchedule[]) || []);
   };
 
@@ -219,7 +218,7 @@ export default function TPPTest() {
   // --- LOGIC: PUTUSAN SIDANG ---
   const handleOpenDecision = (item: any) => {
     setSelectedLitmas(item);
-    setDecision('Disetujui'); 
+    setDecision('TPP Disetujui'); // Default disetujui
     setDecisionNote('');
     setIsDecisionOpen(true);
   };
@@ -233,9 +232,8 @@ export default function TPPTest() {
         waktu_sidang_tpp: new Date().toISOString(), 
     };
 
-    if (decision === 'Disetujui' || decision === 'Ditolak') {
-        updatePayload.waktu_selesai = new Date().toISOString(); 
-    }
+    // MODIFIKASI: Menghapus pengisian waktu_selesai dari halaman ini. 
+    // waktu_selesai HANYA diisi dari halaman PK (upload laporan akhir).
 
     try {
         const { error } = await supabase
@@ -244,7 +242,7 @@ export default function TPPTest() {
             .eq('id_litmas', selectedLitmas.id_litmas);
 
         if (error) throw error;
-        toast.success(`Putusan: ${decision} disimpan.`);
+        toast.success(`Putusan: ${decision} berhasil disimpan.`);
         setIsDecisionOpen(false);
         fetchParticipants(); 
     } catch (e: any) { toast.error(e.message); }
@@ -320,29 +318,25 @@ export default function TPPTest() {
   }, {});
   const sortedQueueDates = Object.keys(groupedQueue).sort();
   const rejectedHearings = participants.filter(p => ['Ditolak', 'Hold'].includes(p.status));
-  const finishedHearings = participants.filter(p => ['Disetujui', 'Selesai'].includes(p.status));
+  // Penyesuaian pengecekan log
+  const finishedHearings = participants.filter(p => ['TPP Disetujui', 'Disetujui', 'Selesai'].includes(p.status));
   
   // -- Active Schedules (Untuk Master Jadwal) --
   const activeSchedules = schedules.filter(s => new Date(s.tanggal_sidang) >= new Date(todayStr));
 
   // -- HISTORY LOGIC (GROUPING BY DATE) --
-  // Ambil jadwal yang sudah lewat ( < today ) ATAU yang statusnya 'Closed'
   const historySchedulesList = schedules.filter(s => 
       new Date(s.tanggal_sidang) < new Date(todayStr) || s.status === 'Closed' || s.status === 'Cancelled'
   );
 
-  // Group history by Date
   const historyGrouped = historySchedulesList.reduce((acc: any, curr) => {
       const dateKey = curr.tanggal_sidang;
       if (!acc[dateKey]) acc[dateKey] = [];
-      
-      // Inject litmas participants into schedule object for display
       const relatedLitmas = participants.filter(p => p.tpp_schedule_id === curr.id);
       acc[dateKey].push({ ...curr, litmas_list: relatedLitmas });
       return acc;
   }, {});
 
-  // Helper Hitung Kuota Terisi
   const getRegisteredCount = (scheduleId: string) => {
       return participants.filter(p => p.tpp_schedule_id === scheduleId).length;
   };
@@ -478,7 +472,7 @@ export default function TPPTest() {
                 </Card>
             </TabsContent>
 
-            {/* 4. RIWAYAT SIDANG (NEW FEATURE) */}
+            {/* 4. RIWAYAT SIDANG */}
             <TabsContent value="history">
                 <Card className="border-none shadow-none bg-transparent">
                     <CardHeader className="px-0 pt-0">
@@ -496,18 +490,15 @@ export default function TPPTest() {
                             <div className="space-y-6">
                                 {Object.entries(historyGrouped).map(([date, items]: [string, any]) => (
                                     <div key={date} className="relative">
-                                        {/* Tanggal Sticky Header */}
                                         <div className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur py-2 px-4 rounded-md border mb-3 flex items-center gap-2 shadow-sm">
                                             <Calendar className="w-4 h-4 text-slate-500"/>
                                             <span className="font-bold text-slate-700">{formatDateIndo(date)}</span>
                                         </div>
 
-                                        {/* List Item per Tanggal */}
                                         <div className="grid gap-3 pl-2 sm:pl-4">
                                             {items.map((item: TPPSchedule) => (
                                                 <div key={item.id} className="bg-white border rounded-lg p-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                                                     
-                                                    {/* Info Kiri */}
                                                     <div className="space-y-1 flex-1">
                                                         <div className="flex items-center gap-2">
                                                             <h4 className="font-bold text-slate-800">{item.jenis_sidang}</h4>
@@ -525,7 +516,6 @@ export default function TPPTest() {
                                                             <span className="flex items-center gap-1"><Users className="w-3 h-3"/> {item.litmas_list?.length || 0} Peserta</span>
                                                         </div>
                                                         
-                                                        {/* Preview Peserta (Maksimal 3 nama) */}
                                                         {item.litmas_list && item.litmas_list.length > 0 && (
                                                             <div className="mt-2 flex flex-wrap gap-1">
                                                                 {item.litmas_list.slice(0, 3).map((l: any) => (
@@ -540,7 +530,6 @@ export default function TPPTest() {
                                                         )}
                                                     </div>
 
-                                                    {/* Tombol Detail */}
                                                     <Button variant="outline" size="sm" className="shrink-0" onClick={() => handleOpenHistoryDetail(item)}>
                                                         <FileText className="w-4 h-4 mr-2"/> Detail
                                                     </Button>
@@ -572,7 +561,6 @@ export default function TPPTest() {
                         return (
                         <Card key={sch.id} className="border hover:shadow-md transition-shadow text-center relative group">
                             
-                            {/* MENU DROPDOWN */}
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -597,7 +585,6 @@ export default function TPPTest() {
                             <CardContent className="pt-4 pb-4 px-4">
                                 <p className="text-xs text-muted-foreground uppercase font-bold mb-3">{new Date(sch.tanggal_sidang).toLocaleDateString('id-ID', { weekday: 'long' })}</p>
                                 
-                                {/* PROGRESS BAR KUOTA */}
                                 <div className="space-y-1 mb-3">
                                     <div className="flex justify-between text-[10px] text-slate-600">
                                         <span>Terisi: {filled}</span>
@@ -625,8 +612,8 @@ export default function TPPTest() {
                 <DialogHeader><DialogTitle>Putusan Sidang</DialogTitle></DialogHeader>
                 <div className="py-4 space-y-4">
                     <RadioGroup value={decision} onValueChange={(v: any) => setDecision(v)} className="grid grid-cols-3 gap-2">
-                         <div className={`border p-3 rounded cursor-pointer text-center ${decision === 'Disetujui' ? 'border-green-500 bg-green-50' : ''}`} onClick={() => setDecision('Disetujui')}>
-                            <CheckCircle className="w-6 h-6 mx-auto text-green-600 mb-1"/> <span className="text-xs font-bold">Setujui</span>
+                         <div className={`border p-3 rounded cursor-pointer text-center ${decision === 'TPP Disetujui' ? 'border-indigo-500 bg-indigo-50' : ''}`} onClick={() => setDecision('TPP Disetujui')}>
+                            <CheckCircle className="w-6 h-6 mx-auto text-indigo-600 mb-1"/> <span className="text-xs font-bold">Setujui</span>
                          </div>
                          <div className={`border p-3 rounded cursor-pointer text-center ${decision === 'Ditolak' ? 'border-red-500 bg-red-50' : ''}`} onClick={() => setDecision('Ditolak')}>
                             <XCircle className="w-6 h-6 mx-auto text-red-600 mb-1"/> <span className="text-xs font-bold">Tolak</span>
@@ -673,7 +660,6 @@ export default function TPPTest() {
             <DialogContent>
                 <DialogHeader><DialogTitle>Buka Slot Jadwal</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-2">
-                    {/* Input Kuota */}
                     <div className="space-y-2">
                         <Label>Atur Slot / Kuota (Per Hari)</Label>
                         <div className="flex items-center gap-2">
@@ -825,7 +811,9 @@ function ParticipantTable({ data, openDoc, actionLabel, onAction, actionVariant 
                         </TableCell>
                         {showStatus && (
                             <TableCell>
+                                {/* Penyesuaian Badge Warna untuk TPP Disetujui */}
                                 <Badge className={
+                                    item.status === 'TPP Disetujui' ? 'bg-indigo-600' : 
                                     item.status === 'Disetujui' ? 'bg-green-600' : 
                                     item.status === 'Ditolak' ? 'bg-red-600' : 
                                     item.status === 'Hold' ? 'bg-orange-500' : 

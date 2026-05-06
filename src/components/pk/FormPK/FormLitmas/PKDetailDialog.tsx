@@ -607,7 +607,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                             {[
                               { date: task?.waktu_registrasi, label: "Registrasi & Penunjukan PK", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_upload_surat_tugas, label: "PK: Upload Surat Tugas", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_upload_laporan, label: "PK: Upload Laporan / Dokumen", color: "bg-green-500", text: "text-slate-800" },
+                              { date: task?.waktu_upload_laporan, label: "PK: Upload Draft Litmas", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_verifikasi_anev, label: "Anev: Verifikasi & Approval", color: "bg-green-500", text: "text-slate-800" },
                               { date: task?.waktu_sidang_tpp || (task?.jadwal ? new Date(task.jadwal.tanggal_sidang).toISOString() : null), label: "TPP: Sidang Dilaksanakan", color: "bg-purple-600", text: "text-slate-800" },
                               { date: task?.waktu_selesai, label: "Selesai", color: "bg-blue-600", text: "text-blue-700" }
