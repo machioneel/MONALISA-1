@@ -88,7 +88,7 @@ export function EmployeeManagement() {
   
   // Filtering States
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all'); // State untuk Filter Status
+  const [statusFilter, setStatusFilter] = useState<string>('all'); 
 
   // Sheet & Form States
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -96,6 +96,10 @@ export function EmployeeManagement() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [formData, setFormData] = useState<EmployeeFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // File Upload States
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const updateForm = (key: keyof EmployeeFormData, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -144,6 +148,8 @@ export function EmployeeManagement() {
     setFormData(emptyFormData);
     setIsEditMode(false);
     setCurrentId(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setIsSheetOpen(true);
   };
 
@@ -174,6 +180,8 @@ export function EmployeeManagement() {
     });
     setCurrentId(emp.id);
     setIsEditMode(true);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setIsSheetOpen(true);
   };
 
@@ -199,12 +207,30 @@ export function EmployeeManagement() {
 
     setIsSubmitting(true);
     
-    const payload: any = { ...formData };
-    Object.keys(payload).forEach(key => {
-      if (payload[key] === '') payload[key] = null;
-    });
-
     try {
+      let finalFotoUrl = formData.foto_url;
+
+      // --- LOGIKA UPLOAD FOTO ---
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `profil_${Date.now()}_${formData.nip}.${fileExt}`;
+        
+        // PERBAIKAN: Mengubah 'avatars' menjadi 'foto_pegawai'
+        const { error: uploadError } = await supabase.storage.from('foto_pegawai').upload(fileName, photoFile);
+        
+        if (uploadError) throw new Error(`Gagal mengunggah foto: ${uploadError.message}`);
+        
+        // PERBAIKAN: Mengubah 'avatars' menjadi 'foto_pegawai'
+        const { data: publicUrlData } = supabase.storage.from('foto_pegawai').getPublicUrl(fileName);
+        finalFotoUrl = publicUrlData.publicUrl;
+      }
+
+      // Mempersiapkan data untuk disimpan ke tabel
+      const payload: any = { ...formData, foto_url: finalFotoUrl };
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === '') payload[key] = null;
+      });
+
       if (isEditMode && currentId) {
         const { error } = await supabase
           .from('employees')
@@ -226,6 +252,8 @@ export function EmployeeManagement() {
       }
 
       setIsSheetOpen(false);
+      setPhotoFile(null);
+      setPhotoPreview(null);
       fetchEmployees();
     } catch (error: any) {
       console.error('Submit error:', error);
@@ -264,7 +292,6 @@ export function EmployeeManagement() {
     } else if (statusFilter === 'inactive') {
         matchesStatus = emp.status !== 'Aktif';
     } else {
-        // Jika filter spesifik (misal: 'Pensiun')
         matchesStatus = emp.status === statusFilter;
     }
 
@@ -351,10 +378,34 @@ export function EmployeeManagement() {
                         <Input id="tanggal_lahir" type="date" value={formData.tanggal_lahir} onChange={e => updateForm('tanggal_lahir', e.target.value)} />
                     </div>
                 </div>
+
+                {/* --- BAGIAN UPLOAD FOTO --- */}
                 <div className="space-y-2">
-                    <Label htmlFor="foto_url">URL Foto Profil</Label>
-                    <Input id="foto_url" value={formData.foto_url} onChange={e => updateForm('foto_url', e.target.value)} placeholder="https://..." />
+                    <Label>Foto Profil</Label>
+                    <div className="flex items-center gap-4">
+                        <Avatar className="w-14 h-14 border rounded-md shadow-sm">
+                            <AvatarImage src={photoPreview || formData.foto_url || undefined} className="object-cover" />
+                            <AvatarFallback className="rounded-md bg-slate-100"><User className="w-6 h-6 text-slate-400" /></AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <Input 
+                                type="file" 
+                                accept="image/png, image/jpeg, image/jpg" 
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setPhotoFile(file);
+                                        setPhotoPreview(URL.createObjectURL(file));
+                                    }
+                                }} 
+                                className="cursor-pointer"
+                            />
+                            <p className="text-[10.5px] text-muted-foreground mt-1.5 font-medium">Format yang didukung: JPG, JPEG, PNG.</p>
+                        </div>
+                    </div>
                 </div>
+                {/* --- AKHIR BAGIAN UPLOAD FOTO --- */}
+
             </TabsContent>
 
             <TabsContent value="kepegawaian" className="space-y-4">
@@ -465,7 +516,6 @@ export function EmployeeManagement() {
             
             {/* --- Filter & Search Container --- */}
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                {/* 1. Dropdown Filter Status */}
                 <div className="w-full sm:w-48">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-full">
@@ -478,7 +528,6 @@ export function EmployeeManagement() {
                             <SelectItem value="all">Semua Pegawai</SelectItem>
                             <SelectItem value="active">Hanya Aktif</SelectItem>
                             <SelectItem value="inactive">Tidak Aktif (Pensiun/Mutasi)</SelectItem>
-                            {/* Opsi Spesifik */}
                             {STATUS_OPTIONS.filter(s => s !== 'Aktif').map(opt => (
                                 <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                             ))}
@@ -486,7 +535,6 @@ export function EmployeeManagement() {
                     </Select>
                 </div>
 
-                {/* 2. Search Bar */}
                 <div className="relative w-full sm:w-72">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
