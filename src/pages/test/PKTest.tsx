@@ -85,7 +85,7 @@ export default function PKTest() {
             else return;
         } else { setPkName("Administrator"); }
 
-        const tables = ['litmas', 'pendampingan', 'pengawasan', 'pembimbingan'];
+        const tables = [ 'pendampingan', 'litmas', 'pembimbingan', 'pengawasan'];
 
         const fetchPromises = tables.map(async (table) => {
             let selectQuery = "";
@@ -336,10 +336,10 @@ export default function PKTest() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="px-6 pt-4 pb-2 bg-slate-50/30 overflow-x-auto">
                     <TabsList className="grid w-full min-w-[600px] grid-cols-6 bg-slate-100 p-1 rounded-xl">
-                        <TabsTrigger value="litmas" className="py-2">Litmas</TabsTrigger>
                         <TabsTrigger value="pendampingan" className="py-2">Pendampingan</TabsTrigger>
-                        <TabsTrigger value="pengawasan" className="py-2">Pengawasan</TabsTrigger>
+                        <TabsTrigger value="litmas" className="py-2">Litmas</TabsTrigger>
                         <TabsTrigger value="pembimbingan" className="py-2">Pembimbingan</TabsTrigger>
+                        <TabsTrigger value="pengawasan" className="py-2">Pengawasan</TabsTrigger>
                         <TabsTrigger value="data_klien" className="py-2 flex items-center gap-2 text-blue-600 data-[state=active]:text-blue-700 data-[state=active]:bg-blue-50">
                             <User className="w-4 h-4"/> Data Klien
                         </TabsTrigger>

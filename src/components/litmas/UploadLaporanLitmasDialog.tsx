@@ -48,20 +48,22 @@ export function UploadLaporanLitmasDialog({ litmasId, klienName, onSuccess }: Up
     setIsLoading(true);
 
     try {
-      // 1. Upload file laporan ke Supabase Storage (Asumsi bucket: 'hasil_litmas')
+      // 1. Upload file laporan ke Supabase Storage
       const fileExt = file.name.split(".").pop();
       const fileName = `laporan_akhir_${litmasId}_${Date.now()}.${fileExt}`;
       const filePath = `hasil_litmas/${fileName}`;
 
+      // PERBAIKAN: Mengubah bucket dari 'hasil_litmas' menjadi 'documents'
       const { error: uploadError } = await supabase.storage
-        .from("hasil_litmas") 
+        .from("documents") 
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // 2. Dapatkan URL Publik untuk file yang baru diunggah
+      // PERBAIKAN: Mengubah bucket dari 'hasil_litmas' menjadi 'documents'
       const { data: publicUrlData } = supabase.storage
-        .from("hasil_litmas")
+        .from("documents")
         .getPublicUrl(filePath);
 
       // 3. Update data ke tabel litmas (TIDAK MENGUBAH STATUS DB)

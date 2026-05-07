@@ -1102,7 +1102,7 @@ export default function OperatorRegistrasiTest() {
                 <form key={editingLitmas ? editingLitmas.id_litmas : 'litmas-new'} onSubmit={initiateSaveLayanan} className="space-y-6">
                   <Tabs value={layananSubTab} onValueChange={setLayananSubTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-4 bg-blue-50 border border-blue-100 p-1 rounded-xl">
-                      {['litmas', 'pendampingan', 'pengawasan', 'pembimbingan'].map((tab) => (
+                      {['pendampingan', 'litmas', 'pembimbingan', 'pengawasan'].map((tab) => (
                         <TabsTrigger key={tab} value={tab} className="py-2 text-xs font-semibold uppercase tracking-wide data-[state=active]:bg-blue-700 data-[state=active]:text-white rounded-lg">
                           {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         </TabsTrigger>

@@ -108,7 +108,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
     if (isOpen) {
         fetchNames();
         setCatatanPk(task?.pk_notes || "");
-        setActiveTab('detail'); // Reset tab saat modal dibuka
+        setActiveTab('detail'); 
     }
   }, [isOpen, existingAnevId, task?.nama_pk]);
 
@@ -117,7 +117,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
   const openDoc = (path: string) => {
     if(!path) return;
     if (path.startsWith('http://') || path.startsWith('https://')) {
-        window.open(path, '_blank'); // Langsung buka jika sudah berupa URL lengkap
+        window.open(path, '_blank'); 
     } else {
         const { data } = supabase.storage.from('documents').getPublicUrl(path);
         window.open(data.publicUrl, '_blank');
@@ -288,8 +288,8 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                             </Alert>
                         )}
 
-                        {/* 3. UPLOAD LAPORAN */}
-                        {['On Progress', 'Revision'].includes(task?.status) && !task?.hasil_litmas_url && (
+                        {/* 3. UPLOAD LAPORAN - PERBAIKAN LOGIKA DISINI */}
+                        {(['On Progress', 'Revision'].includes(task?.status)) && (!task?.hasil_litmas_url || task?.status === 'Revision') && (
                             <div className="border border-blue-200 rounded-xl overflow-hidden shadow-sm">
                                 <button
                                     type="button"
@@ -299,7 +299,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                     <div className="flex items-center gap-2">
                                         <Upload className="w-4 h-4 text-blue-700 shrink-0"/>
                                         <span className="text-sm font-bold text-blue-900">
-                                            {isAnevAssigned ? "Upload Revisi Laporan" : "Upload Laporan Hasil / Dokumen Bimbingan"}
+                                            {task?.status === 'Revision' ? "Kirim Ulang Laporan (Revisi)" : "Upload Laporan Hasil / Dokumen Bimbingan"}
                                         </span>
                                         {fileLaporan && (
                                             <span className="text-[10px] bg-blue-200 text-blue-800 font-semibold px-2 py-0.5 rounded-full">
@@ -393,9 +393,11 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
 
                                         <div className="flex items-end gap-3 pt-1 border-t border-blue-200">
                                             <div className="flex-1 space-y-1">
-                                                <Label className="text-[11px] font-semibold text-blue-800 uppercase tracking-wide">Catatan untuk ANEV (Opsional)</Label>
+                                                <Label className="text-[11px] font-semibold text-blue-800 uppercase tracking-wide">
+                                                    {task?.status === 'Revision' ? "Catatan Perbaikan (Opsional)" : "Catatan untuk ANEV (Opsional)"}
+                                                </Label>
                                                 <Textarea
-                                                    placeholder="Keterangan perbaikan atau catatan untuk ANEV..."
+                                                    placeholder={task?.status === 'Revision' ? "Tuliskan bagian mana saja yang sudah diperbaiki..." : "Keterangan tambahan untuk ANEV..."}
                                                     className="bg-white border-blue-200 min-h-[60px] text-xs resize-none"
                                                     value={catatanPk}
                                                     onChange={(e) => setCatatanPk(e.target.value)}
