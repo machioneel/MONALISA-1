@@ -60,18 +60,22 @@ export function AnevSelector({ onSelect, selectedAnevId }: AnevSelectorProps) {
         const jabatanSayaRaw = (userData as any)?.employees?.jabatan || "";
         setMyJabatan(jabatanSayaRaw);
 
-        // 2. Tentukan Keyword Jabatan
+        // 2. Tentukan Keyword Jabatan (Dibuat lebih fleksibel tanpa kata "ahli")
         const myLevel = jabatanSayaRaw.toLowerCase();
         let allowedKeywords: string[] = [];
 
         if (myLevel.includes("pertama")) {
-          allowedKeywords = ["ahli muda", "ahli madya"];
-        } else if (myLevel.includes("ahli muda")) {
-          allowedKeywords = ["ahli madya"];
-        } else if (myLevel.includes("ahli madya")) {
-          allowedKeywords = ["ahli madya"];
+          // PK Pertama diverifikasi oleh Muda, Madya, atau Utama
+          allowedKeywords = ["muda", "madya", "utama"];
+        } else if (myLevel.includes("muda")) {
+          // PK Muda diverifikasi oleh Madya atau Utama
+          allowedKeywords = ["madya", "utama"];
+        } else if (myLevel.includes("madya")) {
+          // PK Madya diverifikasi oleh sesama Madya atau Utama
+          allowedKeywords = ["madya", "utama"];
         } else {
-          allowedKeywords = ["ahli muda", "ahli madya"];
+          // Fallback (Jaga-jaga jika jabatan tidak terdeteksi dengan jelas)
+          allowedKeywords = ["muda", "madya", "utama"];
         }
 
         // 3. Ambil User dengan Role Anev
@@ -97,6 +101,11 @@ export function AnevSelector({ onSelect, selectedAnevId }: AnevSelectorProps) {
             jabatan: item.users?.employees?.jabatan || "",
           }))
           .filter((anev) => {
+            // --- FITUR BARU: MENCEGAH PK MENUNJUK DIRI SENDIRI ---
+            if (anev.user_id === user.id) {
+              return false; // Jangan masukkan diri sendiri ke dalam daftar
+            }
+
             const anevJob = anev.jabatan.toLowerCase();
             return allowedKeywords.some((keyword) => anevJob.includes(keyword));
           });

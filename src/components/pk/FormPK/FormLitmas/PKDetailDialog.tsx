@@ -582,7 +582,7 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                             <div className="flex items-center gap-3">
                                                 <div className="bg-blue-100 p-2 rounded text-blue-600"><FileText className="w-4 h-4"/></div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-slate-700">Laporan Dokumen / Litmas</p>
+                                                    <p className="text-sm font-medium text-slate-700">Draft Litmas</p>
                                                     <p className="text-[10px] text-slate-400">Uploaded: {formatDateTime(task.waktu_upload_laporan)}</p>
                                                 </div>
                                             </div>
@@ -590,7 +590,36 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-xs text-slate-400 italic px-2">Laporan dokumen belum diupload.</p>
+                                    <p className="text-xs text-slate-400 italic px-2">Draft Litmas belum diupload.</p>
+                                )}
+
+                                {/* 3. LAPORAN AKHIR / FINAL (HASIL SELESAI) */}
+                                {task?.file_laporan_akhir_url ? (
+                                    <div className="flex flex-col p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200 shadow-sm animate-in fade-in zoom-in-95">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-emerald-500 p-2 rounded-lg text-white shadow-md"><CheckCircle2 className="w-5 h-5"/></div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-emerald-900">Laporan Akhir (VERSI FINAL)</p>
+                                                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">Telah Disahkan Pasca TPP</p>
+                                                </div>
+                                            </div>
+                                            <Button 
+                                                size="sm" 
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4" 
+                                                onClick={() => openDoc(task.file_laporan_akhir_url)}
+                                            >
+                                                Buka File Final
+                                            </Button>
+                                        </div>
+                                        {task?.waktu_selesai && (
+                                            <div className="mt-2 pt-2 border-t border-emerald-100 flex items-center gap-2 text-[10px] text-emerald-600">
+                                                <Calendar className="w-3 h-3"/> Diselesaikan pada: {formatDateTime(task.waktu_selesai)}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    task?.status === 'Selesai' && <p className="text-xs text-red-500 italic px-2">Laporan final belum diunggah.</p>
                                 )}
                             </div>
                         </div>
@@ -598,34 +627,142 @@ export function PKDetailDialog({ isOpen, onOpenChange, task, onRefresh }: PKDeta
                 </div>
             )}
 
-            {/* TAB CONTENT: RIWAYAT PROSES */}
+            {/* TAB CONTENT: RIWAYAT PROSES (VERSI LENGKAP) */}
             {activeTab === 'riwayat' && (
                 <div className="mt-4">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-3xl mx-auto">
-                        <h4 className="text-sm font-bold mb-6 flex items-center gap-2 text-slate-800 border-b pb-3">
-                            <History className="w-4 h-4 text-blue-600"/> Riwayat Proses Lengkap
-                        </h4>
-                        <div className="relative border-l-2 border-slate-100 ml-3 space-y-8 pb-2">
-                            {[
-                              { date: task?.waktu_registrasi, label: "Registrasi & Penunjukan PK", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_upload_surat_tugas, label: "PK: Upload Surat Tugas", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_upload_laporan, label: "PK: Upload Draft Litmas", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_verifikasi_anev, label: "Anev: Verifikasi & Approval", color: "bg-green-500", text: "text-slate-800" },
-                              { date: task?.waktu_sidang_tpp || (task?.jadwal ? new Date(task.jadwal.tanggal_sidang).toISOString() : null), label: "TPP: Sidang Dilaksanakan", color: "bg-purple-600", text: "text-slate-800" },
-                              { date: task?.waktu_selesai, label: "Selesai", color: "bg-blue-600", text: "text-blue-700" }
-                            ].map((item, idx) => (
-                              <div key={idx} className="ml-8 relative group">
-                                  <div className={`absolute -left-[39px] w-5 h-5 rounded-full border-4 border-white shadow-sm transition-all duration-300
-                                      ${item.date ? item.color : 'bg-slate-200 group-hover:bg-slate-300'}
-                                  `}></div>
-                                  <div className={!item.date ? 'opacity-50 grayscale' : ''}>
-                                      <p className={`text-sm font-bold ${item.text}`}>{item.label}</p>
-                                      <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                                          {item.date ? formatDateTime(item.date) : 'Belum dilaksanakan'}
-                                      </p>
-                                  </div>
-                              </div>
-                            ))}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+                        <div className="flex items-center justify-between border-b pb-4 mb-6">
+                            <h4 className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                                <History className="w-5 h-5 text-blue-600"/> Audit Trail & Log Aktivitas Sistem
+                            </h4>
+                            <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                                Status Saat Ini: {task?.status}
+                            </Badge>
+                        </div>
+
+                        <div className="relative border-l-2 border-slate-100 ml-4 space-y-10 pb-4">
+                            {/* 1. TAHAP REGISTRASI */}
+                            <div className="ml-8 relative">
+                                <div className="absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white bg-blue-500 shadow-sm"></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800">Registrasi Tugas & Penunjukan PK</p>
+                                        <p className="text-xs text-slate-500">Tugas dibuat oleh Operator Registrasi dan diteruskan ke PK.</p>
+                                    </div>
+                                    <p className="text-[11px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">
+                                        {formatDateTime(task?.waktu_registrasi)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 2. SURAT TUGAS */}
+                            <div className={`ml-8 relative ${!task?.waktu_upload_surat_tugas && 'opacity-40'}`}>
+                                <div className={`absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white shadow-sm ${task?.waktu_upload_surat_tugas ? 'bg-blue-600' : 'bg-slate-300'}`}></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800">Unggah Surat Tugas (Signed)</p>
+                                        <p className="text-xs text-slate-500">PK mengonfirmasi kesiapan dengan mengunggah Surat Tugas resmi.</p>
+                                    </div>
+                                    <p className="text-[11px] font-mono">
+                                        {task?.waktu_upload_surat_tugas ? formatDateTime(task.waktu_upload_surat_tugas) : 'Belum dilaksanakan'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 3. DRAF LAPORAN AWAL */}
+                            <div className={`ml-8 relative ${!task?.waktu_upload_laporan && 'opacity-40'}`}>
+                                <div className={`absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white shadow-sm ${task?.waktu_upload_laporan ? 'bg-blue-600' : 'bg-slate-300'}`}></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800">Pengiriman Draf Laporan</p>
+                                        <p className="text-xs text-slate-500">Draf pertama dikirim PK kepada Anev untuk proses telaah dan verifikasi.</p>
+                                    </div>
+                                    <p className="text-[11px] font-mono">
+                                        {task?.waktu_upload_laporan ? formatDateTime(task.waktu_upload_laporan) : 'Belum dilaksanakan'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 4. TAHAP REVISI (DINAMIS) */}
+                            {task?.catatan_revisi && (
+                                <div className="ml-8 relative">
+                                    <div className="absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white bg-amber-500 shadow-sm animate-pulse"></div>
+                                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <AlertCircle className="w-4 h-4 text-amber-600"/>
+                                            <p className="text-sm font-bold text-amber-800">Permintaan Revisi & Perbaikan</p>
+                                        </div>
+                                        <p className="text-xs text-amber-700 italic font-medium">"{task.catatan_revisi}"</p>
+                                        <p className="text-[10px] text-amber-500 mt-2">Log: Laporan sempat dikembalikan ke PK karena butuh perbaikan.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 5. VERIFIKASI ANEV */}
+                            <div className={`ml-8 relative ${!task?.waktu_verifikasi_anev && 'opacity-40'}`}>
+                                <div className={`absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white shadow-sm ${task?.waktu_verifikasi_anev ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800">Verifikasi & Approval Anev</p>
+                                        <p className="text-xs text-slate-500">Anev menyatakan laporan valid dan siap diajukan ke sidang TPP.</p>
+                                    </div>
+                                    <p className="text-[11px] font-mono">
+                                        {task?.waktu_verifikasi_anev ? formatDateTime(task.waktu_verifikasi_anev) : 'Belum dilaksanakan'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 6. SIDANG TPP */}
+                            <div className={`ml-8 relative ${!(task?.jadwal?.tanggal_sidang || task?.waktu_sidang_tpp) && 'opacity-40'}`}>
+                                <div className={`absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white shadow-sm ${(task?.jadwal?.tanggal_sidang || task?.waktu_sidang_tpp) ? 'bg-purple-600' : 'bg-slate-300'}`}></div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-800">Pelaksanaan Sidang TPP</p>
+                                        <p className="text-xs text-slate-500">Agenda evaluasi laporan oleh Tim Pengamat Pemasyarakatan.</p>
+                                    </div>
+                                    <p className="text-[11px] font-mono">
+                                        {(task?.jadwal?.tanggal_sidang || task?.waktu_sidang_tpp) ? formatDateTime(task.jadwal?.tanggal_sidang || task.waktu_sidang_tpp) : 'Belum terjadwal'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* 7. FINALISASI & COMPARISON (SELISIH WAKTU) */}
+                            {task?.file_laporan_akhir_url && (
+                                <div className="ml-8 relative">
+                                    <div className="absolute -left-[41px] w-6 h-6 rounded-full border-4 border-white bg-emerald-600 shadow-sm"></div>
+                                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm">
+                                        <p className="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4"/> Penyelesaian Laporan Akhir (Final)
+                                        </p>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-emerald-500 uppercase">Waktu Input Sistem</p>
+                                                <p className="text-xs font-mono text-slate-700 bg-white p-2 rounded border border-emerald-100">
+                                                    {formatDateTime(task.updated_at)}
+                                                </p>
+                                                <p className="text-[9px] text-slate-400 italic">*Waktu saat PK menekan tombol Simpan</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold text-emerald-500 uppercase">Waktu Pelaksanaan (Kustom)</p>
+                                                <p className="text-xs font-mono text-emerald-800 bg-white p-2 rounded border border-emerald-100 font-bold">
+                                                    {formatDateTime(task.waktu_selesai)}
+                                                </p>
+                                                <p className="text-[9px] text-slate-400 italic">*Tanggal kejadian yang dilaporkan PK</p>
+                                            </div>
+                                        </div>
+
+                                        {/* LOGIKA ANALISIS SELISIH */}
+                                        {task.waktu_selesai && task.updated_at && (
+                                            <div className="mt-3 p-2 bg-white/50 rounded text-[10px] text-emerald-700 border border-dashed border-emerald-200">
+                                                <span className="font-bold">Info Audit:</span> Laporan diinput ke sistem 
+                                                {Math.floor((new Date(task.updated_at).getTime() - new Date(task.waktu_selesai).getTime()) / (1000 * 60 * 60 * 24))} hari 
+                                                setelah tanggal pelaksanaan.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

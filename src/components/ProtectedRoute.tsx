@@ -40,8 +40,8 @@ export function ProtectedRoute({
   // STATE UNTUK MENAMPILKAN POP-UP
   const [showIdleAlert, setShowIdleAlert] = useState(false);
 
-  // AMBIL PENANDA STATUS OTP DARI SESSION STORAGE
-  const isOtpVerified = sessionStorage.getItem('otp_verified') === 'true';
+  // AMBIL PENANDA STATUS CAPTCHA DARI SESSION STORAGE
+  const isCaptchaVerified = sessionStorage.getItem('captcha_verified') === 'true';
 
   // PANGGIL HOOK: Jika idle 60 menit, set state Pop-up jadi true
   useIdleTimeout(60, () => {
@@ -52,7 +52,7 @@ export function ProtectedRoute({
   const handleIdleLogout = async () => {
     setShowIdleAlert(false); // Tutup pop-up
     await supabase.auth.signOut(); // Logout dari supabase
-    sessionStorage.removeItem('otp_verified'); // Hapus sesi OTP
+    sessionStorage.removeItem('captcha_verified'); // Hapus sesi CAPTCHA
     navigate('/login', { replace: true }); // Lempar ke login
   };
 
@@ -64,8 +64,8 @@ export function ProtectedRoute({
     );
   }
 
-  // BLOKIR AKSES JIKA: Belum login dari Supabase ATAU OTP belum diverifikasi
-  if (!user || !isOtpVerified) {
+  // BLOKIR AKSES JIKA: Belum login dari Supabase ATAU CAPTCHA belum diverifikasi
+  if (!user || !isCaptchaVerified) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

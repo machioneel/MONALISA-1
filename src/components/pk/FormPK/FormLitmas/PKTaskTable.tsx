@@ -129,7 +129,7 @@ export function PKTaskTable({ tasks, loading, onViewDetail, onUpload, onOpenRegi
         ) : (
             tasks.map((task) => {
                 // LOGIKA STATUS: Jika waktu_selesai ada, paksa UI menjadi 'Selesai'
-                const status = task.waktu_selesai ? 'Selesai' : getStatus(task.status);
+                const status = getStatus(task.status);
                 
                 const schedule = task.jadwal ? formatSidangDate(task.jadwal.tanggal_sidang) : null;
                 const hasPenjamin = task.klien?.penjamin && task.klien.penjamin.length > 0;

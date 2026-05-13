@@ -9,7 +9,7 @@ import { FileText, CheckCircle2, XCircle, Search, BarChart3, ExternalLink, Histo
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TestPageLayout } from "@/components/TestPageLayout"; 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { HistoryCatatanDialog } from "@/components/anev/HistoryCatatanDialog";
@@ -32,6 +32,12 @@ export default function AnevTest() {
   const [isRevisiOpen, setIsRevisiOpen] = useState(false);
   const [revisiNotes, setRevisiNotes] = useState("");
   const [taskToRevise, setTaskToRevise] = useState<number | null>(null);
+
+  // --- STATE UNTUK FITUR ANEV BERHALANGAN ---
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [taskToReject, setTaskToReject] = useState<any>(null);
 
   // --- HELPER BARU: Generate URL ---
   const getDocUrl = (path: string | null) => {
@@ -156,6 +162,64 @@ export default function AnevTest() {
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     }
+  };
+
+  // --- FUNGSI BARU: TOLAK TUGAS (BERHALANGAN) ---
+  const handleTolakBerhalangan = async () => {
+    if (!taskToReject) return;
+    if (!rejectReason.trim()) {
+      toast({ 
+        variant: "destructive", 
+        title: "Alasan Wajib Diisi", 
+        description: "Mohon sebutkan alasan (contoh: Cuti, Dinas Luar, Sakit, dll)." 
+      });
+      return;
+    }
+
+    setIsRejecting(true);
+    try {
+      const tableName = taskToReject.tabel_sumber || 'litmas';
+      const pkColumn = `id_${tableName}`;
+      const currentId = taskToReject.id_layanan || taskToReject.id_litmas || taskToReject.id_pembimbingan;
+
+      // Update database: Kosongkan Anev dan ubah status ke Revision
+      const { error } = await supabase.from(tableName).update({
+        assigned_anev_id: null,
+        status: 'Revision',
+        anev_notes: `[ANEV BERHALANGAN] Laporan dikembalikan ke PK karena: ${rejectReason}. Silakan tunjuk Anev pengganti yang tersedia.`,
+        catatan_revisi: `[ANEV BERHALANGAN] Laporan dikembalikan ke PK karena: ${rejectReason}. Silakan tunjuk Anev pengganti yang tersedia.`
+      }).eq(pkColumn, currentId);
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Tugas Berhasil Dikembalikan", 
+        description: "Laporan dikembalikan ke PK agar menunjuk Anev lain." 
+      });
+      
+      // Bersihkan state
+      setIsRejectOpen(false);
+      setRejectReason("");
+      setTaskToReject(null);
+      
+      // Refresh Data
+      fetchData(); 
+
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Gagal Mengembalikan Laporan", 
+        description: error.message 
+      });
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const openRejectDialog = (task: any) => {
+    setTaskToReject(task);
+    setRejectReason("");
+    setIsRejectOpen(true);
   };
 
   const filteredReviews = reviews.filter(r => 
@@ -297,6 +361,15 @@ export default function AnevTest() {
                                 }}>
                                     Lihat Catatan
                                 </Button>
+                                {/* TOMBOL BARU: TOLAK BERHALANGAN */}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700" 
+                                  onClick={() => openRejectDialog(item)}
+                                >
+                                  Tolak (Berhalangan)
+                                </Button>
                                 <Button size="sm" variant="outline" className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200" onClick={() => openRevisiModal(item.id_litmas)}>
                                     <XCircle className="h-4 w-4 mr-1" /> Revisi
                                 </Button>
@@ -328,7 +401,6 @@ export default function AnevTest() {
                             <TableHead>PK</TableHead>
                             <TableHead>Keputusan / Status Akhir</TableHead>
                             <TableHead>Waktu Verifikasi</TableHead>
-                            {/* ✅ KOLOM BARU: Aksi */}
                             <TableHead className="pr-6 text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -362,7 +434,6 @@ export default function AnevTest() {
                                 <TableCell className="text-xs text-slate-500 font-mono">
                                     {item.waktu_verifikasi_anev ? formatDateTime(item.waktu_verifikasi_anev) : '-'}
                                 </TableCell>
-                                {/* ✅ CELL BARU: Tombol Lihat Catatan */}
                                 <TableCell className="pr-6 text-right">
                                     <Button
                                         variant="outline"
@@ -416,6 +487,44 @@ export default function AnevTest() {
                 <Button variant="outline" onClick={() => setIsRevisiOpen(false)}>Batal</Button>
                 <Button className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm" onClick={submitRevision}>Kirim Revisi ke PK</Button>
             </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- MODAL ANEV BERHALANGAN --- */}
+      <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Tolak Verifikasi (Berhalangan)</DialogTitle>
+            <DialogDescription>
+              Gunakan fitur ini <b>hanya</b> jika Anda sedang berhalangan (Cuti/Sakit/Dinas Luar). 
+              Laporan akan dikembalikan ke PK dan nama Anda akan dilepas dari laporan ini agar PK dapat memilih Anev pengganti.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Alasan Berhalangan <span className="text-red-500">*</span></Label>
+              <Input 
+                placeholder="Contoh: Sedang Dinas Luar ke luar kota hingga Jumat." 
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsRejectOpen(false)} disabled={isRejecting}>
+              Batal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleTolakBerhalangan} 
+              disabled={isRejecting || !rejectReason.trim()}
+            >
+              {isRejecting ? "Memproses..." : "Kembalikan ke PK"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -533,7 +642,6 @@ export default function AnevTest() {
         </DialogContent>
       </Dialog>
 
-      {/* ✅ DIALOG BARU: HistoryCatatanDialog untuk Riwayat */}
       <HistoryCatatanDialog 
           isOpen={isHistoryOpen} 
           onOpenChange={setIsHistoryOpen} 

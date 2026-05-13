@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, CheckCircle2, KeyRound } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, User, Lock, CheckCircle2, KeyRound, ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
 
 // Skema validasi untuk NIP dan Password
@@ -16,24 +16,24 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter'),
 });
 
-// Skema validasi untuk OTP
-const otpSchema = z.object({
-  otp: z.string().length(6, 'Kode OTP harus 6 digit').regex(/^\d+$/, 'OTP hanya berisi angka'),
+// Skema validasi untuk CAPTCHA
+const captchaSchema = z.object({
+  captcha: z.string().length(6, 'Kode CAPTCHA harus 6 digit').regex(/^\d+$/, 'CAPTCHA hanya berisi angka'),
 });
 
 export default function Login() {
   // State kredensial
   const [nip, setNip] = useState('');
   const [password, setPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
+  const [captchaCode, setCaptchaCode] = useState('');
   
   // State untuk alur UI
-  const [step, setStep] = useState<'login' | 'otp'>('login');
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  const [step, setStep] = useState<'login' | 'captcha'>('login');
+  const [generatedCaptcha, setGeneratedCaptcha] = useState<string | null>(null);
   
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<{ nip?: string; password?: string; otp?: string }>({});
+  const [validationErrors, setValidationErrors] = useState<{ nip?: string; password?: string; captcha?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [isCapsLockOn, setIsCapsLockOn] = useState(false);
@@ -46,16 +46,16 @@ export default function Login() {
 
   // PERBAIKAN LOGIKA REDIRECT: Jangan redirect instan jika animasi (showWelcome) sedang berjalan
   useEffect(() => {
-    const isOtpVerified = sessionStorage.getItem('otp_verified') === 'true';
+    const isCaptchaVerified = sessionStorage.getItem('captcha_verified') === 'true';
     
     // Auto-redirect jika user iseng buka URL /login saat sudah diverifikasi penuh
-    if (user && isOtpVerified && !showWelcome) {
+    if (user && isCaptchaVerified && !showWelcome) {
       navigate(from, { replace: true });
     }
     
-    // Bersihkan sesi OTP jika user dalam status logout (untuk keamanan)
+    // Bersihkan sesi CAPTCHA jika user dalam status logout (untuk keamanan)
     if (!user) {
-      sessionStorage.removeItem('otp_verified');
+      sessionStorage.removeItem('captcha_verified');
     }
   }, [user, showWelcome, navigate, from]);
 
@@ -85,47 +85,37 @@ export default function Login() {
       setError(signInError);
       setIsLoading(false);
     } else {
-      // Jika berhasil, buat kode OTP acak
-      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(newOtp);
+      // Jika berhasil login database, buat kode CAPTCHA 6 digit acak
+      const newCaptcha = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedCaptcha(newCaptcha);
       
-      try {
-        // Memanggil Edge Function untuk mengirim OTP via WhatsApp
-        await supabase.functions.invoke('send-wa-otp', {
-            body: { nip, otp: newOtp }
-        });
-        
-        // Ubah tampilan ke form OTP
-        setStep('otp');
-      } catch (funcError) {
-        setError('Berhasil login, namun gagal mengirimkan kode OTP ke WhatsApp Anda.');
-      } finally {
-        setIsLoading(false);
-      }
+      // Ubah tampilan ke form CAPTCHA
+      setStep('captcha');
+      setIsLoading(false);
     }
   };
 
-  // TAHAP 2: Verifikasi OTP
-  const handleVerifyOTP = async (e: React.FormEvent) => {
+  // TAHAP 2: Verifikasi CAPTCHA
+  const handleVerifyCaptcha = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setValidationErrors({});
 
-    const result = otpSchema.safeParse({ otp: otpCode });
+    const result = captchaSchema.safeParse({ captcha: captchaCode });
     if (!result.success) {
-      setValidationErrors({ otp: result.error.errors[0].message });
+      setValidationErrors({ captcha: result.error.errors[0].message });
       return;
     }
 
     setIsLoading(true);
 
     // Simulasi jeda singkat agar UX terasa natural (proses verifikasi)
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await new Promise(resolve => setTimeout(resolve, 600));
 
-    // Membandingkan OTP yang dimasukkan dengan OTP yang dikirim
-    if (otpCode === generatedOtp) {
-      // SET FLAG OTP TERVERIFIKASI
-      sessionStorage.setItem('otp_verified', 'true');
+    // Membandingkan CAPTCHA yang dimasukkan dengan yang di-generate
+    if (captchaCode === generatedCaptcha) {
+      // SET FLAG CAPTCHA TERVERIFIKASI
+      sessionStorage.setItem('captcha_verified', 'true');
       
       // Memicu animasi "Selamat Datang"
       setShowWelcome(true);
@@ -136,7 +126,10 @@ export default function Login() {
         navigate(from, { replace: true });
       }, 2000);
     } else {
-      setError('Kode OTP salah. Silakan periksa pesan WhatsApp Anda.');
+      setError('Kode CAPTCHA salah. Silakan coba lagi.');
+      // Acak ulang kode jika salah agar lebih aman
+      setGeneratedCaptcha(Math.floor(100000 + Math.random() * 900000).toString());
+      setCaptchaCode('');
       setIsLoading(false);
     }
   };
@@ -148,22 +141,22 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full grid lg:grid-cols-2 relative">
       
-      {/* ANIMASI SAAT PROSES VERIFIKASI OTP */}
-      {isLoading && step === 'otp' && !showWelcome && (
+      {/* ANIMASI SAAT PROSES VERIFIKASI CAPTCHA */}
+      {isLoading && step === 'captcha' && !showWelcome && (
         <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-300">
           <div className="text-center space-y-6 animate-in zoom-in-95 duration-300">
             <div className="relative flex items-center justify-center mx-auto w-32 h-32">
               <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" />
               <div className="absolute inset-4 bg-blue-500/40 rounded-full animate-pulse" />
               <div className="relative z-10 bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/40">
-                <KeyRound className="h-8 w-8 text-white animate-pulse" />
+                <ShieldCheck className="h-8 w-8 text-white animate-pulse" />
               </div>
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold tracking-tight text-foreground">Memverifikasi OTP</h3>
+              <h3 className="text-2xl font-bold tracking-tight text-foreground">Memverifikasi Keamanan</h3>
               <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                Mencocokkan kode keamanan...
+                Mencocokkan kode CAPTCHA...
               </p>
             </div>
           </div>
@@ -214,10 +207,10 @@ export default function Login() {
           <Card className="border-0 shadow-none sm:border sm:shadow-lg">
              <CardHeader className="space-y-1 pb-2">
                 <CardTitle className="text-xl text-center">
-                    {step === 'login' ? 'Login Pegawai' : 'Verifikasi 2 Langkah'}
+                    {step === 'login' ? 'Login Pegawai' : 'Verifikasi Keamanan'}
                 </CardTitle>
                 <CardDescription className="text-center">
-                   {step === 'login' ? 'Masuk menggunakan NIP dan Password' : 'Masukkan kode OTP yang dikirim ke WhatsApp Anda'}
+                   {step === 'login' ? 'Masuk menggunakan NIP dan Password' : 'Ketik ulang 6 angka di bawah ini untuk melanjutkan'}
                 </CardDescription>
              </CardHeader>
 
@@ -321,40 +314,46 @@ export default function Login() {
                   </form>
               )}
 
-              {/* TAMPILAN FORM OTP */}
-              {step === 'otp' && (
-                  <form onSubmit={handleVerifyOTP} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+              {/* TAMPILAN FORM CAPTCHA (Pengganti OTP) */}
+              {step === 'captcha' && (
+                  <form onSubmit={handleVerifyCaptcha} className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    
+                    {/* Kotak Tampilan CAPTCHA Visual */}
+                    <div className="flex justify-center items-center py-5 mb-2 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 select-none">
+                      <span className="text-4xl font-mono font-bold tracking-[0.4em] text-slate-700 opacity-90 decoration-slate-400 line-through decoration-2 pointer-events-none pl-[0.4em]">
+                        {generatedCaptcha}
+                      </span>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="otp" className={validationErrors.otp ? 'text-destructive' : ''}>
-                        Kode OTP (6 Digit)
+                      <Label htmlFor="captcha" className={validationErrors.captcha ? 'text-destructive' : ''}>
+                        Ketik 6 Angka di Atas
                       </Label>
                       <div className="relative group">
                         <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
-                          id="otp"
+                          id="captcha"
                           type="text"
                           maxLength={6}
                           placeholder="••••••"
-                          value={otpCode}
-                          onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                          value={captchaCode}
+                          onChange={(e) => setCaptchaCode(e.target.value.replace(/[^0-9]/g, ''))} // Hanya terima angka
                           disabled={isLoading || showWelcome}
-                          className={`pl-10 font-mono tracking-widest text-center text-lg transition-all ${validationErrors.otp ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
+                          autoFocus
+                          className={`pl-10 font-mono tracking-widest text-center text-lg transition-all ${validationErrors.captcha ? 'border-destructive focus-visible:ring-destructive' : 'focus-visible:ring-primary'}`}
                         />
                       </div>
-                      {validationErrors.otp && (
+                      {validationErrors.captcha && (
                         <p className="text-[0.8rem] font-medium text-destructive animate-in slide-in-from-top-1">
-                          {validationErrors.otp}
+                          {validationErrors.captcha}
                         </p>
                       )}
-                      <p className="text-xs text-center text-muted-foreground mt-2">
-                        Belum menerima kode? <button type="button" className="text-primary hover:underline" onClick={handleLoginSubmit}>Kirim ulang</button>
-                      </p>
                     </div>
 
                     <Button 
                         type="submit" 
-                        className="w-full h-11 text-base font-medium bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all hover:scale-[1.01]" 
-                        disabled={isLoading || showWelcome || otpCode.length !== 6}
+                        className="w-full h-11 text-base font-medium bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.01] mt-2" 
+                        disabled={isLoading || showWelcome || captchaCode.length !== 6}
                     >
                       {isLoading ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memverifikasi...</>
@@ -370,13 +369,13 @@ export default function Login() {
                         type="button" 
                         onClick={async () => { 
                             setStep('login'); 
-                            setOtpCode(''); 
+                            setCaptchaCode(''); 
                             setError(null); 
                             await supabase.auth.signOut(); 
                         }}
                         className="text-sm text-muted-foreground underline hover:text-primary transition-colors"
                       >
-                        Kembali ke Login
+                        Batal & Kembali ke Login
                       </button>
                     </div>
                   </form>

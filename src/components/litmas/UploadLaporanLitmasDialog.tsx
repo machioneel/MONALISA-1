@@ -67,16 +67,16 @@ export function UploadLaporanLitmasDialog({ litmasId, klienName, onSuccess }: Up
         .getPublicUrl(filePath);
 
       // 3. Update data ke tabel litmas (TIDAK MENGUBAH STATUS DB)
-      // Kita hanya mengisi URL laporan, waktu upload, dan waktu selesai kustom
       const { error: updateError } = await supabase
         .from("litmas")
         .update({
-          hasil_litmas_url: publicUrlData.publicUrl,
-          waktu_upload_laporan: new Date().toISOString(), // Waktu sistem saat ini
-          waktu_selesai: new Date(tanggalPelaksanaan).toISOString(), // Tanggal kustom dari user
-        }as any)
+          // PERBAIKAN: Disimpan ke kolom berbeda agar draf (hasil_litmas_url) tetap ada
+          file_laporan_akhir_url: publicUrlData.publicUrl,
+          waktu_upload_laporan: new Date().toISOString(), 
+          waktu_selesai: new Date(tanggalPelaksanaan).toISOString(),
+          status: 'Selesai' // Memastikan status berubah jadi Selesai
+        } as any)
         .eq("id_litmas", litmasId);
-
       if (updateError) throw updateError;
 
       toast({
